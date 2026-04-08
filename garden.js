@@ -61,12 +61,13 @@ function seed() {
     state[idx + 5] = 1.0; // hidden
 }
 
+
 // Mouse interaction
 let isDrawing = false;
-let mouseX = 0, mouseY = 0;
-canvas.addEventListener('mousedown', (e) => { isDrawing = true; interact(e); });
-canvas.addEventListener('mousemove', (e) => { if(isDrawing) interact(e); });
-canvas.addEventListener('mouseup', () => { isDrawing = false; });
+canvas.addEventListener('pointerdown', (e) => { isDrawing = true; interact(e); });
+canvas.addEventListener('pointermove', (e) => { if(isDrawing) interact(e); });
+canvas.addEventListener('pointerup', () => { isDrawing = false; });
+canvas.addEventListener('pointercancel', () => { isDrawing = false; });
 
 function interact(e) {
     const rect = canvas.getBoundingClientRect();
@@ -79,15 +80,18 @@ function interact(e) {
     let gx = Math.floor(mx / scale);
     let gy = Math.floor(my / scale);
     
-    if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
-        // Erase cell (simulate damage so it heals)
-        for(let dy=-2; dy<=2; dy++) {
-            for(let dx=-2; dx<=2; dx++) {
+    // Make the brush size a bit larger and zero both buffers
+    let brushSize = 3;
+    if (gx >= -brushSize && gx < GRID_SIZE + brushSize && gy >= -brushSize && gy < GRID_SIZE + brushSize) {
+        for(let dy = -brushSize; dy <= brushSize; dy++) {
+            for(let dx = -brushSize; dx <= brushSize; dx++) {
                 let nx = gx + dx;
                 let ny = gy + dy;
-                if(nx>=0 && nx<GRID_SIZE && ny>=0 && ny<GRID_SIZE) {
+                // Circular brush
+                if(nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && (dx*dx + dy*dy <= brushSize*brushSize)) {
                     const idx = (ny * GRID_SIZE + nx) * CHANNELS;
                     state.fill(0, idx, idx + CHANNELS);
+                    nextState.fill(0, idx, idx + CHANNELS);
                 }
             }
         }
