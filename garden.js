@@ -196,7 +196,7 @@ function step() {
     nextState = tmp;
 }
 
-const imageData = ctx.createImageData(GRID_SIZE, GRID_SIZE);
+
 
 
 
