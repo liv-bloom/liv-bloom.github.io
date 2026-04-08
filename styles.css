@@ -12,9 +12,10 @@ body {
     color: #000;
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    /* align-items: center; */
     justify-content: center;
-    overflow: hidden; /* Prevent scrolling for the immersive art feel */
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 /* The Organic Machine / Slime Mold Effect */
@@ -26,6 +27,7 @@ body {
 
 /* Content */
 .glass-panel {
+    margin: auto;
     z-index: 10;
     background: transparent;
     /* backdrop-filter: blur(12px); */
@@ -133,7 +135,8 @@ body.lang-ja .en { display: none !important; }
 
 @media (max-width: 600px) {
     h1 { font-size: 3.5rem; }
-    .glass-panel { padding: 2rem; }
+    .glass-panel {
+    margin: auto; padding: 2rem; }
 }
 
 
@@ -146,7 +149,7 @@ body.lang-ja .en { display: none !important; }
     z-index: -1;
     pointer-events: none;
     display: flex;
-    align-items: center;
+    /* align-items: center; */
     justify-content: center;
     background: transparent;
     isolation: isolate; /* Force a new stacking context so screen blend only happens inside */
