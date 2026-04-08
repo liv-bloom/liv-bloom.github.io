@@ -147,7 +147,7 @@ body.lang-ja .en { display: none !important; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #b4ff39; /* Electric Lime / Yellow-Green */
+    background: #ffffff; /* Pure White */
 }
 
 .nca-container canvas {
