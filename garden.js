@@ -62,14 +62,17 @@ function seed() {
 }
 
 
-// Mouse interaction
+
+// Mouse interaction (attach to window since canvas has pointer-events: none)
 let isDrawing = false;
-canvas.addEventListener('pointerdown', (e) => { isDrawing = true; interact(e); });
-canvas.addEventListener('pointermove', (e) => { if(isDrawing) interact(e); });
-canvas.addEventListener('pointerup', () => { isDrawing = false; });
-canvas.addEventListener('pointercancel', () => { isDrawing = false; });
+window.addEventListener('pointerdown', (e) => { isDrawing = true; interact(e); });
+window.addEventListener('pointermove', (e) => { if(isDrawing) interact(e); });
+window.addEventListener('pointerup', () => { isDrawing = false; });
+window.addEventListener('pointercancel', () => { isDrawing = false; });
 
 function interact(e) {
+    // Check if user is interacting with text/links. If they are clicking a link, maybe ignore?
+    // Actually, letting them draw everywhere is fine.
     const rect = canvas.getBoundingClientRect();
     const scale = Math.min(width, height) / GRID_SIZE;
     const offsetX = (width - GRID_SIZE * scale) / 2;
