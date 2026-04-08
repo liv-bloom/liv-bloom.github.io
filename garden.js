@@ -54,34 +54,43 @@ function seed() {
 
 
 
-// Mouse interaction (attach to window since canvas has pointer-events: none)
-let isDrawing = false;
-window.addEventListener('pointerdown', (e) => { isDrawing = true; interact(e); });
-window.addEventListener('pointermove', (e) => { if(isDrawing) interact(e); });
-window.addEventListener('pointerup', () => { isDrawing = false; });
-window.addEventListener('pointercancel', () => { isDrawing = false; });
+// Screen-mapped interaction
 
+let lastX = window.innerWidth / 2;
+let lastY = window.innerHeight / 2;
 
+window.addEventListener('pointermove', (e) => { 
+    lastX = e.clientX; 
+    lastY = e.clientY;
+    interact(lastX, lastY, 1); 
+});
+window.addEventListener('pointerdown', (e) => { 
+    interact(e.clientX, e.clientY, 3); 
+});
+window.addEventListener('scroll', () => {
+    interact(lastX, lastY, 2);
+    // Extra wind/damage on scroll
+    let rx = Math.random() * window.innerWidth;
+    let ry = Math.random() * window.innerHeight;
+    interact(rx, ry, 1);
+});
 
-function interact(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scale = rect.width / GRID_SIZE;
+function interact(cx, cy, brushSize) {
+    let gx = Math.floor((cx / window.innerWidth) * GRID_SIZE);
+    let gy = Math.floor((cy / window.innerHeight) * GRID_SIZE);
     
-    let mx = e.clientX - rect.left;
-    let my = e.clientY - rect.top;
-    let gx = Math.floor(mx / scale);
-    let gy = Math.floor(my / scale);
-    
-    let brushSize = 2;
     if (gx >= -brushSize && gx < GRID_SIZE + brushSize && gy >= -brushSize && gy < GRID_SIZE + brushSize) {
         for(let dy = -brushSize; dy <= brushSize; dy++) {
             for(let dx = -brushSize; dx <= brushSize; dx++) {
                 let nx = gx + dx;
                 let ny = gy + dy;
                 if(nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && (dx*dx + dy*dy <= brushSize*brushSize)) {
-                    const idx = (ny * GRID_SIZE + nx) * CHANNELS;
-                    state.fill(0, idx, idx + CHANNELS);
-                    nextState.fill(0, idx, idx + CHANNELS);
+                    // 80% chance to erase cell (adds organic noise instead of a hard square)
+                    if (Math.random() < 0.8) {
+                        const idx = (ny * GRID_SIZE + nx) * CHANNELS;
+                        state.fill(0, idx, idx + CHANNELS);
+                        nextState.fill(0, idx, idx + CHANNELS);
+                    }
                 }
             }
         }
