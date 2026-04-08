@@ -58,7 +58,7 @@ h1 {
 
 .subtitle {
     font-size: 1.1rem;
-    color: var(--accent);
+    color: #FF1493;
     text-transform: uppercase;
     letter-spacing: 0.3em;
     margin: 1.5rem 0 2.5rem;
