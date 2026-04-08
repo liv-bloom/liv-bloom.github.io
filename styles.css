@@ -252,7 +252,7 @@ body.lang-ja .en { display: none !important; }
     width: 0.8em;
     height: 0.8em;
     vertical-align: middle;
-    margin-right: 0.3em;
+    margin-left: 0.3em;
     border-radius: 4px;
     image-rendering: pixelated;
     display: inline-block;

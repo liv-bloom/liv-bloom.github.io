@@ -289,3 +289,17 @@ function render(time) {
 
 loadNCA();
 requestAnimationFrame(render);
+
+
+// Prevent scroll bounce when content fits in window
+function updateScroll() {
+    const panel = document.querySelector('.glass-panel');
+    if (panel && panel.offsetHeight + 100 > window.innerHeight) {
+        document.body.style.overflowY = 'auto';
+    } else {
+        document.body.style.overflowY = 'hidden';
+    }
+}
+window.addEventListener('resize', updateScroll);
+window.addEventListener('load', updateScroll);
+updateScroll();
