@@ -276,10 +276,10 @@ function render(time) {
                 imageDatas[3].data[i*4 + 2] = Math.min(255, Math.max(0, (v12 + 1) * 20));
                 imageDatas[3].data[i*4 + 3] = alpha;
                 if (logoImageData) {
-                    let brightness = state[i * CHANNELS + 0] * 0.4 + 0.6; // Soft shading based on channel 0
-                    logoImageData.data[i*4 + 0] = Math.min(255, 255 * brightness); // R (Hot Pink base)
-                    logoImageData.data[i*4 + 1] = Math.min(255, 105 * brightness); // G
-                    logoImageData.data[i*4 + 2] = Math.min(255, 180 * brightness); // B
+                    let brightness = state[i * CHANNELS + 0] * 0.3 + 0.7; // Keep it bright
+                    logoImageData.data[i*4 + 0] = 255; // R (Max out red for neon effect)
+                    logoImageData.data[i*4 + 1] = Math.min(255, 20 * brightness); // G (Very little green to keep it pink/magenta)
+                    logoImageData.data[i*4 + 2] = Math.min(255, 147 * brightness); // B (DeepPink standard)
                     logoImageData.data[i*4 + 3] = alpha;
                 }
             }
