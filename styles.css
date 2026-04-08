@@ -141,12 +141,13 @@ body.lang-ja .en { display: none; }
 .header-content {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1.5rem;
 }
 
 #garden-canvas {
-    width: 128px;
-    height: 128px;
+    flex-shrink: 0;
+    width: 48px; /* Reduced from 128px */
+    height: 48px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
     border: 1px solid var(--border-color);
