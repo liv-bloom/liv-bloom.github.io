@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
 :root {
     --accent: #FF0055;
@@ -7,7 +7,7 @@
 body {
     margin: 0;
     padding: 0;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: 'Space Mono', monospace;
     background-color: #000;
     color: #000;
     min-height: 100vh;
@@ -51,9 +51,7 @@ h1 {
     margin: 0;
     letter-spacing: -0.05em;
     line-height: 1;
-    background: linear-gradient(135deg, #fff, var(--accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: #000;
 }
 
 .subtitle {
@@ -67,7 +65,7 @@ h1 {
 p {
     font-size: 1.1rem;
     line-height: 1.6;
-    color: rgba(255, 255, 255, 0.7);
+    color: #333;
     margin-bottom: 3rem;
 }
 
@@ -84,7 +82,7 @@ p {
     font-weight: 400;
     font-size: 1rem;
     padding: 0.8rem 1.8rem;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.2);
     border-radius: 50px;
     transition: all 0.3s ease;
     text-transform: uppercase;
@@ -92,11 +90,7 @@ p {
 }
 
 .links a:hover {
-    background: var(--accent);
-    color: #000;
-    border-color: var(--accent);
     transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(180, 255, 57, 0.2);
 }
 
 /* Lang Toggle */
