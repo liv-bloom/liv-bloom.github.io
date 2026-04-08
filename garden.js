@@ -1,4 +1,7 @@
 
+const GRID_SIZE = 32;
+const CHANNELS = 16;
+
 const canvases = [
     document.getElementById('nca-layer-0'),
     document.getElementById('nca-layer-1'),
@@ -8,11 +11,6 @@ const canvases = [
 const ctxs = canvases.map(c => c.getContext('2d'));
 const imageDatas = ctxs.map(ctx => ctx.createImageData(GRID_SIZE, GRID_SIZE));
 
-
-
-
-const GRID_SIZE = 32;
-const CHANNELS = 16;
 let state = new Float32Array(GRID_SIZE * GRID_SIZE * CHANNELS);
 let nextState = new Float32Array(GRID_SIZE * GRID_SIZE * CHANNELS);
 
