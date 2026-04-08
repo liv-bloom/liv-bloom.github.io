@@ -18,26 +18,11 @@ body {
 }
 
 /* The Organic Machine / Slime Mold Effect */
-.gooey-bg {
-    position: fixed;
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh;
-    z-index: -1;
-    background: #000;
-    /* The magic formula: blur + intense contrast turns pixel blocks into organic fluid blobs */
-    filter: blur(25px) contrast(80); 
-    pointer-events: none;
-}
 
-#garden-canvas {
-    width: 100vw;
-    height: 100vh;
-    /* Map the 32x32 logic squarely to the massive viewport */
-    image-rendering: pixelated; 
-    opacity: 0.8;
-}
+
+
+
+
 
 /* Content */
 .glass-panel {
@@ -148,4 +133,28 @@ body.lang-ja .en { display: none !important; }
 @media (max-width: 600px) {
     h1 { font-size: 3.5rem; }
     .glass-panel { padding: 2rem; }
+}
+
+.gooey-bg {
+    position: fixed;
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh;
+    z-index: -1;
+    background: #051005; /* Deep dark green */
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#garden-canvas {
+    width: 100vw;
+    height: 100vh;
+    /* Scale the 32x32 to fill screen */
+    transform: scale(1.2); /* Ensure it bleeds over the edges */
+    image-rendering: pixelated; 
+    opacity: 0.4; /* Soft glow behind the glass */
+    mix-blend-mode: screen;
 }
