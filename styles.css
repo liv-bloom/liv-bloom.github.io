@@ -1,0 +1,79 @@
+:root {
+    --bg-color: #fcfcfc;
+    --text-color: #333333;
+    --accent-color: #2e8b57; /* SeaGreen */
+    --link-color: #1e90ff; /* DodgerBlue */
+    --card-bg: #ffffff;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    max-width: 600px;
+    width: 100%;
+    padding: 2rem;
+}
+
+header {
+    margin-bottom: 3rem;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 1rem;
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin: 0;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+}
+
+section {
+    background-color: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+h2 {
+    margin-top: 0;
+    color: var(--accent-color);
+    font-size: 1.5rem;
+}
+
+ul {
+    padding-left: 1.2rem;
+}
+
+li {
+    margin-bottom: 0.8rem;
+}
+
+a {
+    color: var(--link-color);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+footer {
+    text-align: center;
+    margin-top: 3rem;
+    font-size: 0.9rem;
+    color: #888;
+}
