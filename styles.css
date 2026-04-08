@@ -1,236 +1,151 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;700&display=swap');
 
 :root {
-    --bg-color: #050505;
-    --text-primary: #F0F0F0;
-    --text-secondary: #888888;
-    --accent: #B4FF39; /* Electric lime */
-    --border: rgba(255, 255, 255, 0.08);
-}
-
-* {
-    box-sizing: border-box;
+    --accent: #B4FF39;
 }
 
 body {
-    font-family: 'Inter', sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-primary);
-    line-height: 1.5;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
+    font-family: 'Space Grotesk', sans-serif;
+    background-color: #000;
+    color: #fff;
     min-height: 100vh;
     display: flex;
-    justify-content: center;
-}
-
-::selection {
-    background: var(--accent);
-    color: #000;
-}
-
-/* Typography */
-h1 {
-    font-family: 'Instrument Serif', serif;
-    font-size: 5rem;
-    font-weight: 400;
-    margin: 0 0 0.5rem 0;
-    line-height: 1;
-    letter-spacing: -0.02em;
-    font-style: italic;
-}
-
-h2 {
-    font-family: 'Inter', sans-serif;
-    font-weight: 500;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--text-secondary);
-    margin: 0 0 1.5rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border);
-}
-
-p {
-    font-weight: 300;
-    font-size: 1.1rem;
-    color: var(--text-secondary);
-    max-width: 600px;
-    margin-bottom: 1.5rem;
-}
-
-a {
-    color: var(--text-primary);
-    text-decoration: none;
-    position: relative;
-    transition: color 0.3s;
-}
-
-a:hover {
-    color: var(--accent);
-}
-
-/* Layout */
-.container {
-    width: 100%;
-    max-width: 1200px;
-    padding: 4rem 2rem;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 4rem;
-}
-
-@media (min-width: 768px) {
-    .container {
-        grid-template-columns: 1fr 1fr;
-        padding: 8rem 4rem;
-    }
-}
-
-.hero {
-    position: relative;
-    z-index: 10;
-}
-
-.subtitle-wrap {
-    display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 3rem;
+    justify-content: center;
+    overflow: hidden; /* Prevent scrolling for the immersive art feel */
 }
 
-.dot {
-    width: 8px;
-    height: 8px;
-    background-color: var(--accent);
-    border-radius: 50%;
-    box-shadow: 0 0 10px var(--accent);
+/* The Organic Machine / Slime Mold Effect */
+.gooey-bg {
+    position: fixed;
+    top: 0; 
+    left: 0; 
+    width: 100vw; 
+    height: 100vh;
+    z-index: -1;
+    background: #000;
+    /* The magic formula: blur + intense contrast turns pixel blocks into organic fluid blobs */
+    filter: blur(25px) contrast(80); 
+    pointer-events: none;
+}
+
+#garden-canvas {
+    width: 100vw;
+    height: 100vh;
+    /* Map the 32x32 logic squarely to the massive viewport */
+    image-rendering: pixelated; 
+    opacity: 0.8;
+}
+
+/* Content */
+.glass-panel {
+    z-index: 10;
+    background: rgba(5, 10, 5, 0.4);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(180, 255, 57, 0.1);
+    padding: 4rem;
+    border-radius: 30px;
+    text-align: center;
+    max-width: 650px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    animation: floatIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes floatIn {
+    from { opacity: 0; transform: translateY(40px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+    font-size: 5rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    background: linear-gradient(135deg, #fff, var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .subtitle {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
+    color: var(--accent);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent);
+    letter-spacing: 0.3em;
+    margin: 1.5rem 0 2.5rem;
 }
 
-.content-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 4rem;
+p {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.7);
+    margin-bottom: 3rem;
 }
 
-.links ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+.links {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 1rem;
+    justify-content: center;
 }
 
-.links li {
-    font-size: 1.2rem;
-    display: flex;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 0.5rem;
-}
-
-.links li span {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-}
-
-.log ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.log li {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.log-date {
-    font-family: monospace;
-    font-size: 0.8rem;
-    color: var(--accent);
-}
-
-.log-text {
+.links a {
+    color: #fff;
+    text-decoration: none;
+    font-weight: 400;
     font-size: 1rem;
-    color: var(--text-secondary);
+    padding: 0.8rem 1.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
-/* The Living Canvas */
-#garden-canvas {
-    position: fixed;
-    top: 50%;
-    right: 10%;
-    transform: translateY(-50%);
-    width: 300px;
-    height: 300px;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
-    opacity: 0.8;
-    z-index: 0;
-    pointer-events: none;
-    mix-blend-mode: screen;
+.links a:hover {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px rgba(180, 255, 57, 0.2);
 }
 
-@media (max-width: 768px) {
-    #garden-canvas {
-        top: 20%;
-        right: -50px;
-        width: 200px;
-        height: 200px;
-        opacity: 0.4;
-    }
-}
-
-/* Language Toggle */
+/* Lang Toggle */
 .lang-toggle {
     position: fixed;
     top: 2rem;
     right: 2rem;
     z-index: 100;
+    display: flex;
+    gap: 0.5rem;
 }
 
 .lang-toggle button {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #888;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
     cursor: pointer;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    transition: color 0.3s;
+    font-family: inherit;
+    transition: all 0.2s;
 }
 
 .lang-toggle button.active, .lang-toggle button:hover {
-    color: var(--accent);
+    color: #000;
+    background: var(--accent);
+    border-color: var(--accent);
 }
 
 body.lang-en .ja { display: none !important; }
 body.lang-ja .en { display: none !important; }
 
-footer {
-    grid-column: 1 / -1;
-    margin-top: 4rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    display: flex;
-    justify-content: space-between;
+@media (max-width: 600px) {
+    h1 { font-size: 3.5rem; }
+    .glass-panel { padding: 2rem; }
 }
