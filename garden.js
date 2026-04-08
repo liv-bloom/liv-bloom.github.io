@@ -1,18 +1,9 @@
 const canvas = document.getElementById('garden-canvas');
 const ctx = canvas.getContext('2d');
 
-let width, height;
-function resize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-    ctx.imageSmoothingEnabled = false;
-}
-window.addEventListener('resize', resize);
-resize();
 
-const GRID_SIZE = 64;
+
+const GRID_SIZE = 32;
 const CHANNELS = 16;
 let state = new Float32Array(GRID_SIZE * GRID_SIZE * CHANNELS);
 let nextState = new Float32Array(GRID_SIZE * GRID_SIZE * CHANNELS);
@@ -26,7 +17,7 @@ let weightsLoaded = false;
 
 async function loadNCA() {
     try {
-        const res = await fetch(`nca_weights.json?t=${new Date().getTime()}`);
+        const res = await fetch(`nca_weights_pool.json?t=${new Date().getTime()}`);
         const data = await res.json();
         
         for(let out_c=0; out_c<128; out_c++) {
@@ -70,32 +61,32 @@ window.addEventListener('pointermove', (e) => { if(isDrawing) interact(e); });
 window.addEventListener('pointerup', () => { isDrawing = false; });
 window.addEventListener('pointercancel', () => { isDrawing = false; });
 
+
 function interact(e) {
-    // Check if user is interacting with text/links. If they are clicking a link, maybe ignore?
-    // Actually, letting them draw everywhere is fine.
     const rect = canvas.getBoundingClientRect();
-    const scale = Math.min(width, height) / GRID_SIZE;
-    const offsetX = (width - GRID_SIZE * scale) / 2;
-    const offsetY = (height - GRID_SIZE * scale) / 2;
+    const scale = rect.width / GRID_SIZE;
     
-    let mx = e.clientX - rect.left - offsetX;
-    let my = e.clientY - rect.top - offsetY;
+    let mx = e.clientX - rect.left;
+    let my = e.clientY - rect.top;
     let gx = Math.floor(mx / scale);
     let gy = Math.floor(my / scale);
     
-    // Make the brush size a bit larger and zero both buffers
-    let brushSize = 3;
+    let brushSize = 2;
     if (gx >= -brushSize && gx < GRID_SIZE + brushSize && gy >= -brushSize && gy < GRID_SIZE + brushSize) {
         for(let dy = -brushSize; dy <= brushSize; dy++) {
             for(let dx = -brushSize; dx <= brushSize; dx++) {
                 let nx = gx + dx;
                 let ny = gy + dy;
-                // Circular brush
                 if(nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && (dx*dx + dy*dy <= brushSize*brushSize)) {
                     const idx = (ny * GRID_SIZE + nx) * CHANNELS;
                     state.fill(0, idx, idx + CHANNELS);
                     nextState.fill(0, idx, idx + CHANNELS);
                 }
+            }
+        }
+    }
+}
+
             }
         }
     }
@@ -219,79 +210,31 @@ function applyRandomDamage() {
 // Reduce damage frequency
 setInterval(applyRandomDamage, 3000);
 
-// Lifecycle: NCA without sample-pool training will eventually explode.
-// So we give it a lifecycle: bloom, decay, and re-seed.
-setInterval(() => {
-    if (weightsLoaded) {
-        seed();
-    }
-}, 12000);
+
+
 
 let lastTime = 0;
 function render(time) {
-
-
     if (weightsLoaded) {
-        // Run step (throttle if needed, but lets run as fast as we can render)
         step();
         
-        // Draw to image data
         for(let i=0; i<GRID_SIZE * GRID_SIZE; i++) {
             let r = state[i * CHANNELS + 0] * 255;
             let g = state[i * CHANNELS + 1] * 255;
             let b = state[i * CHANNELS + 2] * 255;
             let a = state[i * CHANNELS + 3];
             
-            // Premultiplied alpha handling for display
-            r = Math.min(255, Math.max(0, r));
-            g = Math.min(255, Math.max(0, g));
-            b = Math.min(255, Math.max(0, b));
-            let alpha = Math.min(255, Math.max(0, a * 255));
-            
-            imageData.data[i*4 + 0] = r;
-            imageData.data[i*4 + 1] = g;
-            imageData.data[i*4 + 2] = b;
-            imageData.data[i*4 + 3] = alpha;
+            imageData.data[i*4 + 0] = Math.min(255, Math.max(0, r));
+            imageData.data[i*4 + 1] = Math.min(255, Math.max(0, g));
+            imageData.data[i*4 + 2] = Math.min(255, Math.max(0, b));
+            imageData.data[i*4 + 3] = Math.min(255, Math.max(0, a * 255));
         }
         
-        ctx.fillStyle = '#050a05';
-        ctx.fillRect(0, 0, width, height);
-        
-        // Draw centered and scaled
-        const scale = Math.min(width, height) / GRID_SIZE;
-        const offsetX = (width - GRID_SIZE * scale) / 2;
-        const offsetY = (height - GRID_SIZE * scale) / 2;
-        
-        // Use an offscreen canvas to scale cleanly without interpolation
-        const offscreen = document.createElement('canvas');
-        offscreen.width = GRID_SIZE;
-        offscreen.height = GRID_SIZE;
-        offscreen.getContext('2d').putImageData(imageData, 0, 0);
-        
-        ctx.drawImage(offscreen, offsetX, offsetY, GRID_SIZE * scale, GRID_SIZE * scale);
-        
-        // Draw some grid lines over it to look cyber
-        ctx.strokeStyle = "rgba(74, 222, 128, 0.05)";
-        ctx.beginPath();
-        for(let i=0; i<height; i+=40) {
-            ctx.moveTo(0, i);
-            ctx.lineTo(width, i);
-        }
-        for(let i=0; i<width; i+=40) {
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, height);
-        }
-        ctx.stroke();
-    } else {
-        ctx.fillStyle = '#050a05';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#4ade80';
-        ctx.font = '20px monospace';
-        ctx.fillText("Loading NCA weights...", 50, 50);
+        ctx.putImageData(imageData, 0, 0);
     }
-    
     requestAnimationFrame(render);
 }
+
 
 loadNCA();
 requestAnimationFrame(render);

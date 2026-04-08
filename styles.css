@@ -20,15 +20,7 @@ body {
     overflow-x: hidden;
 }
 
-#garden-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    z-index: -1;
-    pointer-events: none;
-}
+
 
 .container {
     max-width: 650px;
@@ -144,3 +136,22 @@ footer {
 
 body.lang-en .ja { display: none; }
 body.lang-ja .en { display: none; }
+
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+#garden-canvas {
+    width: 128px;
+    height: 128px;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
+    background-color: #020502;
+    cursor: crosshair;
+}
