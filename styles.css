@@ -53,7 +53,8 @@ h1 {
     margin: 0;
     letter-spacing: -0.05em;
     line-height: 1;
-    color: #000;
+    color: rgba(0, 0, 0, 0.15); /* Semi-transparent black for water/glass feel */
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.2); /* Subtle outline */
 }
 
 .subtitle {
