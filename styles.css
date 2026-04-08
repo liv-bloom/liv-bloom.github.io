@@ -146,12 +146,12 @@ body.lang-ja .en { display: none; }
 
 #garden-canvas {
     flex-shrink: 0;
-    width: 48px; /* Reduced from 128px */
-    height: 48px;
+    width: 32px; /* 1:1 pixel mapping */
+    height: 32px;
     image-rendering: pixelated;
     image-rendering: crisp-edges;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border: none;
+    border-radius: 4px;
     box-shadow: 0 0 15px rgba(74, 222, 128, 0.2);
     background-color: #020502;
     cursor: crosshair;
