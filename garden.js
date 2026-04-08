@@ -9,6 +9,8 @@ const canvases = [
     document.getElementById('nca-layer-3')
 ];
 const ctxs = canvases.map(c => c.getContext('2d'));
+const logoCanvas = document.getElementById('logo-canvas');
+const logoCtx = logoCanvas ? logoCanvas.getContext('2d') : null;
 const imageDatas = ctxs.map(ctx => ctx.createImageData(GRID_SIZE, GRID_SIZE));
 
 let state = new Float32Array(GRID_SIZE * GRID_SIZE * CHANNELS);
@@ -275,6 +277,7 @@ function render(time) {
             }
             
             ctxs.forEach((ctx, idx) => ctx.putImageData(imageDatas[idx], 0, 0));
+            if (logoCtx) logoCtx.putImageData(imageDatas[0], 0, 0);
         }
     }
     requestAnimationFrame(render);
