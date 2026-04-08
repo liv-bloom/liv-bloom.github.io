@@ -51,7 +51,7 @@ h1 {
     margin: 0;
     letter-spacing: -0.05em;
     line-height: 1;
-    color: #fff;
+    color: #000;
 }
 
 .subtitle {
@@ -79,10 +79,13 @@ p {
 .links a {
     color: #000;
     text-decoration: none;
-    font-weight: 400;
+    font-weight: 700;
     font-size: 1rem;
     padding: 0.8rem 1.8rem;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
     border-radius: 50px;
     transition: all 0.3s ease;
     text-transform: uppercase;
@@ -91,8 +94,8 @@ p {
 
 .links a:hover {
     transform: translateY(-3px);
-    color: var(--accent);
-    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
 }
 
 /* Lang Toggle */
