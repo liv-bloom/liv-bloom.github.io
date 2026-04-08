@@ -241,18 +241,18 @@ function render(time) {
                 let alpha = a > 0.1 ? 255 : 0; 
                 
                 // Layer 0: Primary RGB
-                imageDatas[0].data[i*4 + 0] = Math.min(255, Math.max(0, state[i * CHANNELS + 0] * 255));
-                imageDatas[0].data[i*4 + 1] = Math.min(255, Math.max(0, state[i * CHANNELS + 1] * 255));
-                imageDatas[0].data[i*4 + 2] = Math.min(255, Math.max(0, state[i * CHANNELS + 2] * 255));
+                imageDatas[0].data[i*4 + 0] = Math.min(255, Math.max(0, 120 + state[i * CHANNELS + 0] * 135));
+                imageDatas[0].data[i*4 + 1] = Math.min(255, Math.max(0, 150 + state[i * CHANNELS + 1] * 105));
+                imageDatas[0].data[i*4 + 2] = Math.min(255, Math.max(0, 120 + state[i * CHANNELS + 2] * 135));
                 imageDatas[0].data[i*4 + 3] = alpha;
 
                 // Layer 1: Hidden channels 4, 5, 6 -> Deep Violet / Amethyst
                 let v4 = state[i * CHANNELS + 4];
                 let v5 = state[i * CHANNELS + 5];
                 let v6 = state[i * CHANNELS + 6];
-                imageDatas[1].data[i*4 + 0] = Math.min(255, Math.max(0, (v4 + 1) * 110)); 
-                imageDatas[1].data[i*4 + 1] = Math.min(255, Math.max(0, (v5 + 1) * 30));
-                imageDatas[1].data[i*4 + 2] = Math.min(255, Math.max(0, (v6 + 1) * 140));
+                imageDatas[1].data[i*4 + 0] = Math.min(255, Math.max(0, 180 + (v4) * 75)); 
+                imageDatas[1].data[i*4 + 1] = Math.min(255, Math.max(0, 180 + (v5) * 75));
+                imageDatas[1].data[i*4 + 2] = Math.min(255, Math.max(0, 220 + (v6) * 35));
                 imageDatas[1].data[i*4 + 3] = alpha;
 
                 // Layer 2: Hidden channels 7, 8, 9 -> Bioluminescent Acid Green
