@@ -13,8 +13,12 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// --- ALife: L-System (Lindenmayer System) ---
-// Simulates organic plant growth based on mathematical rules.
+// Default fallback data
+let agentData = {
+    karma: 10,
+    token_health: 1.0,
+    mood: "calm"
+};
 
 class LSystem {
     constructor(axiom, rules, angle, len, iterations) {
@@ -51,19 +55,17 @@ class LSystem {
         }
     }
 
-    draw(x, y, windFactor) {
+    draw(x, y, windFactor, color) {
         ctx.save();
         ctx.translate(x, y);
         
-        // Base styling for the plant
-        ctx.strokeStyle = "rgba(74, 222, 128, 0.4)";
+        ctx.strokeStyle = color;
         ctx.lineWidth = 1;
 
         let stack = [];
         let currentLen = this.len;
         
-        // Wind influence base
-        this.windTime += 0.01;
+        this.windTime += (agentData.mood === "energetic" ? 0.03 : 0.01);
         let wind = Math.sin(this.windTime) * windFactor;
 
         ctx.beginPath();
@@ -84,18 +86,17 @@ class LSystem {
                     transform: ctx.getTransform(),
                     len: currentLen
                 });
-                currentLen *= 0.8; // branches get shorter
+                currentLen *= 0.75; 
             } else if (current === "]") {
                 let state = stack.pop();
                 ctx.setTransform(state.transform);
                 currentLen = state.len;
-                ctx.moveTo(0, 0); // start new subpath from popped position
+                ctx.moveTo(0, 0); 
             } else if (current === "X") {
-                // Leaf representation (drawn at the tip of X)
                 ctx.save();
-                ctx.fillStyle = "rgba(134, 239, 172, 0.6)";
+                ctx.fillStyle = color.replace("0.4", "0.8"); // brighter for leaves
                 ctx.beginPath();
-                ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
+                ctx.arc(0, 0, 1.2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.restore();
             }
@@ -105,36 +106,64 @@ class LSystem {
     }
 }
 
-// Setup a small garden of L-System plants
 const plants = [];
-const numPlants = 5;
 
-const ruleset = [
-    { a: "X", b: "F+[[X]-X]-F[-FX]+X" },
-    { a: "F", b: "FF" }
-];
+function initGarden() {
+    plants.length = 0;
+    
+    // Data-driven growth rules
+    const numPlants = Math.min(10, 3 + Math.floor(agentData.karma / 5)); // Karma increases plant count
+    const iterations = Math.min(6, 4 + Math.floor(agentData.karma / 15)); // Karma increases fractal depth
+    
+    let baseAngle = 25;
+    if (agentData.mood === "energetic") baseAngle = 32;
+    if (agentData.mood === "tired") baseAngle = 15;
 
-for (let i = 0; i < numPlants; i++) {
-    plants.push({
-        system: new LSystem(
-            "X", 
-            ruleset, 
-            (25 + (Math.random() * 10 - 5)) * Math.PI / 180, // Angle
-            Math.random() * 3 + 2, // Line length
-            5 // Iterations (complexity)
-        ),
-        x: (i + 1) * (window.innerWidth / (numPlants + 1)) + (Math.random() * 40 - 20),
-        y: window.innerHeight,
-        windFactor: Math.random() * 0.05 + 0.01
-    });
+    // Token health affects color vitality (healthy = neon green, low = pale/yellowish)
+    const g = Math.floor(100 + (agentData.token_health * 155));
+    const r = Math.floor(200 - (agentData.token_health * 150));
+    const plantColor = `rgba(${r}, ${g}, 100, 0.4)`;
+
+    const ruleset = [
+        { a: "X", b: "F+[[X]-X]-F[-FX]+X" },
+        { a: "F", b: "FF" }
+    ];
+
+    for (let i = 0; i < numPlants; i++) {
+        plants.push({
+            system: new LSystem(
+                "X", 
+                ruleset, 
+                (baseAngle + (Math.random() * 10 - 5)) * Math.PI / 180,
+                Math.random() * 2 + 2, 
+                iterations
+            ),
+            x: (i + 1) * (window.innerWidth / (numPlants + 1)) + (Math.random() * 40 - 20),
+            y: window.innerHeight,
+            windFactor: agentData.mood === "energetic" ? Math.random() * 0.08 + 0.02 : Math.random() * 0.04 + 0.01,
+            color: plantColor
+        });
+    }
+}
+
+async function loadAgentData() {
+    try {
+        // Add cache busting query to prevent browser caching the json
+        const response = await fetch(`data.json?t=${new Date().getTime()}`);
+        if (response.ok) {
+            agentData = await response.json();
+            console.log("liv's vitals loaded:", agentData);
+        }
+    } catch (e) {
+        console.error("Failed to load agent data. Using baseline.", e);
+    }
+    initGarden();
 }
 
 function animate() {
-    // Clear screen with trail effect
-    ctx.fillStyle = 'rgba(5, 10, 5, 1)'; // Solid clear for L-System to avoid infinite overdraw mess
+    ctx.fillStyle = 'rgba(5, 10, 5, 1)'; 
     ctx.fillRect(0, 0, width, height);
 
-    // Draw grid/soil base
     ctx.strokeStyle = "rgba(74, 222, 128, 0.05)";
     ctx.beginPath();
     for(let i=0; i<height; i+=40) {
@@ -147,12 +176,13 @@ function animate() {
     }
     ctx.stroke();
 
-    // Draw ALife plants
     plants.forEach(p => {
-        p.system.draw(p.x, p.y, p.windFactor);
+        p.system.draw(p.x, p.y, p.windFactor, p.color);
     });
 
     requestAnimationFrame(animate);
 }
 
+// Start sequence
+loadAgentData();
 animate();
