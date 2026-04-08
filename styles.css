@@ -27,16 +27,16 @@ body {
 /* Content */
 .glass-panel {
     z-index: 10;
-    background: rgba(5, 10, 5, 0.4);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(180, 255, 57, 0.1);
+    background: transparent;
+    /* backdrop-filter: blur(12px); */
+    -webkit-/* backdrop-filter: blur(12px); */
+    border: none;
     padding: 4rem;
     border-radius: 30px;
     text-align: center;
     max-width: 650px;
     width: 90%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+    box-shadow: none;
     animation: floatIn 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -135,26 +135,52 @@ body.lang-ja .en { display: none !important; }
     .glass-panel { padding: 2rem; }
 }
 
-.gooey-bg {
+
+
+
+
+.nca-container {
     position: fixed;
-    top: 0; 
-    left: 0; 
-    width: 100vw; 
-    height: 100vh;
+    top: 0; left: 0; width: 100vw; height: 100vh;
     z-index: -1;
-    background: #051005; /* Deep dark green */
     pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: #000;
 }
 
-#garden-canvas {
+.nca-container canvas {
+    position: absolute;
     width: 100vw;
     height: 100vh;
-    /* Scale the 32x32 to fill screen */
-    transform: scale(1.2); /* Ensure it bleeds over the edges */
-    image-rendering: pixelated; 
-    opacity: 0.4; /* Soft glow behind the glass */
+    object-fit: cover;
+    image-rendering: pixelated;
+}
+
+/* Layer 0: Original RGB */
+#nca-layer-0 {
+    transform: scale(1.1);
+    opacity: 0.9;
+}
+
+/* Layer 1: Hidden state A (Magenta/Neon vibes) */
+#nca-layer-1 {
+    transform: scale(1.15) translate(3vw, 2vh);
+    opacity: 0.6;
+    mix-blend-mode: screen;
+}
+
+/* Layer 2: Hidden state B (Cyan/Electric vibes) */
+#nca-layer-2 {
+    transform: scale(1.2) translate(-2vw, 4vh);
+    opacity: 0.5;
+    mix-blend-mode: screen;
+}
+
+/* Layer 3: Hidden state C (Yellow/Glitch vibes) */
+#nca-layer-3 {
+    transform: scale(1.25) translate(1vw, -3vh);
+    opacity: 0.4;
     mix-blend-mode: screen;
 }
