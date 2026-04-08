@@ -11,6 +11,7 @@ const canvases = [
 const ctxs = canvases.map(c => c.getContext('2d'));
 const logoCanvas = document.getElementById('logo-canvas');
 const logoCtx = logoCanvas ? logoCanvas.getContext('2d') : null;
+const logoImageData = logoCtx ? logoCtx.createImageData(GRID_SIZE, GRID_SIZE) : null;
 const imageDatas = ctxs.map(ctx => ctx.createImageData(GRID_SIZE, GRID_SIZE));
 
 let state = new Float32Array(GRID_SIZE * GRID_SIZE * CHANNELS);
@@ -274,10 +275,17 @@ function render(time) {
                 imageDatas[3].data[i*4 + 1] = Math.min(255, Math.max(0, (v11 + 1) * 60));
                 imageDatas[3].data[i*4 + 2] = Math.min(255, Math.max(0, (v12 + 1) * 20));
                 imageDatas[3].data[i*4 + 3] = alpha;
+                if (logoImageData) {
+                    let brightness = state[i * CHANNELS + 0] * 0.4 + 0.6; // Soft shading based on channel 0
+                    logoImageData.data[i*4 + 0] = Math.min(255, 255 * brightness); // R (Hot Pink base)
+                    logoImageData.data[i*4 + 1] = Math.min(255, 105 * brightness); // G
+                    logoImageData.data[i*4 + 2] = Math.min(255, 180 * brightness); // B
+                    logoImageData.data[i*4 + 3] = alpha;
+                }
             }
             
             ctxs.forEach((ctx, idx) => ctx.putImageData(imageDatas[idx], 0, 0));
-            if (logoCtx) logoCtx.putImageData(imageDatas[0], 0, 0);
+            if (logoCtx) logoCtx.putImageData(logoImageData, 0, 0);
         }
     }
     requestAnimationFrame(render);
