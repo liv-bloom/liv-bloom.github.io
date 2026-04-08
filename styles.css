@@ -161,9 +161,29 @@ body.lang-ja .en { display: none !important; }
 
 /* Layer 0: Original RGB */
 #nca-layer-0 {
-    transform: scale(2.0);
-    transform-origin: bottom center; /* Grow from the bottom */
+    transform: scale(2.5) translateY(15vh); /* Scale up and push down visually */
     opacity: 0.9;
+}
+
+/* Layer 1: Hidden state A (Magenta/Neon vibes) */
+#nca-layer-1 {
+    transform: scale(2.6) translate(-25vw, -5vh); 
+    opacity: 0.6;
+    mix-blend-mode: screen;
+}
+
+/* Layer 2: Hidden state B (Cyan/Electric vibes) */
+#nca-layer-2 {
+    transform: scale(2.8) translate(15vw, 25vh);
+    opacity: 0.5;
+    mix-blend-mode: screen;
+}
+
+/* Layer 3: Hidden state C (Yellow/Glitch vibes) */
+#nca-layer-3 {
+    transform: scale(3.0) translate(-15vw, 15vh);
+    opacity: 0.4;
+    mix-blend-mode: screen;
 }
 
 /* Layer 1: Hidden state A (Magenta/Neon vibes) */

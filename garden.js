@@ -51,7 +51,7 @@ async function loadNCA() {
 function seed() {
     state.fill(0);
     const cx = Math.floor(GRID_SIZE / 2);
-    const cy = GRID_SIZE - 3; // Bottom center
+    const cy = Math.floor(GRID_SIZE / 2); // Center
     const idx = (cy * GRID_SIZE + cx) * CHANNELS;
     state[idx + 3] = 1.0; // alpha
 }
