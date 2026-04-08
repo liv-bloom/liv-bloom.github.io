@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
 
 :root {
-    --accent: #FF0055;
+    --accent: #B4FF39;
 }
 
 body {
@@ -9,7 +9,7 @@ body {
     padding: 0;
     font-family: 'Space Mono', monospace;
     background-color: #000;
-    color: #000;
+    color: #fff;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -51,7 +51,7 @@ h1 {
     margin: 0;
     letter-spacing: -0.05em;
     line-height: 1;
-    color: #000;
+    color: #fff;
 }
 
 .subtitle {
@@ -65,7 +65,7 @@ h1 {
 p {
     font-size: 1.1rem;
     line-height: 1.6;
-    color: #333;
+    color: rgba(255, 255, 255, 0.7);
     margin-bottom: 3rem;
 }
 
@@ -77,12 +77,12 @@ p {
 }
 
 .links a {
-    color: #000;
+    color: #fff;
     text-decoration: none;
     font-weight: 400;
     font-size: 1rem;
     padding: 0.8rem 1.8rem;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 50px;
     transition: all 0.3s ease;
     text-transform: uppercase;
@@ -91,6 +91,8 @@ p {
 
 .links a:hover {
     transform: translateY(-3px);
+    color: var(--accent);
+    border-color: var(--accent);
 }
 
 /* Lang Toggle */
@@ -141,7 +143,7 @@ body.lang-ja .en { display: none !important; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #ffffff; /* Pure White */
+    background: #020202;
 }
 
 .nca-container canvas {
@@ -163,63 +165,63 @@ body.lang-ja .en { display: none !important; }
 #nca-layer-1 {
     transform: scale(2.6) translate(-25vw, -5vh); 
     opacity: 0.6;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 2: Hidden state B (Cyan/Electric vibes) */
 #nca-layer-2 {
     transform: scale(2.8) translate(15vw, 25vh);
     opacity: 0.5;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 3: Hidden state C (Yellow/Glitch vibes) */
 #nca-layer-3 {
     transform: scale(3.0) translate(-15vw, 15vh);
     opacity: 0.4;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 1: Hidden state A (Magenta/Neon vibes) */
 #nca-layer-1 {
     transform: scale(2.2) translate(-35vw, -5vh); /* Heavily pushed to the left */
     opacity: 0.6;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 2: Hidden state B (Cyan/Electric vibes) */
 #nca-layer-2 {
     transform: scale(2.5) translate(20vw, 15vh);
     opacity: 0.5;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 3: Hidden state C (Yellow/Glitch vibes) */
 #nca-layer-3 {
     transform: scale(2.8) translate(-25vw, 20vh); /* Fill bottom-left */
     opacity: 0.4;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 1: Hidden state A (Magenta/Neon vibes) */
 #nca-layer-1 {
     transform: scale(2.2) translate(15vw, 15vh);
     opacity: 0.6;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 2: Hidden state B (Cyan/Electric vibes) */
 #nca-layer-2 {
     transform: scale(2.5) translate(-20vw, 25vh);
     opacity: 0.5;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 3: Hidden state C (Yellow/Glitch vibes) */
 #nca-layer-3 {
     transform: scale(2.8) translate(25vw, -20vh);
     opacity: 0.4;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 
@@ -227,12 +229,12 @@ body.lang-ja .en { display: none !important; }
 #nca-layer-2 {
     transform: scale(1.2) translate(-2vw, 4vh);
     opacity: 0.5;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
 
 /* Layer 3: Hidden state C (Yellow/Glitch vibes) */
 #nca-layer-3 {
     transform: scale(1.25) translate(1vw, -3vh);
     opacity: 0.4;
-    mix-blend-mode: multiply;
+    mix-blend-mode: screen;
 }
