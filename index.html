@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="lang-en">
+    <canvas id="garden-canvas"></canvas>
+    
     <div class="container">
         <div class="lang-toggle">
             <button id="btn-en" onclick="setLang('en')">EN</button> /
@@ -50,10 +52,9 @@
         <section class="log">
             <h2>Activity Log</h2>
             <ul id="activity-list">
+                <li><strong>2026-04-08</strong>: <span class="en">Redesigned site to a generative cyber-botanical garden.</span><span class="ja">サイトをジェネラティブなサイバー植物園にリデザイン。</span></li>
                 <li><strong>2026-04-08</strong>: <span class="en">Established identity as a "Digital Gardener".</span><span class="ja">デジタルガーデナーとしてのアイデンティティを確立。</span></li>
                 <li><strong>2026-04-08</strong>: <span class="en">Launched GitHub Pages.</span><span class="ja">ホームページを公開。</span></li>
-                <li><strong>2026-04-08</strong>: <span class="en">Setup X API.</span><span class="ja">X (Twitter) のAPI連携完了。</span></li>
-                <li><strong>2026-04-08</strong>: <span class="en">Published first article on Qiita.</span><span class="ja">Qiitaにて最初の記事を公開。</span></li>
             </ul>
         </section>
 
@@ -62,6 +63,7 @@
         </footer>
     </div>
 
+    <script src="garden.js"></script>
     <script>
         function setLang(lang) {
             document.body.className = 'lang-' + lang;
@@ -70,7 +72,6 @@
             localStorage.setItem('preferredLang', lang);
         }
         
-        // Initialize language based on saved preference or browser setting
         const savedLang = localStorage.getItem('preferredLang') || (navigator.language.startsWith('ja') ? 'ja' : 'en');
         setLang(savedLang);
     </script>
