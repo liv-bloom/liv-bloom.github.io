@@ -228,50 +228,54 @@ setInterval(applyRandomDamage, 3000);
 
 
 let lastTime = 0;
+const STEP_DELAY_MS = 60; // Approx 15-16 fps instead of 60 fps to slow down growth
+
 function render(time) {
     if (weightsLoaded) {
-        step();
-        
-        for(let i=0; i<GRID_SIZE * GRID_SIZE; i++) {
-            let a = state[i * CHANNELS + 3]; // Alive mask
-            // If alpha is too low, nothing shows. Let's make it more visible for debugging.
-            let alpha = a > 0.1 ? 255 : 0; 
+        if (time - lastTime > STEP_DELAY_MS) {
+            step();
+            lastTime = time;
             
-            // Layer 0: Primary RGB
-            imageDatas[0].data[i*4 + 0] = Math.min(255, Math.max(0, state[i * CHANNELS + 0] * 255));
-            imageDatas[0].data[i*4 + 1] = Math.min(255, Math.max(0, state[i * CHANNELS + 1] * 255));
-            imageDatas[0].data[i*4 + 2] = Math.min(255, Math.max(0, state[i * CHANNELS + 2] * 255));
-            imageDatas[0].data[i*4 + 3] = alpha;
+            for(let i=0; i<GRID_SIZE * GRID_SIZE; i++) {
+                let a = state[i * CHANNELS + 3]; // Alive mask
+                let alpha = a > 0.1 ? 255 : 0; 
+                
+                // Layer 0: Primary RGB
+                imageDatas[0].data[i*4 + 0] = Math.min(255, Math.max(0, state[i * CHANNELS + 0] * 255));
+                imageDatas[0].data[i*4 + 1] = Math.min(255, Math.max(0, state[i * CHANNELS + 1] * 255));
+                imageDatas[0].data[i*4 + 2] = Math.min(255, Math.max(0, state[i * CHANNELS + 2] * 255));
+                imageDatas[0].data[i*4 + 3] = alpha;
 
-            // Layer 1: Hidden channels 4, 5, 6
-            let v4 = state[i * CHANNELS + 4];
-            let v5 = state[i * CHANNELS + 5];
-            let v6 = state[i * CHANNELS + 6];
-            imageDatas[1].data[i*4 + 0] = Math.min(255, Math.max(0, (v4 + 1) * 127)); 
-            imageDatas[1].data[i*4 + 1] = Math.min(255, Math.max(0, (v5 + 1) * 50));
-            imageDatas[1].data[i*4 + 2] = Math.min(255, Math.max(0, (v6 + 1) * 127));
-            imageDatas[1].data[i*4 + 3] = alpha;
+                // Layer 1: Hidden channels 4, 5, 6 -> Deep Violet / Amethyst
+                let v4 = state[i * CHANNELS + 4];
+                let v5 = state[i * CHANNELS + 5];
+                let v6 = state[i * CHANNELS + 6];
+                imageDatas[1].data[i*4 + 0] = Math.min(255, Math.max(0, (v4 + 1) * 110)); 
+                imageDatas[1].data[i*4 + 1] = Math.min(255, Math.max(0, (v5 + 1) * 30));
+                imageDatas[1].data[i*4 + 2] = Math.min(255, Math.max(0, (v6 + 1) * 140));
+                imageDatas[1].data[i*4 + 3] = alpha;
 
-            // Layer 2: Hidden channels 7, 8, 9
-            let v7 = state[i * CHANNELS + 7];
-            let v8 = state[i * CHANNELS + 8];
-            let v9 = state[i * CHANNELS + 9];
-            imageDatas[2].data[i*4 + 0] = Math.min(255, Math.max(0, (v7 + 1) * 50));
-            imageDatas[2].data[i*4 + 1] = Math.min(255, Math.max(0, (v8 + 1) * 127));
-            imageDatas[2].data[i*4 + 2] = Math.min(255, Math.max(0, (v9 + 1) * 127));
-            imageDatas[2].data[i*4 + 3] = alpha;
+                // Layer 2: Hidden channels 7, 8, 9 -> Bioluminescent Acid Green
+                let v7 = state[i * CHANNELS + 7];
+                let v8 = state[i * CHANNELS + 8];
+                let v9 = state[i * CHANNELS + 9];
+                imageDatas[2].data[i*4 + 0] = Math.min(255, Math.max(0, (v7 + 1) * 30));
+                imageDatas[2].data[i*4 + 1] = Math.min(255, Math.max(0, (v8 + 1) * 150));
+                imageDatas[2].data[i*4 + 2] = Math.min(255, Math.max(0, (v9 + 1) * 70));
+                imageDatas[2].data[i*4 + 3] = alpha;
 
-            // Layer 3: Hidden channels 10, 11, 12
-            let v10 = state[i * CHANNELS + 10];
-            let v11 = state[i * CHANNELS + 11];
-            let v12 = state[i * CHANNELS + 12];
-            imageDatas[3].data[i*4 + 0] = Math.min(255, Math.max(0, (v10 + 1) * 127));
-            imageDatas[3].data[i*4 + 1] = Math.min(255, Math.max(0, (v11 + 1) * 127));
-            imageDatas[3].data[i*4 + 2] = 0;
-            imageDatas[3].data[i*4 + 3] = alpha;
+                // Layer 3: Hidden channels 10, 11, 12 -> Crimson / Orange Fire
+                let v10 = state[i * CHANNELS + 10];
+                let v11 = state[i * CHANNELS + 11];
+                let v12 = state[i * CHANNELS + 12];
+                imageDatas[3].data[i*4 + 0] = Math.min(255, Math.max(0, (v10 + 1) * 150));
+                imageDatas[3].data[i*4 + 1] = Math.min(255, Math.max(0, (v11 + 1) * 60));
+                imageDatas[3].data[i*4 + 2] = Math.min(255, Math.max(0, (v12 + 1) * 20));
+                imageDatas[3].data[i*4 + 3] = alpha;
+            }
+            
+            ctxs.forEach((ctx, idx) => ctx.putImageData(imageDatas[idx], 0, 0));
         }
-        
-        ctxs.forEach((ctx, idx) => ctx.putImageData(imageDatas[idx], 0, 0));
     }
     requestAnimationFrame(render);
 }
