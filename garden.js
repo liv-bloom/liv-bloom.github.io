@@ -62,6 +62,7 @@ window.addEventListener('pointerup', () => { isDrawing = false; });
 window.addEventListener('pointercancel', () => { isDrawing = false; });
 
 
+
 function interact(e) {
     const rect = canvas.getBoundingClientRect();
     const scale = rect.width / GRID_SIZE;
@@ -82,11 +83,6 @@ function interact(e) {
                     state.fill(0, idx, idx + CHANNELS);
                     nextState.fill(0, idx, idx + CHANNELS);
                 }
-            }
-        }
-    }
-}
-
             }
         }
     }
