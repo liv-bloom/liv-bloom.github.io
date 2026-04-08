@@ -54,6 +54,8 @@ function seed() {
     const cy = Math.floor(GRID_SIZE / 2); // Center
     const idx = (cy * GRID_SIZE + cx) * CHANNELS;
     state[idx + 3] = 1.0; // alpha
+    state[idx + 4] = 1.0; // hidden state required for growth
+    state[idx + 5] = 1.0; // hidden state required for growth
 }
 
 
