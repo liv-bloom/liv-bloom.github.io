@@ -226,6 +226,7 @@ setInterval(applyRandomDamage, 3000);
 
 
 
+
 let lastTime = 0;
 function render(time) {
     if (weightsLoaded) {
@@ -233,7 +234,8 @@ function render(time) {
         
         for(let i=0; i<GRID_SIZE * GRID_SIZE; i++) {
             let a = state[i * CHANNELS + 3]; // Alive mask
-            let alpha = Math.min(255, Math.max(0, a * 255));
+            // If alpha is too low, nothing shows. Let's make it more visible for debugging.
+            let alpha = a > 0.1 ? 255 : 0; 
             
             // Layer 0: Primary RGB
             imageDatas[0].data[i*4 + 0] = Math.min(255, Math.max(0, state[i * CHANNELS + 0] * 255));
@@ -273,6 +275,7 @@ function render(time) {
     }
     requestAnimationFrame(render);
 }
+
 
 
 

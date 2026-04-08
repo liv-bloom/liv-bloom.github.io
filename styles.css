@@ -147,14 +147,14 @@ body.lang-ja .en { display: none !important; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #000;
+    background: #020202;
 }
 
 .nca-container canvas {
     position: absolute;
     width: 100vw;
     height: 100vh;
-    object-fit: cover;
+    
     image-rendering: pixelated;
 }
 
