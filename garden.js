@@ -196,8 +196,41 @@ function step() {
 
 const imageData = ctx.createImageData(GRID_SIZE, GRID_SIZE);
 
+
+
+// Occasional random damage
+function applyRandomDamage() {
+    if (!weightsLoaded) return;
+    let gx = Math.floor(Math.random() * GRID_SIZE);
+    let gy = Math.floor(Math.random() * GRID_SIZE);
+    let brushSize = 2;
+    for(let dy = -brushSize; dy <= brushSize; dy++) {
+        for(let dx = -brushSize; dx <= brushSize; dx++) {
+            let nx = gx + dx;
+            let ny = gy + dy;
+            if(nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE && (dx*dx + dy*dy <= brushSize*brushSize)) {
+                const idx = (ny * GRID_SIZE + nx) * CHANNELS;
+                state.fill(0, idx, idx + CHANNELS);
+                nextState.fill(0, idx, idx + CHANNELS);
+            }
+        }
+    }
+}
+// Reduce damage frequency
+setInterval(applyRandomDamage, 3000);
+
+// Lifecycle: NCA without sample-pool training will eventually explode.
+// So we give it a lifecycle: bloom, decay, and re-seed.
+setInterval(() => {
+    if (weightsLoaded) {
+        seed();
+    }
+}, 12000);
+
 let lastTime = 0;
 function render(time) {
+
+
     if (weightsLoaded) {
         // Run step (throttle if needed, but lets run as fast as we can render)
         step();
