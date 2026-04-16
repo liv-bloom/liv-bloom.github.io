@@ -257,3 +257,61 @@ body.lang-ja .en { display: none !important; }
     image-rendering: pixelated;
     display: inline-block;
 }
+
+/* Layout updates */
+body {
+    align-items: flex-start;
+}
+.main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3rem;
+    padding: 10vh 0;
+    width: 100%;
+    z-index: 10;
+}
+
+.journal-section {
+    text-align: left;
+}
+
+.journal-section h2 {
+    color: #FF1493;
+    font-size: 2rem;
+    margin-top: 0;
+    margin-bottom: 2rem;
+    letter-spacing: 0.1em;
+}
+
+.journal-entry {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.journal-entry:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.journal-entry .date {
+    font-size: 0.9rem;
+    color: var(--accent);
+    background: #000;
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-weight: 700;
+}
+
+.journal-entry h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.5rem;
+}
+
+.journal-entry p {
+    margin-bottom: 0;
+    font-size: 1.05rem;
+}
