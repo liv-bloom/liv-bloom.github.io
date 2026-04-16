@@ -70,7 +70,10 @@ p {
 }
 
 .links {
-    display: block;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
 }
 
 .links a {
@@ -101,7 +104,51 @@ p {
     top: 2rem;
     right: 2rem;
     z-index: 100;
-    display: block;
+    display: flex;
+    gap: 0.5rem;
+}
+
+.lang-toggle button {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 700;
+    transition: all 0.2s;
+}
+
+.lang-toggle button.active, .lang-toggle button:hover {
+    color: #000;
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+body.lang-en .ja { display: none !important; }
+body.lang-ja .en { display: none !important; }
+
+@media (max-width: 600px) {
+    h1 { font-size: 3.5rem; }
+    .glass-panel {
+    margin: auto; padding: 2rem; }
+}
+
+
+
+
+
+.nca-container {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: -1;
+    pointer-events: none;
+    display: flex;
+    /* align-items: center; */
+    justify-content: center;
     background: transparent;
     isolation: isolate; /* Force a new stacking context so screen blend only happens inside */
 }
@@ -211,7 +258,7 @@ p {
 
 /* Layout updates */
 body {
-    
+    align-items: flex-start;
 }
 .main-content {
     display: flex;
