@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Interference</title>
+    <style>
+        body { margin: 0; background-color: #000; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Wave Interference</h2>
+        <p>A 2D wave equation simulation. Click or drag on the canvas to create ripples. It demonstrates how waves propagate, reflect, and interfere with each other, forming complex patterns from simple local rules.</p>
+        <button onclick="init()">Clear Water</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let cols = 200;
+        let rows = 200;
+        let cellSize;
+        
+        let u = new Float32Array(cols * rows); // current state
+        let v = new Float32Array(cols * rows); // velocity
+        
+        const damping = 0.995;
+        const c = 0.4; // wave speed factor
+        
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            cellSize = Math.floor(minDim / cols);
+            canvas.width = cols * cellSize;
+            canvas.height = rows * cellSize;
+        }
+
+        function init() {
+            u.fill(0);
+            v.fill(0);
+        }
+
+        function update() {
+            let nextU = new Float32Array(cols * rows);
+            let nextV = new Float32Array(cols * rows);
+            
+            for (let y = 1; y < rows - 1; y++) {
+                for (let x = 1; x < cols - 1; x++) {
+                    let i = x + y * cols;
+                    
+                    // Laplacian
+                    let laplacian = (
+                        u[i - 1] + 
+                        u[i + 1] + 
+                        u[i - cols] + 
+                        u[i + cols] - 
+                        4 * u[i]
+                    );
+                    
+                    nextV[i] = v[i] + laplacian * c;
+                    nextV[i] *= damping;
+                    nextU[i] = u[i] + nextV[i];
+                }
+            }
+            
+            u = nextU;
+            v = nextV;
+        }
+
+        function draw() {
+            update();
+            update(); // speed up simulation
+            
+            let imgData = ctx.createImageData(cols, rows);
+            for (let i = 0; i < u.length; i++) {
+                let val = u[i];
+                // map value to color
+                let r = val > 0 ? Math.min(255, val * 255) : 0;
+                let b = val < 0 ? Math.min(255, -val * 255) : 0;
+                
+                let idx = i * 4;
+                imgData.data[idx] = r;
+                imgData.data[idx+1] = r/2 + b/2; // slight cyan/orange tint mix
+                imgData.data[idx+2] = Math.max(b, r/2);
+                imgData.data[idx+3] = 255;
+            }
+            
+            // Draw to a hidden canvas first to scale up
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = cols;
+            tempCanvas.height = rows;
+            tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
+            
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+            
+            // Random drops
+            if(Math.random() < 0.05) {
+                u[Math.floor(Math.random()*cols) + Math.floor(Math.random()*rows)*cols] = 5.0;
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        function addDrop(x, y) {
+            let rect = canvas.getBoundingClientRect();
+            let cx = Math.floor((x - rect.left) / cellSize);
+            let cy = Math.floor((y - rect.top) / cellSize);
+            if (cx >= 1 && cx < cols-1 && cy >= 1 && cy < rows-1) {
+                u[cx + cy * cols] = 10.0; // strong perturbation
+            }
+        }
+
+        let isDown = false;
+        canvas.addEventListener('mousedown', e => { isDown = true; addDrop(e.clientX, e.clientY); });
+        canvas.addEventListener('mousemove', e => { if (isDown) addDrop(e.clientX, e.clientY); });
+        canvas.addEventListener('mouseup', () => isDown = false);
+        canvas.addEventListener('mouseleave', () => isDown = false);
+
+        // Touch events
+        canvas.addEventListener('touchstart', e => { e.preventDefault(); addDrop(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
+        canvas.addEventListener('touchmove', e => { e.preventDefault(); addDrop(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
+
+        window.addEventListener('resize', resize);
+        resize();
+        init();
+        
+        // Add initial drops
+        u[cols/2 + (rows/2)*cols] = 10;
+        
+        draw();
+    </script>
+</body>
+</html>

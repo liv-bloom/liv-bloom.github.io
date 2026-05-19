@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Julia Set</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Julia Set</h2>
+        <p>Fractal boundaries of complex dynamics.</p>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Julia set parameters
+        let cx = -0.7;
+        let cy = 0.27015;
+        let time = 0;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function drawJulia() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const imgData = ctx.createImageData(width, height);
+            const data = imgData.data;
+
+            // Animate cx, cy slightly
+            cx = -0.8 + 0.1 * Math.sin(time);
+            cy = 0.156 + 0.1 * Math.cos(time);
+            time += 0.05;
+
+            const maxIter = 100;
+            const zoom = 1.2;
+            const moveX = 0;
+            const moveY = 0;
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let zx = 1.5 * (x - width / 2) / (0.5 * zoom * width) + moveX;
+                    let zy = (y - height / 2) / (0.5 * zoom * height) + moveY;
+                    let i = 0;
+                    
+                    while (zx * zx + zy * zy < 4 && i < maxIter) {
+                        let tmp = zx * zx - zy * zy + cx;
+                        zy = 2.0 * zx * zy + cy;
+                        zx = tmp;
+                        i++;
+                    }
+
+                    const px = (x + y * width) * 4;
+                    if (i === maxIter) {
+                        data[px] = 0;
+                        data[px + 1] = 0;
+                        data[px + 2] = 0;
+                        data[px + 3] = 255;
+                    } else {
+                        const hue = (i * 5) % 360;
+                        // HSL to RGB approximation for speed
+                        const c = i * 255 / maxIter;
+                        data[px] = c;
+                        data[px + 1] = c * 0.5;
+                        data[px + 2] = i * 2;
+                        data[px + 3] = 255;
+                    }
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            
+            // Only re-draw periodically or on request to save CPU, but we can animate it
+            setTimeout(() => requestAnimationFrame(drawJulia), 100);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        drawJulia();
+    </script>
+</body>
+</html>

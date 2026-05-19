@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Falling Sand Physics</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #8fd46b; color: #10120f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Falling Sand</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A cellular automaton where each pixel simulates granular physics. Click and drag to pour sand. It creates emergent dunes and slopes.</p>
+        <div class="controls">
+            <button onclick="clearGrid()">Clear</button>
+            <button onclick="changeColor()">Change Color</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const scale = 4;
+        let cols, rows;
+        let grid;
+        let hueValue = 40; // Sand color
+
+        function make2DArray(cols, rows) {
+            let arr = new Array(cols);
+            for (let i = 0; i < arr.length; i++) {
+                arr[i] = new Array(rows).fill(0);
+            }
+            return arr;
+        }
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            cols = Math.floor(minDim / scale);
+            rows = Math.floor(minDim / scale);
+            canvas.width = cols * scale;
+            canvas.height = rows * scale;
+            grid = make2DArray(cols, rows);
+        }
+
+        function clearGrid() {
+            grid = make2DArray(cols, rows);
+        }
+
+        function changeColor() {
+            hueValue = (hueValue + 60) % 360;
+        }
+
+        function draw() {
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let nextGrid = make2DArray(cols, rows);
+
+            for (let i = 0; i < cols; i++) {
+                for (let j = 0; j < rows; j++) {
+                    let state = grid[i][j];
+                    if (state > 0) {
+                        ctx.fillStyle = `hsl(${state}, 80%, 60%)`;
+                        ctx.fillRect(i * scale, j * scale, scale, scale);
+
+                        if (j < rows - 1) {
+                            let below = grid[i][j + 1];
+                            let belowA = i > 0 ? grid[i - 1][j + 1] : -1;
+                            let belowB = i < cols - 1 ? grid[i + 1][j + 1] : -1;
+                            
+                            // Randomize direction of sliding
+                            let dir = Math.random() < 0.5 ? 1 : -1;
+
+                            if (below === 0) {
+                                nextGrid[i][j + 1] = state;
+                            } else if (dir === -1 && belowA === 0) {
+                                nextGrid[i - 1][j + 1] = state;
+                            } else if (dir === 1 && belowB === 0) {
+                                nextGrid[i + 1][j + 1] = state;
+                            } else if (dir === 1 && belowA === 0) {
+                                nextGrid[i - 1][j + 1] = state;
+                            } else if (dir === -1 && belowB === 0) {
+                                nextGrid[i + 1][j + 1] = state;
+                            } else {
+                                nextGrid[i][j] = state;
+                            }
+                        } else {
+                            nextGrid[i][j] = state; // Bottom row
+                        }
+                    }
+                }
+            }
+
+            grid = nextGrid;
+            requestAnimationFrame(draw);
+        }
+
+        let isDragging = false;
+        
+        function addSand(e) {
+            let rect = canvas.getBoundingClientRect();
+            let mouseX, mouseY;
+            
+            if(e.touches) {
+                mouseX = e.touches[0].clientX - rect.left;
+                mouseY = e.touches[0].clientY - rect.top;
+            } else {
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+            }
+            
+            let gridCol = Math.floor(mouseX / scale);
+            let gridRow = Math.floor(mouseY / scale);
+            
+            let matrix = 5;
+            let extent = Math.floor(matrix / 2);
+            for (let i = -extent; i <= extent; i++) {
+                for (let j = -extent; j <= extent; j++) {
+                    if (Math.random() > 0.5) {
+                        let col = gridCol + i;
+                        let row = gridRow + j;
+                        if (col >= 0 && col <= cols - 1 && row >= 0 && row <= rows - 1) {
+                            // slight variation in hue
+                            grid[col][row] = hueValue + (Math.random() * 10 - 5);
+                        }
+                    }
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => { isDragging = true; addSand(e); });
+        canvas.addEventListener('mousemove', (e) => { if (isDragging) addSand(e); });
+        canvas.addEventListener('mouseup', () => { isDragging = false; });
+        canvas.addEventListener('mouseleave', () => { isDragging = false; });
+        
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDragging = true; addSand(e); }, {passive: false});
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (isDragging) addSand(e); }, {passive: false});
+        canvas.addEventListener('touchend', () => { isDragging = false; });
+
+        window.addEventListener('resize', resize);
+        resize();
+        
+        // Add initial sand
+        for (let i = Math.floor(cols/2) - 10; i < Math.floor(cols/2) + 10; i++) {
+            grid[i][0] = hueValue;
+        }
+
+        draw();
+    </script>
+</body>
+</html>

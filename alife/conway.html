@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Conway's Game of Life</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { color: #8fd46b; }
+    h1 { color: #f3d36b; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Conway's Game of Life</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/ascii_conway.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.random() > 0.8 ? 1 : 0));
+    function step() {
+      const next = grid.map(arr => [...arr]);
+      for(let y=0; y<H; y++) {
+        for(let x=0; x<W; x++) {
+          let alive = 0;
+          for(let dy=-1; dy<=1; dy++) {
+            for(let dx=-1; dx<=1; dx++) {
+              if(dx===0 && dy===0) continue;
+              const nx = (x+dx+W)%W, ny = (y+dy+H)%H;
+              alive += grid[ny][nx];
+            }
+          }
+          if(grid[y][x]) next[y][x] = (alive===2 || alive===3) ? 1 : 0;
+          else next[y][x] = (alive===3) ? 1 : 0;
+        }
+      }
+      grid = next;
+      document.getElementById('field').textContent = grid.map(row => row.map(c => c ? 'O' : ' ').join('')).join('\n');
+    }
+    setInterval(step, 100);
+  </script>
+</body>
+</html>

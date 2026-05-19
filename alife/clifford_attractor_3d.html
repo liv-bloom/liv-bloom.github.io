@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clifford Attractor 3D Variation</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">Clifford Attractor (Pseudo 3D)</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Randomize</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let a, b, c, d;
+        let x = 0, y = 0, z = 0;
+        let iter = 0;
+
+        function reset() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            a = (Math.random() - 0.5) * 4;
+            b = (Math.random() - 0.5) * 4;
+            c = (Math.random() - 0.5) * 4;
+            d = (Math.random() - 0.5) * 4;
+            x = 0; y = 0; z = 0;
+            iter = 0;
+        }
+
+        function draw() {
+            for (let i = 0; i < 2000; i++) {
+                let nextX = Math.sin(a * y) + c * Math.cos(a * x);
+                let nextY = Math.sin(b * x) + d * Math.cos(b * y);
+                // Pseudo 3D depth based on position
+                z = Math.sin(c * x) * Math.cos(d * y);
+                
+                x = nextX;
+                y = nextY;
+
+                let scale = 100 * (1 + z * 0.2); // Scale based on depth
+                let drawX = width / 2 + x * scale;
+                let drawY = height / 2 + y * scale;
+
+                let hue = (x * y * 50 + iter) % 360;
+                let alpha = 0.1 + (z + 1) * 0.2; // Brighter if closer
+                
+                ctx.fillStyle = `hsla(${hue}, 80%, 60%, ${alpha})`;
+                ctx.fillRect(drawX, drawY, 1, 1);
+                iter += 0.01;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        reset();
+        draw();
+    </script>
+</body>
+</html>

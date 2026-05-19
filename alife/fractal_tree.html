@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recursive Fractal Tree</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        input[type=range] { vertical-align: middle; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Recursive Fractal Tree</h2>
+        <p>A simple algorithm generating complex natural-looking structures via recursion.</p>
+        <label>Angle: <input type="range" id="angleSlider" min="0" max="180" value="25"></label>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const slider = document.getElementById('angleSlider');
+        
+        let angle = slider.value * Math.PI / 180;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            draw();
+        }
+
+        function branch(len) {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -len);
+            ctx.stroke();
+            ctx.translate(0, -len);
+
+            if (len > 4) {
+                ctx.save();
+                ctx.rotate(angle);
+                branch(len * 0.67);
+                ctx.restore();
+
+                ctx.save();
+                ctx.rotate(-angle);
+                branch(len * 0.67);
+                ctx.restore();
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            angle = slider.value * Math.PI / 180;
+
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 1;
+            
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height);
+            branch(canvas.height / 3.5);
+            ctx.restore();
+        }
+
+        slider.addEventListener('input', draw);
+        window.addEventListener('resize', resize);
+        
+        // Auto animation
+        let animateVal = 0;
+        function animate() {
+            animateVal += 0.01;
+            slider.value = 25 + Math.sin(animateVal) * 20;
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        resize();
+        animate();
+    </script>
+</body>
+</html>

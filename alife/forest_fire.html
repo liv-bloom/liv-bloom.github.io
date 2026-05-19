@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Fire Model</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; image-rendering: pixelated; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Forest Fire Model</h2>
+        <p>A cellular automaton modeling the spread of fire through a forest. Trees grow over time, lightning occasionally starts fires, and fire spreads to adjacent trees. This demonstrates self-organized criticality.</p>
+        <button onclick="init()">Regenerate Forest</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const cols = 200;
+        const rows = 200;
+        let grid = [];
+        let next = [];
+        
+        // Probabilities
+        const p = 0.01; // tree growth probability
+        const f = 0.00005; // lightning strike probability
+        
+        // States
+        const EMPTY = 0;
+        const TREE = 1;
+        const BURNING = 2;
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight);
+            canvas.width = cols;
+            canvas.height = rows;
+            canvas.style.width = minDim + 'px';
+            canvas.style.height = minDim + 'px';
+        }
+
+        function init() {
+            grid = [];
+            next = [];
+            for (let x = 0; x < cols; x++) {
+                grid[x] = [];
+                next[x] = [];
+                for (let y = 0; y < rows; y++) {
+                    grid[x][y] = Math.random() < 0.4 ? TREE : EMPTY;
+                    next[x][y] = EMPTY;
+                }
+            }
+        }
+
+        function update() {
+            for (let x = 0; x < cols; x++) {
+                for (let y = 0; y < rows; y++) {
+                    let state = grid[x][y];
+                    
+                    if (state === BURNING) {
+                        next[x][y] = EMPTY;
+                    } else if (state === EMPTY) {
+                        next[x][y] = Math.random() < p ? TREE : EMPTY;
+                    } else if (state === TREE) {
+                        let catchingFire = false;
+                        
+                        // Check Moore neighborhood
+                        for (let i = -1; i <= 1; i++) {
+                            for (let j = -1; j <= 1; j++) {
+                                let nx = x + i;
+                                let ny = y + j;
+                                if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+                                    if (grid[nx][ny] === BURNING) {
+                                        catchingFire = true;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (catchingFire || Math.random() < f) {
+                            next[x][y] = BURNING;
+                        } else {
+                            next[x][y] = TREE;
+                        }
+                    }
+                }
+            }
+            
+            let temp = grid;
+            grid = next;
+            next = temp;
+        }
+
+        function draw() {
+            update();
+            
+            let imgData = ctx.createImageData(cols, rows);
+            for (let x = 0; x < cols; x++) {
+                for (let y = 0; y < rows; y++) {
+                    let state = grid[x][y];
+                    let idx = (x + y * cols) * 4;
+                    
+                    if (state === EMPTY) {
+                        imgData.data[idx] = 17;
+                        imgData.data[idx+1] = 17;
+                        imgData.data[idx+2] = 17;
+                        imgData.data[idx+3] = 255;
+                    } else if (state === TREE) {
+                        imgData.data[idx] = 34;
+                        imgData.data[idx+1] = 139;
+                        imgData.data[idx+2] = 34;
+                        imgData.data[idx+3] = 255;
+                    } else if (state === BURNING) {
+                        imgData.data[idx] = 255;
+                        imgData.data[idx+1] = 69;
+                        imgData.data[idx+2] = 0;
+                        imgData.data[idx+3] = 255;
+                    }
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+            
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        init();
+        draw();
+    </script>
+</body>
+</html>

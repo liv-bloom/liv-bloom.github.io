@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rössler Attractor</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Rössler Attractor</h2>
+        <p>A system of three non-linear ordinary differential equations exhibiting chaotic continuous-time dynamics.</p>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let x = 0.1;
+        let y = 0;
+        let z = 0;
+        
+        const a = 0.2;
+        const b = 0.2;
+        const c = 5.7;
+        const dt = 0.05;
+        
+        let points = [];
+        let angle = 0;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(17, 17, 17, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for(let i=0; i<3; i++) {
+                let dx = (-y - z) * dt;
+                let dy = (x + a * y) * dt;
+                let dz = (b + z * (x - c)) * dt;
+                
+                x += dx;
+                y += dy;
+                z += dz;
+                
+                points.push({x: x, y: y, z: z});
+                if (points.length > 800) {
+                    points.shift();
+                }
+            }
+
+            angle += 0.01;
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+
+            ctx.beginPath();
+            for (let i = 0; i < points.length; i++) {
+                let pt = points[i];
+                
+                let rotX = pt.x * cosA - pt.y * sinA;
+                let rotY = pt.x * sinA + pt.y * cosA;
+                
+                let scale = 15;
+                let px = canvas.width / 2 + rotX * scale;
+                let py = canvas.height / 2 - pt.z * scale + 100;
+
+                if (i === 0) {
+                    ctx.moveTo(px, py);
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            
+            ctx.strokeStyle = `hsl(${(angle * 40) % 360}, 80%, 60%)`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

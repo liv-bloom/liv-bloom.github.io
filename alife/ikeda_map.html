@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ikeda Map Attractor</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+    </style>
+</head>
+<body>
+    <div id="info">Ikeda Map Attractor (Chaos Theory)</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Reset</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let x = 0.0;
+        let y = 0.0;
+        let u = 0.9;
+        let iter = 0;
+
+        function reset() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            x = Math.random();
+            y = Math.random();
+            iter = 0;
+        }
+
+        function draw() {
+            for (let i = 0; i < 500; i++) {
+                let t = 0.4 - 6.0 / (1.0 + x * x + y * y);
+                let nextX = 1.0 + u * (x * Math.cos(t) - y * Math.sin(t));
+                let nextY = u * (x * Math.sin(t) + y * Math.cos(t));
+                x = nextX;
+                y = nextY;
+
+                let drawX = (x + 0.5) * (width / 2.5) + width * 0.1;
+                let drawY = (y + 1.5) * (height / 3) + height * 0.1;
+
+                ctx.fillStyle = `hsla(${iter % 360}, 80%, 60%, 0.5)`;
+                ctx.fillRect(drawX, height - drawY, 1, 1);
+                iter += 0.05;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        reset();
+        draw();
+    </script>
+</body>
+</html>

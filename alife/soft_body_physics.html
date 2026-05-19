@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soft Body Physics (Mass-Spring System)</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; display: flex; gap: 5px; align-items: center;}
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #8fd46b; color: #10120f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Soft Body Physics</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A mass-spring-damper system simulating soft, squishy bodies. Points (masses) are connected by springs. Click and drag to throw the blob around.</p>
+        <div class="controls">
+            <button onclick="reset()">Reset Blob</button>
+            <button onclick="addBlob()">Drop New Blob</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let points = [];
+        let springs = [];
+        
+        const GRAVITY = 0.5;
+        const FRICTION = 0.99;
+        const BOUNCE = 0.8;
+        const STIFFNESS = 0.2;
+        const DAMPING = 0.5;
+        
+        let mouseX = 0, mouseY = 0;
+        let isDragging = false;
+        let draggedPoint = null;
+
+        class Point {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.oldX = x;
+                this.oldY = y;
+                this.pinned = false;
+                this.mass = 1;
+            }
+            
+            update() {
+                if (this.pinned) return;
+                
+                let vx = (this.x - this.oldX) * FRICTION;
+                let vy = (this.y - this.oldY) * FRICTION;
+                
+                this.oldX = this.x;
+                this.oldY = this.y;
+                
+                this.x += vx;
+                this.y += vy;
+                this.y += GRAVITY;
+                
+                // Bounds
+                if (this.x < 0) { this.x = 0; this.oldX = this.x + vx * BOUNCE; }
+                if (this.x > width) { this.x = width; this.oldX = this.x + vx * BOUNCE; }
+                if (this.y < 0) { this.y = 0; this.oldY = this.y + vy * BOUNCE; }
+                if (this.y > height) { this.y = height; this.oldY = this.y + vy * BOUNCE; }
+            }
+            
+            draw() {
+                ctx.fillStyle = '#e5eadb';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        class Spring {
+            constructor(p1, p2, restLength, stiffness = STIFFNESS, damping = DAMPING) {
+                this.p1 = p1;
+                this.p2 = p2;
+                this.restLength = restLength;
+                this.stiffness = stiffness;
+                this.damping = damping;
+            }
+            
+            update() {
+                let dx = this.p2.x - this.p1.x;
+                let dy = this.p2.y - this.p1.y;
+                let dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist === 0) return;
+                
+                let diff = (this.restLength - dist) / dist;
+                let forceX = dx * diff * this.stiffness;
+                let forceY = dy * diff * this.stiffness;
+                
+                // Simple damping approximation
+                forceX *= (1 - this.damping);
+                forceY *= (1 - this.damping);
+                
+                if (!this.p1.pinned) {
+                    this.p1.x -= forceX * 0.5;
+                    this.p1.y -= forceY * 0.5;
+                }
+                
+                if (!this.p2.pinned) {
+                    this.p2.x += forceX * 0.5;
+                    this.p2.y += forceY * 0.5;
+                }
+            }
+            
+            draw() {
+                ctx.strokeStyle = '#8fd46b';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(this.p1.x, this.p1.y);
+                ctx.lineTo(this.p2.x, this.p2.y);
+                ctx.stroke();
+            }
+        }
+
+        function createBlob(cx, cy, radius, segments) {
+            let blobPoints = [];
+            let centerPoint = new Point(cx, cy);
+            points.push(centerPoint);
+            blobPoints.push(centerPoint);
+            
+            // Perimeter points
+            for (let i = 0; i < segments; i++) {
+                let angle = (i / segments) * Math.PI * 2;
+                let px = cx + Math.cos(angle) * radius;
+                let py = cy + Math.sin(angle) * radius;
+                let p = new Point(px, py);
+                points.push(p);
+                blobPoints.push(p);
+                
+                // Connect to center
+                springs.push(new Spring(centerPoint, p, radius, 0.1, 0.5));
+            }
+            
+            // Connect perimeter
+            for (let i = 1; i <= segments; i++) {
+                let p1 = blobPoints[i];
+                let p2 = blobPoints[i === segments ? 1 : i + 1];
+                let dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+                springs.push(new Spring(p1, p2, dist, 0.5, 0.2));
+                
+                // Structural cross-bracing (connect to point across)
+                let oppositeIdx = i + Math.floor(segments/2);
+                if (oppositeIdx > segments) oppositeIdx -= segments;
+                if (i < oppositeIdx) {
+                    let pOpp = blobPoints[oppositeIdx];
+                    let distOpp = Math.sqrt(Math.pow(p1.x - pOpp.x, 2) + Math.pow(p1.y - pOpp.y, 2));
+                    springs.push(new Spring(p1, pOpp, distOpp, 0.1, 0.5));
+                }
+            }
+        }
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            if (points.length === 0) reset();
+        }
+
+        function reset() {
+            points = [];
+            springs = [];
+            createBlob(width / 2, height / 3, 60, 16);
+        }
+
+        function addBlob() {
+            createBlob(Math.random() * (width - 100) + 50, 50, 40 + Math.random() * 30, 12 + Math.floor(Math.random()*8));
+        }
+
+        function animate() {
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Physics iterations for stability
+            for (let i = 0; i < 5; i++) {
+                for (let spring of springs) spring.update();
+            }
+            
+            for (let p of points) p.update();
+            
+            // Mouse interaction
+            if (isDragging && draggedPoint) {
+                draggedPoint.x = mouseX;
+                draggedPoint.y = mouseY;
+            }
+            
+            // Draw
+            for (let spring of springs) spring.draw();
+            for (let p of points) p.draw();
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Mouse events
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            let minDist = 30;
+            for (let p of points) {
+                let dist = Math.sqrt(Math.pow(p.x - mouseX, 2) + Math.pow(p.y - mouseY, 2));
+                if (dist < minDist) {
+                    minDist = dist;
+                    draggedPoint = p;
+                }
+            }
+            
+            if (draggedPoint) {
+                isDragging = true;
+            }
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+        
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            draggedPoint = null;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            isDragging = false;
+            draggedPoint = null;
+        });
+
+        window.addEventListener('resize', resize);
+        resize();
+        animate();
+    </script>
+</body>
+</html>

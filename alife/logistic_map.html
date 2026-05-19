@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistic Map (Bifurcation Diagram)</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Logistic Map (Bifurcation Diagram)</h2>
+        <p>The transition from simple population dynamics to deterministic chaos.</p>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            draw();
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const rMin = 2.5;
+            const rMax = 4.0;
+            const steps = canvas.width;
+            const settle = 100;
+            const drawSteps = 50;
+            
+            ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
+            
+            for (let i = 0; i < steps; i++) {
+                const r = rMin + (rMax - rMin) * (i / steps);
+                let x = 0.5;
+                
+                // Settle
+                for (let j = 0; j < settle; j++) {
+                    x = r * x * (1 - x);
+                }
+                
+                // Draw
+                for (let j = 0; j < drawSteps; j++) {
+                    x = r * x * (1 - x);
+                    const px = i;
+                    const py = canvas.height - (x * canvas.height);
+                    ctx.fillRect(px, py, 1, 1);
+                }
+            }
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+    </script>
+</body>
+</html>

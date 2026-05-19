@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Turing Patterns (Reaction-Diffusion)</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { line-height: 1.1; letter-spacing: 2px; }
+    h1 { color: #f3d36b; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Turing Patterns (Gray-Scott Reaction-Diffusion)</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/turing.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    // A and B concentrations
+    let A = Array.from({length: H}, () => Array.from({length: W}, () => 1.0));
+    let B = Array.from({length: H}, () => Array.from({length: W}, () => 0.0));
+    
+    // Seed B in the center
+    for(let y=H/2-2; y<H/2+2; y++) {
+      for(let x=W/2-2; x<W/2+2; x++) {
+        B[y][x] = 1.0;
+      }
+    }
+
+    const dA = 1.0, dB = 0.5, f = 0.055, k = 0.062; // Gray-Scott parameters for coral/mitosis patterns
+    
+    const chars = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
+
+    function laplace(grid, x, y) {
+      let sum = 0;
+      sum += grid[y][x] * -1;
+      sum += grid[(y-1+H)%H][x] * 0.2;
+      sum += grid[(y+1)%H][x] * 0.2;
+      sum += grid[y][(x-1+W)%W] * 0.2;
+      sum += grid[y][(x+1)%W] * 0.2;
+      sum += grid[(y-1+H)%H][(x-1+W)%W] * 0.05;
+      sum += grid[(y-1+H)%H][(x+1)%W] * 0.05;
+      sum += grid[(y+1)%H][(x-1+W)%W] * 0.05;
+      sum += grid[(y+1)%H][(x+1)%W] * 0.05;
+      return sum;
+    }
+
+    function step() {
+      // Multiple physics steps per render frame to speed up visuals
+      for(let iter=0; iter<5; iter++) {
+        let nextA = Array.from({length: H}, () => Array.from({length: W}, () => 0));
+        let nextB = Array.from({length: H}, () => Array.from({length: W}, () => 0));
+        
+        for(let y=0; y<H; y++) {
+          for(let x=0; x<W; x++) {
+            let a = A[y][x];
+            let b = B[y][x];
+            let lapA = laplace(A, x, y);
+            let lapB = laplace(B, x, y);
+            
+            nextA[y][x] = a + (dA * lapA - a * b * b + f * (1 - a));
+            nextB[y][x] = b + (dB * lapB + a * b * b - (k + f) * b);
+            
+            // Constrain
+            if(nextA[y][x] < 0) nextA[y][x] = 0;
+            if(nextA[y][x] > 1) nextA[y][x] = 1;
+            if(nextB[y][x] < 0) nextB[y][x] = 0;
+            if(nextB[y][x] > 1) nextB[y][x] = 1;
+          }
+        }
+        A = nextA;
+        B = nextB;
+      }
+
+      let out = "";
+      for(let y=0; y<H; y++) {
+        let row = "";
+        for(let x=0; x<W; x++) {
+          let b = B[y][x];
+          // Map B concentration (0.0 - 0.5 mostly) to characters
+          let idx = Math.floor(b * 20);
+          if(idx > 9) idx = 9;
+          if(idx < 0) idx = 0;
+          
+          if(idx === 0) row += '<span style="color:#10120f;">' + chars[idx] + '</span>';
+          else if(idx < 4) row += '<span style="color:#394034;">' + chars[idx] + '</span>';
+          else if(idx < 7) row += '<span style="color:#718465;">' + chars[idx] + '</span>';
+          else row += '<span style="color:#8fd46b;">' + chars[idx] + '</span>';
+        }
+        out += row + "\n";
+      }
+      document.getElementById('field').innerHTML = out;
+    }
+    setInterval(step, 50);
+  </script>
+</body>
+</html>

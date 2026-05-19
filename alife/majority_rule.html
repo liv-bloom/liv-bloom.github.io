@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Majority Rule</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { line-height: 1.1; letter-spacing: 2px; }
+    h1 { color: #f3d36b; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Majority Rule Cellular Automaton</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/majority.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    // 0 or 1 state
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.random() < 0.5 ? 0 : 1));
+
+    function step() {
+      let next = Array.from({length: H}, () => Array.from({length: W}, () => 0));
+      for(let y=0; y<H; y++) {
+        for(let x=0; x<W; x++) {
+          let sum = 0;
+          for(let dy=-1; dy<=1; dy++) {
+            for(let dx=-1; dx<=1; dx++) {
+              sum += grid[(y+dy+H)%H][(x+dx+W)%W];
+            }
+          }
+          // Include self, so 9 cells total. Majority wins.
+          next[y][x] = sum > 4 ? 1 : 0;
+          
+          // Add a small amount of noise to prevent freezing completely
+          if(Math.random() < 0.01) {
+             next[y][x] = 1 - next[y][x];
+          }
+        }
+      }
+      grid = next;
+
+      let out = "";
+      for(let y=0; y<H; y++) {
+        let row = "";
+        for(let x=0; x<W; x++) {
+          row += grid[y][x] ? '<span style="color:#76c7d5;">■</span>' : '<span style="color:#394034;">.</span>';
+        }
+        out += row + "\n";
+      }
+      document.getElementById('field').innerHTML = out;
+    }
+    setInterval(step, 150);
+  </script>
+</body>
+</html>

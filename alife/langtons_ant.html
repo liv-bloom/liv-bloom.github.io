@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Langton's Ant</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Langton's Ant</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A two-dimensional universal Turing machine. Rules: At a dark square, turn 90° right, flip the color, move forward. At a light square, turn 90° left, flip the color, move forward. Out of simple rules emerges complex "highway" building behavior.</p>
+        <div class="controls">
+            <button onclick="reset()">Restart</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        const CELL_SIZE = 4;
+        let cols, rows;
+        let grid;
+        
+        // 0: up, 1: right, 2: down, 3: left
+        let ant = { x: 0, y: 0, dir: 0 };
+        const STEPS_PER_FRAME = 200;
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            cols = Math.floor(width / CELL_SIZE);
+            rows = Math.floor(height / CELL_SIZE);
+            reset();
+        }
+
+        function reset() {
+            grid = new Array(cols).fill(0).map(() => new Array(rows).fill(0));
+            ant.x = Math.floor(cols / 2);
+            ant.y = Math.floor(rows / 2);
+            ant.dir = 0;
+            
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        function step() {
+            for (let i = 0; i < STEPS_PER_FRAME; i++) {
+                // Out of bounds check (wrap around)
+                if (ant.x < 0) ant.x = cols - 1;
+                if (ant.x >= cols) ant.x = 0;
+                if (ant.y < 0) ant.y = rows - 1;
+                if (ant.y >= rows) ant.y = 0;
+
+                let state = grid[ant.x][ant.y];
+                
+                if (state === 0) {
+                    // dark square: turn right
+                    ant.dir = (ant.dir + 1) % 4;
+                    grid[ant.x][ant.y] = 1;
+                    ctx.fillStyle = '#8fd46b';
+                } else {
+                    // light square: turn left
+                    ant.dir = (ant.dir + 3) % 4; // same as -1
+                    grid[ant.x][ant.y] = 0;
+                    ctx.fillStyle = '#10120f';
+                }
+                
+                // Draw the flipped cell
+                ctx.fillRect(ant.x * CELL_SIZE, ant.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+                
+                // Move forward
+                if (ant.dir === 0) ant.y--;       // up
+                else if (ant.dir === 1) ant.x++;  // right
+                else if (ant.dir === 2) ant.y++;  // down
+                else if (ant.dir === 3) ant.x--;  // left
+            }
+            
+            // Draw ant head
+            ctx.fillStyle = '#e5eadb';
+            ctx.fillRect(ant.x * CELL_SIZE, ant.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+
+        function draw() {
+            step();
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

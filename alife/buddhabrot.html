@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buddhabrot</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #000; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #222; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">Buddhabrot (Rendering...)</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Reset Render</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        let imgData;
+        let density = new Uint32Array(width * height);
+        let maxDensity = 1;
+        let maxIter = 500;
+        let renderId;
+
+        function reset() {
+            density.fill(0);
+            maxDensity = 1;
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            imgData = ctx.getImageData(0, 0, width, height);
+        }
+
+        function iterate(cx, cy) {
+            let x = 0;
+            let y = 0;
+            let iter = 0;
+            let pathX = new Float64Array(maxIter);
+            let pathY = new Float64Array(maxIter);
+
+            while (x * x + y * y <= 4 && iter < maxIter) {
+                let xtemp = x * x - y * y + cx;
+                y = 2 * x * y + cy;
+                x = xtemp;
+                pathX[iter] = x;
+                pathY[iter] = y;
+                iter++;
+            }
+
+            // Only plot paths that escape
+            if (iter < maxIter) {
+                for (let i = 0; i < iter; i++) {
+                    let px = Math.floor((pathX[i] + 2) * width / 4);
+                    let py = Math.floor((pathY[i] + 2) * height / 4);
+                    
+                    if (px >= 0 && px < width && py >= 0 && py < height) {
+                        let idx = py * width + px;
+                        density[idx]++;
+                        if (density[idx] > maxDensity) {
+                            maxDensity = density[idx];
+                        }
+                    }
+                }
+            }
+        }
+
+        function renderBatch() {
+            for (let b = 0; b < 10000; b++) {
+                let cx = (Math.random() * 4) - 2;
+                let cy = (Math.random() * 4) - 2;
+                iterate(cx, cy);
+            }
+
+            for (let i = 0; i < density.length; i++) {
+                if (density[i] > 0) {
+                    let val = Math.floor((density[i] / maxDensity) * 255 * 3); // brighten
+                    val = Math.min(val, 255);
+                    let pxIdx = i * 4;
+                    // grayscale/blueish tint
+                    imgData.data[pxIdx] = val * 0.7;     // R
+                    imgData.data[pxIdx + 1] = val * 0.8; // G
+                    imgData.data[pxIdx + 2] = val;       // B
+                    imgData.data[pxIdx + 3] = 255;       // A
+                }
+            }
+            
+            ctx.putImageData(imgData, 0, 0);
+            renderId = requestAnimationFrame(renderBatch);
+        }
+
+        reset();
+        renderBatch();
+    </script>
+</body>
+</html>

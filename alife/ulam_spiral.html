@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ulam Spiral (Prime Numbers)</title>
+    <style>
+        body { margin: 0; background-color: #000; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Ulam Spiral</h2>
+        <p>Plotting integers in a spiral and highlighting prime numbers. Notice the diagonal lines indicating prime-rich quadratic polynomials. A simple mathematical pattern with emergent structure.</p>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let cols, rows, cellSize;
+        let scale = 1;
+        let maxNum;
+
+        function isPrime(num) {
+            if (num <= 1) return false;
+            if (num <= 3) return true;
+            if (num % 2 === 0 || num % 3 === 0) return false;
+            for (let i = 5; i * i <= num; i += 6) {
+                if (num % i === 0 || num % (i + 2) === 0) return false;
+            }
+            return true;
+        }
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            // use odd number for perfect center
+            cols = Math.floor(minDim / scale);
+            if(cols % 2 === 0) cols++;
+            rows = cols;
+            cellSize = scale;
+            
+            canvas.width = cols * cellSize;
+            canvas.height = rows * cellSize;
+            maxNum = cols * rows;
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#4CAF50';
+            
+            let x = Math.floor(cols / 2);
+            let y = Math.floor(rows / 2);
+            
+            let num = 1;
+            let step = 1;
+            let dir = 0; // 0: right, 1: up, 2: left, 3: down
+            
+            const dx = [1, 0, -1, 0];
+            const dy = [0, -1, 0, 1];
+            
+            let stepsTaken = 0;
+            let stepsNeeded = step;
+            let turns = 0;
+            
+            while (num <= maxNum) {
+                if (isPrime(num)) {
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+                
+                x += dx[dir];
+                y += dy[dir];
+                stepsTaken++;
+                
+                if (stepsTaken === stepsNeeded) {
+                    dir = (dir + 1) % 4;
+                    stepsTaken = 0;
+                    turns++;
+                    if (turns % 2 === 0) {
+                        stepsNeeded++;
+                    }
+                }
+                num++;
+            }
+        }
+
+        window.addEventListener('resize', resize);
+        
+        // Initial setup
+        scale = 2; // smaller pixels = larger spiral
+        if(window.innerWidth < 600) scale = 1;
+        resize();
+    </script>
+</body>
+</html>

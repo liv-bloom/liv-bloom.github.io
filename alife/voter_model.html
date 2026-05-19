@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Voter Model</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { line-height: 1.1; letter-spacing: 2px; }
+    h1 { color: #61a1b4; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Spatial Voter Model</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/voter.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    const STATES = 4; // Number of competing opinions
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.floor(Math.random() * STATES)));
+    
+    const colors = ["#8fd46b", "#76c7d5", "#e77a61", "#f3d36b"];
+    const chars = ["■", "●", "▲", "◆"];
+
+    function step() {
+      // Update asynchronously: pick random cells and adopt a random neighbor's state
+      for(let i = 0; i < W * H * 2; i++) {
+        let x = Math.floor(Math.random() * W);
+        let y = Math.floor(Math.random() * H);
+        
+        let neighbors = [];
+        for(let dy=-1; dy<=1; dy++) {
+          for(let dx=-1; dx<=1; dx++) {
+            if(dx===0 && dy===0) continue;
+            neighbors.push(grid[(y+dy+H)%H][(x+dx+W)%W]);
+          }
+        }
+        let chosenNeighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+        grid[y][x] = chosenNeighbor;
+      }
+      
+      let out = "";
+      for(let y=0; y<H; y++) {
+        let row = "";
+        for(let x=0; x<W; x++) {
+          let state = grid[y][x];
+          row += `<span style="color:${colors[state]};">${chars[state]}</span>`;
+        }
+        out += row + "\n";
+      }
+      document.getElementById('field').innerHTML = out;
+    }
+    
+    setInterval(step, 100);
+  </script>
+</body>
+</html>

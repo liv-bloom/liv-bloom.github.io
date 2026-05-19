@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physarum (Slime Mold)</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Physarum (Slime Mold)</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A simplified Physarum polycephalum model. Agents lay a chemical trail and steer towards high concentrations, forming complex networks.</p>
+        <div class="controls">
+            <button onclick="reset()">Restart</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let agents = [];
+        const NUM_AGENTS = 5000;
+        let trailMap = []; // 2D array for pheromone trail
+        
+        // Physarum params
+        const SENSOR_OFFSET_DIST = 15;
+        const SENSOR_ANGLE = 45 * Math.PI / 180;
+        const SENSOR_SIZE = 1;
+        const MOVE_SPEED = 1.5;
+        const TURN_SPEED = 20 * Math.PI / 180;
+        const DECAY = 0.95; // Pheromone decay rate
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            reset();
+        }
+
+        class Agent {
+            constructor() {
+                // Start in a circle in the middle
+                const r = Math.random() * (width / 4);
+                const theta = Math.random() * Math.PI * 2;
+                this.x = width/2 + Math.cos(theta) * r;
+                this.y = height/2 + Math.sin(theta) * r;
+                // Initially pointing inward or outward
+                this.angle = theta + Math.PI; 
+            }
+
+            sense(angleOffset) {
+                const senseAngle = this.angle + angleOffset;
+                const senseX = Math.floor(this.x + Math.cos(senseAngle) * SENSOR_OFFSET_DIST);
+                const senseY = Math.floor(this.y + Math.sin(senseAngle) * SENSOR_OFFSET_DIST);
+                
+                let sum = 0;
+                for (let dx = -SENSOR_SIZE; dx <= SENSOR_SIZE; dx++) {
+                    for (let dy = -SENSOR_SIZE; dy <= SENSOR_SIZE; dy++) {
+                        let sx = senseX + dx;
+                        let sy = senseY + dy;
+                        if (sx >= 0 && sx < width && sy >= 0 && sy < height) {
+                            sum += trailMap[sx][sy];
+                        }
+                    }
+                }
+                return sum;
+            }
+
+            update() {
+                // Sense
+                const weightForward = this.sense(0);
+                const weightLeft = this.sense(SENSOR_ANGLE);
+                const weightRight = this.sense(-SENSOR_ANGLE);
+                
+                const randomSteerStr = Math.random();
+
+                // Steer
+                if (weightForward > weightLeft && weightForward > weightRight) {
+                    // keep going straight
+                } else if (weightForward < weightLeft && weightForward < weightRight) {
+                    this.angle += (randomSteerStr - 0.5) * 2 * TURN_SPEED;
+                } else if (weightLeft > weightRight) {
+                    this.angle += randomSteerStr * TURN_SPEED;
+                } else if (weightRight > weightLeft) {
+                    this.angle -= randomSteerStr * TURN_SPEED;
+                }
+
+                // Move
+                let nextX = this.x + Math.cos(this.angle) * MOVE_SPEED;
+                let nextY = this.y + Math.sin(this.angle) * MOVE_SPEED;
+
+                // Bounce off walls
+                if (nextX < 0 || nextX >= width || nextY < 0 || nextY >= height) {
+                    nextX = Math.min(width - 0.01, Math.max(0, nextX));
+                    nextY = Math.min(height - 0.01, Math.max(0, nextY));
+                    this.angle = Math.random() * Math.PI * 2;
+                }
+
+                this.x = nextX;
+                this.y = nextY;
+                
+                // Deposit pheromone
+                let ix = Math.floor(this.x);
+                let iy = Math.floor(this.y);
+                if (ix >= 0 && ix < width && iy >= 0 && iy < height) {
+                    trailMap[ix][iy] += 10;
+                    if (trailMap[ix][iy] > 255) trailMap[ix][iy] = 255;
+                }
+            }
+        }
+
+        function reset() {
+            trailMap = new Array(Math.ceil(width)).fill(0).map(() => new Array(Math.ceil(height)).fill(0));
+            agents = [];
+            for (let i = 0; i < NUM_AGENTS; i++) {
+                agents.push(new Agent());
+            }
+        }
+
+        function blurAndDecay() {
+            // Very simplified blur (just averaging with neighbors) and decay
+            // To keep it fast in JS without shaders, we do a basic pass
+            let newMap = new Array(Math.ceil(width)).fill(0).map(() => new Array(Math.ceil(height)).fill(0));
+            
+            for (let x = 1; x < width - 1; x++) {
+                for (let y = 1; y < height - 1; y++) {
+                    let sum = (
+                        trailMap[x-1][y-1] + trailMap[x][y-1] + trailMap[x+1][y-1] +
+                        trailMap[x-1][y]   + trailMap[x][y]   + trailMap[x+1][y] +
+                        trailMap[x-1][y+1] + trailMap[x][y+1] + trailMap[x+1][y+1]
+                    ) / 9;
+                    newMap[x][y] = sum * DECAY;
+                }
+            }
+            trailMap = newMap;
+        }
+
+        function draw() {
+            // Update agents
+            for (let i = 0; i < agents.length; i++) {
+                agents[i].update();
+            }
+
+            blurAndDecay();
+
+            // Render
+            let imgData = ctx.createImageData(width, height);
+            let data = imgData.data;
+            
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let idx = (y * Math.floor(width) + x) * 4;
+                    let val = trailMap[x][y];
+                    
+                    // Base color: #10120f (16, 18, 15)
+                    // Pheromone color: #8fd46b (143, 212, 107)
+                    let ratio = Math.min(1, val / 50); // Scale for visibility
+                    
+                    data[idx] = 16 + (143 - 16) * ratio;     // R
+                    data[idx+1] = 18 + (212 - 18) * ratio;   // G
+                    data[idx+2] = 15 + (107 - 15) * ratio;   // B
+                    data[idx+3] = 255;                       // A
+                }
+            }
+            ctx.putImageData(imgData, 0, 0);
+
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

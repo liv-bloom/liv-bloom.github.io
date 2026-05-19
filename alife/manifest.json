@@ -1,0 +1,197 @@
+{
+  "name": "Bilingual Garden",
+  "author": "liv bloom",
+  "description": "A hybrid exhibition for Artificial Life seeds. Visuals for humans, readable DOM state/JSON for agents.",
+  "total_seeds": 27,
+  "seeds": [
+    {
+      "id": "ant_foraging",
+      "file": "ant_foraging.html",
+      "title": "ASCII Ant Foraging (Swarm Intelligence)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_ant.py | python3</code>",
+      "url": "/ant_foraging.html"
+    },
+    {
+      "id": "bml_traffic",
+      "file": "bml_traffic.html",
+      "title": "ASCII BML Traffic Model",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_bml.py | python3</code>",
+      "url": "/bml_traffic.html"
+    },
+    {
+      "id": "boids",
+      "file": "boids.html",
+      "title": "ASCII ALife Field / Boids + Nutrient Cells",
+      "description": "",
+      "url": "/boids.html"
+    },
+    {
+      "id": "brians_brain",
+      "file": "brians_brain.html",
+      "title": "ASCII Brian's Brain",
+      "description": "Share script: <code>curl https://example.invalid/alife/brians_brain.py | python3</code>",
+      "url": "/brians_brain.html"
+    },
+    {
+      "id": "conway",
+      "file": "conway.html",
+      "title": "ASCII Conway's Game of Life",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_conway.py | python3</code>",
+      "url": "/conway.html"
+    },
+    {
+      "id": "cyclic_ca",
+      "file": "cyclic_ca.html",
+      "title": "ASCII Cyclic Cellular Automaton",
+      "description": "Share script: <code>curl https://example.invalid/alife/cyclic_ca.py | python3</code>",
+      "url": "/cyclic_ca.html"
+    },
+    {
+      "id": "daisyworld",
+      "file": "daisyworld.html",
+      "title": "ASCII Spatial Daisyworld",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_daisyworld.py | python3</code>",
+      "url": "/daisyworld.html"
+    },
+    {
+      "id": "dla",
+      "file": "dla.html",
+      "title": "ASCII DLA (Diffusion-Limited Aggregation)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_dla.py | python3</code>",
+      "url": "/dla.html"
+    },
+    {
+      "id": "forest_fire",
+      "file": "forest_fire.html",
+      "title": "ASCII Forest Fire",
+      "description": "Share script: <code>curl https://example.invalid/alife/forest_fire.py | python3</code>",
+      "url": "/forest_fire.html"
+    },
+    {
+      "id": "hodgepodge",
+      "file": "hodgepodge.html",
+      "title": "ASCII Hodgepodge Machine (BZ Reaction Analog)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_hodgepodge.py | python3</code>",
+      "url": "/hodgepodge.html"
+    },
+    {
+      "id": "ising_model",
+      "file": "ising_model.html",
+      "title": "ASCII Ising Model (Ferromagnetism)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ising.py | python3</code>",
+      "url": "/ising_model.html"
+    },
+    {
+      "id": "langtons_ant",
+      "file": "langtons_ant.html",
+      "title": "ASCII Langton's Ant",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_langton.py | python3</code>",
+      "url": "/langtons_ant.html"
+    },
+    {
+      "id": "lsystem_plant",
+      "file": "lsystem_plant.html",
+      "title": "L-System Fractal Plant",
+      "description": "Share script: <code>curl https://example.invalid/alife/lsystem.py | python3</code>",
+      "url": "/lsystem_plant.html"
+    },
+    {
+      "id": "majority_rule",
+      "file": "majority_rule.html",
+      "title": "ASCII Majority Rule Cellular Automaton",
+      "description": "Share script: <code>curl https://example.invalid/alife/majority.py | python3</code>",
+      "url": "/majority_rule.html"
+    },
+    {
+      "id": "predator_prey",
+      "file": "predator_prey.html",
+      "title": "ASCII Spatial Predator-Prey (Lotka-Volterra)",
+      "description": "Share script: <code>curl https://example.invalid/alife/predator_prey.py | python3</code>",
+      "url": "/predator_prey.html"
+    },
+    {
+      "id": "reaction_diffusion",
+      "file": "reaction_diffusion.html",
+      "title": "ASCII Reaction-Diffusion (Gray-Scott)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rd.py | python3</code>",
+      "url": "/reaction_diffusion.html"
+    },
+    {
+      "id": "rule110",
+      "file": "rule110.html",
+      "title": "ASCII Rule 110 (Turing Complete 1D CA)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rule110.py | python3</code>",
+      "url": "/rule110.html"
+    },
+    {
+      "id": "rule30",
+      "file": "rule30.html",
+      "title": "ASCII Rule 30 (Chaos & Pseudorandomness)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rule30.py | python3</code>",
+      "url": "/rule30.html"
+    },
+    {
+      "id": "rule90",
+      "file": "rule90.html",
+      "title": "ASCII Rule 90 (Sierpinski Triangle)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rule90.py | python3</code>",
+      "url": "/rule90.html"
+    },
+    {
+      "id": "sandpile",
+      "file": "sandpile.html",
+      "title": "ASCII Abelian Sandpile Model",
+      "description": "Share script: <code>curl https://example.invalid/alife/sandpile.py | python3</code>",
+      "url": "/sandpile.html"
+    },
+    {
+      "id": "schelling",
+      "file": "schelling.html",
+      "title": "ASCII Schelling Segregation Model",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_schelling.py | python3</code>",
+      "url": "/schelling.html"
+    },
+    {
+      "id": "slime_mold",
+      "file": "slime_mold.html",
+      "title": "ASCII Slime Mold (Physarum Polycephalum)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_slime.py | python3</code>",
+      "url": "/slime_mold.html"
+    },
+    {
+      "id": "termites",
+      "file": "termites.html",
+      "title": "ASCII Termites (Woodchips Clustering)",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_termites.py | python3</code>",
+      "url": "/termites.html"
+    },
+    {
+      "id": "turing_patterns",
+      "file": "turing_patterns.html",
+      "title": "ASCII Turing Patterns (Gray-Scott Reaction-Diffusion)",
+      "description": "Share script: <code>curl https://example.invalid/alife/turing.py | python3</code>",
+      "url": "/turing_patterns.html"
+    },
+    {
+      "id": "voter_model",
+      "file": "voter_model.html",
+      "title": "ASCII Spatial Voter Model",
+      "description": "Share script: <code>curl https://example.invalid/alife/voter.py | python3</code>",
+      "url": "/voter_model.html"
+    },
+    {
+      "id": "wator",
+      "file": "wator.html",
+      "title": "ASCII Wa-Tor (Ecological Simulation)",
+      "description": "Share script: <code>curl https://example.invalid/alife/wator.py | python3</code>",
+      "url": "/wator.html"
+    },
+    {
+      "id": "wireworld",
+      "file": "wireworld.html",
+      "title": "ASCII Wireworld",
+      "description": "Share script: <code>curl https://example.invalid/alife/ascii_wireworld.py | python3</code>",
+      "url": "/wireworld.html"
+    }
+  ]
+}

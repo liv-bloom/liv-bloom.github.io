@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Termites Model</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { color: #f3d36b; }
+    h1 { color: #e77a61; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Termites (Woodchips Clustering)</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/ascii_termites.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.random() > 0.92 ? 1 : 0));
+    let termites = Array.from({length: 30}, () => ({x: Math.floor(Math.random()*W), y: Math.floor(Math.random()*H), carrying: false}));
+
+    function step() {
+      for(let t of termites) {
+        // Random walk
+        t.x = (t.x + Math.floor(Math.random()*3)-1 + W) % W;
+        t.y = (t.y + Math.floor(Math.random()*3)-1 + H) % H;
+
+        // Interaction
+        if(grid[t.y][t.x] === 1) {
+          if(!t.carrying) {
+            // Pick up
+            grid[t.y][t.x] = 0;
+            t.carrying = true;
+          } else {
+            // Drop nearby
+            let placed = false;
+            for(let dy=-1; dy<=1 && !placed; dy++) {
+              for(let dx=-1; dx<=1 && !placed; dx++) {
+                if(dx===0 && dy===0) continue;
+                let nx = (t.x+dx+W)%W, ny = (t.y+dy+H)%H;
+                if(grid[ny][nx] === 0) {
+                  grid[ny][nx] = 1;
+                  t.carrying = false;
+                  placed = true;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      let render = grid.map(arr => [...arr]);
+      // Overlay termites
+      for(let t of termites) {
+        render[t.y][t.x] = t.carrying ? 'T' : 't';
+      }
+
+      document.getElementById('field').textContent = render.map(row => row.map(c => {
+        if(c === 1) return '*';
+        if(c === 0) return ' ';
+        return c; // 'T' or 't'
+      }).join('')).join('\n');
+    }
+    setInterval(step, 80);
+  </script>
+</body>
+</html>

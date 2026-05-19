@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Daisyworld Model</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { color: #f3d36b; }
+    h1 { color: #f3d36b; font-size: 16px; }
+    #stats { color: #76c7d5; font-size: 12px; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Spatial Daisyworld</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/ascii_daisyworld.py | python3</code></p>
+  <div id="stats">Luminosity: <span id="lum">1.00</span> | Avg Temp: <span id="temp">22.5</span>°C</div>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    const EMPTY = 0, WHITE = 1, BLACK = 2;
+    const ALBEDO_EMPTY = 0.5, ALBEDO_WHITE = 0.75, ALBEDO_BLACK = 0.25;
+
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => {
+      let r = Math.random();
+      if(r < 0.1) return WHITE;
+      if(r < 0.2) return BLACK;
+      return EMPTY;
+    }));
+    
+    let tempGrid = Array.from({length: H}, () => Array.from({length: W}, () => 22.5));
+    let luminosity = 0.6; // starts low, increases over time
+    
+    function step() {
+      luminosity += 0.005;
+      if(luminosity > 1.6) luminosity = 0.6; // loop
+
+      let nextGrid = grid.map(arr => [...arr]);
+      let totalTemp = 0;
+
+      for(let y=0; y<H; y++) {
+        for(let x=0; x<W; x++) {
+          let albedo = ALBEDO_EMPTY;
+          if(grid[y][x] === WHITE) albedo = ALBEDO_WHITE;
+          if(grid[y][x] === BLACK) albedo = ALBEDO_BLACK;
+
+          // Local temperature based on luminosity and albedo
+          let localInsolation = luminosity * (1 - albedo);
+          // Simplified temp calculation
+          let localTemp = (localInsolation * 72) - 10;
+          
+          // Diffusion from neighbors
+          let tSum = 0;
+          for(let dy=-1; dy<=1; dy++) {
+            for(let dx=-1; dx<=1; dx++) {
+              tSum += tempGrid[(y+dy+H)%H][(x+dx+W)%W];
+            }
+          }
+          tempGrid[y][x] = (localTemp + (tSum / 9)) / 2;
+          totalTemp += tempGrid[y][x];
+
+          // Growth and death
+          let growthRate = 1 - Math.pow(((tempGrid[y][x] - 22.5) / 17.5), 2);
+          
+          if(grid[y][x] === EMPTY) {
+            // Can a neighbor seed here?
+            if(growthRate > 0) {
+              let neighbors = {1:0, 2:0};
+              for(let dy=-1; dy<=1; dy++) {
+                for(let dx=-1; dx<=1; dx++) {
+                  if(dx===0 && dy===0) continue;
+                  let st = grid[(y+dy+H)%H][(x+dx+W)%W];
+                  if(st !== EMPTY) neighbors[st]++;
+                }
+              }
+              if(neighbors[WHITE] > 0 && Math.random() < growthRate * 0.1) nextGrid[y][x] = WHITE;
+              else if(neighbors[BLACK] > 0 && Math.random() < growthRate * 0.1) nextGrid[y][x] = BLACK;
+            }
+          } else {
+            // Does it die?
+            if(Math.random() > growthRate + 0.3) {
+              nextGrid[y][x] = EMPTY;
+            }
+          }
+        }
+      }
+      grid = nextGrid;
+
+      document.getElementById('lum').textContent = luminosity.toFixed(2);
+      document.getElementById('temp').textContent = (totalTemp / (W*H)).toFixed(1);
+
+      document.getElementById('field').textContent = grid.map(row => row.map(c => {
+        if(c === WHITE) return 'W';
+        if(c === BLACK) return 'B';
+        return '.';
+      }).join('')).join('\n');
+    }
+    setInterval(step, 100);
+  </script>
+</body>
+</html>

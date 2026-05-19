@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Rockets (Genetic Algorithm)</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Smart Rockets</h2>
+        <p>A genetic algorithm where rockets evolve to find the optimal path to a target while avoiding obstacles.</p>
+        <p id="stats">Generation: 1</p>
+        <button onclick="resetSim()">Restart</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let target;
+        let obstacle;
+        let population;
+        let lifespan = 300;
+        let count = 0;
+        let generation = 1;
+        let maxforce = 0.2;
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            target = { x: canvas.width / 2, y: 50, r: 16 };
+            obstacle = { x: canvas.width / 2 - 150, y: canvas.height / 2, w: 300, h: 20 };
+        }
+
+        class DNA {
+            constructor(newgenes) {
+                if (newgenes) {
+                    this.genes = newgenes;
+                } else {
+                    this.genes = [];
+                    for (let i = 0; i < lifespan; i++) {
+                        let angle = Math.random() * Math.PI * 2;
+                        this.genes[i] = { x: Math.cos(angle) * maxforce, y: Math.sin(angle) * maxforce };
+                    }
+                }
+            }
+            crossover(partner) {
+                let newgenes = [];
+                let mid = Math.floor(Math.random() * this.genes.length);
+                for (let i = 0; i < this.genes.length; i++) {
+                    if (i > mid) newgenes[i] = this.genes[i];
+                    else newgenes[i] = partner.genes[i];
+                }
+                return new DNA(newgenes);
+            }
+            mutation() {
+                for (let i = 0; i < this.genes.length; i++) {
+                    if (Math.random() < 0.01) {
+                        let angle = Math.random() * Math.PI * 2;
+                        this.genes[i] = { x: Math.cos(angle) * maxforce, y: Math.sin(angle) * maxforce };
+                    }
+                }
+            }
+        }
+
+        class Rocket {
+            constructor(dna) {
+                this.pos = { x: canvas.width / 2, y: canvas.height - 20 };
+                this.vel = { x: 0, y: 0 };
+                this.acc = { x: 0, y: 0 };
+                this.completed = false;
+                this.crashed = false;
+                this.dna = dna || new DNA();
+                this.fitness = 0;
+            }
+            applyForce(force) {
+                this.acc.x += force.x;
+                this.acc.y += force.y;
+            }
+            update() {
+                let d = Math.hypot(this.pos.x - target.x, this.pos.y - target.y);
+                if (d < target.r) {
+                    this.completed = true;
+                    this.pos.x = target.x;
+                    this.pos.y = target.y;
+                }
+                
+                if (this.pos.x > obstacle.x && this.pos.x < obstacle.x + obstacle.w && this.pos.y > obstacle.y && this.pos.y < obstacle.y + obstacle.h) {
+                    this.crashed = true;
+                }
+                if (this.pos.x > canvas.width || this.pos.x < 0 || this.pos.y > canvas.height || this.pos.y < 0) {
+                    this.crashed = true;
+                }
+
+                if (!this.completed && !this.crashed) {
+                    this.applyForce(this.dna.genes[count]);
+                    this.vel.x += this.acc.x;
+                    this.vel.y += this.acc.y;
+                    this.pos.x += this.vel.x;
+                    this.pos.y += this.vel.y;
+                    this.acc.x = 0;
+                    this.acc.y = 0;
+                }
+            }
+            calcFitness() {
+                let d = Math.hypot(this.pos.x - target.x, this.pos.y - target.y);
+                this.fitness = Math.pow(1 / d, 2); // Exponentially reward closer rockets
+                if (this.completed) this.fitness *= 10;
+                if (this.crashed) this.fitness /= 10;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.pos.x, this.pos.y);
+                let angle = Math.atan2(this.vel.y, this.vel.x);
+                ctx.rotate(angle);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                if (this.completed) ctx.fillStyle = 'rgba(76, 175, 80, 0.8)';
+                if (this.crashed) ctx.fillStyle = 'rgba(244, 67, 54, 0.5)';
+                ctx.beginPath();
+                ctx.rect(-10, -3, 20, 6);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Population {
+            constructor(size) {
+                this.rockets = [];
+                this.popsize = size;
+                for (let i = 0; i < this.popsize; i++) {
+                    this.rockets[i] = new Rocket();
+                }
+            }
+            run() {
+                for (let i = 0; i < this.popsize; i++) {
+                    this.rockets[i].update();
+                    this.rockets[i].draw();
+                }
+            }
+            evaluate() {
+                let maxfit = 0;
+                for (let i = 0; i < this.popsize; i++) {
+                    this.rockets[i].calcFitness();
+                    if (this.rockets[i].fitness > maxfit) {
+                        maxfit = this.rockets[i].fitness;
+                    }
+                }
+                for (let i = 0; i < this.popsize; i++) {
+                    this.rockets[i].fitness /= maxfit;
+                }
+                this.matingPool = [];
+                for (let i = 0; i < this.popsize; i++) {
+                    let n = this.rockets[i].fitness * 100;
+                    for (let j = 0; j < n; j++) {
+                        this.matingPool.push(this.rockets[i]);
+                    }
+                }
+            }
+            selection() {
+                let newRockets = [];
+                for (let i = 0; i < this.rockets.length; i++) {
+                    let parentA = this.matingPool[Math.floor(Math.random() * this.matingPool.length)].dna;
+                    let parentB = this.matingPool[Math.floor(Math.random() * this.matingPool.length)].dna;
+                    let child = parentA.crossover(parentB);
+                    child.mutation();
+                    newRockets[i] = new Rocket(child);
+                }
+                this.rockets = newRockets;
+            }
+        }
+
+        function resetSim() {
+            population = new Population(150);
+            count = 0;
+            generation = 1;
+            document.getElementById('stats').innerText = `Generation: ${generation}`;
+        }
+
+        function draw() {
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw target
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, target.r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw obstacle
+            ctx.fillStyle = '#555';
+            ctx.fillRect(obstacle.x, obstacle.y, obstacle.w, obstacle.h);
+
+            population.run();
+
+            count++;
+            if (count == lifespan) {
+                population.evaluate();
+                population.selection();
+                count = 0;
+                generation++;
+                document.getElementById('stats').innerText = `Generation: ${generation}`;
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        resetSim();
+        draw();
+    </script>
+</body>
+</html>

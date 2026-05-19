@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyclic Cellular Automaton</title>
+    <style>
+        body { margin: 0; background-color: #000; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; image-rendering: pixelated; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Cyclic Cellular Automaton</h2>
+        <p>A cellular automaton where each cell has a state from 0 to N-1. A cell consumes its neighbor if the neighbor's state is exactly one greater than its own. This rule naturally produces beautiful, self-organizing spiral waves.</p>
+        <button onclick="init()">Restart Simulation</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const width = 150;
+        const height = 150;
+        const states = 14;
+        let grid = [];
+        let next = [];
+        
+        // Colors for states
+        const colors = [];
+        for (let i = 0; i < states; i++) {
+            let hue = Math.floor((i / states) * 360);
+            colors.push(`hsl(${hue}, 80%, 50%)`);
+        }
+
+        // Precompute RGB values for faster drawing
+        const rgbColors = colors.map(hslToRgb);
+
+        function hslToRgb(hsl) {
+            // Very simple parser for hsl(h, s%, l%)
+            let h = parseInt(hsl.split('(')[1].split(',')[0]);
+            let s = 0.8;
+            let l = 0.5;
+            let c = (1 - Math.abs(2 * l - 1)) * s;
+            let x = c * (1 - Math.abs((h / 60) % 2 - 1));
+            let m = l - c/2;
+            let r=0, g=0, b=0;
+            if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+            else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+            else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+            else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+            else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+            else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+            return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+        }
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight);
+            canvas.width = width;
+            canvas.height = height;
+            canvas.style.width = minDim + 'px';
+            canvas.style.height = minDim + 'px';
+        }
+
+        function init() {
+            grid = new Uint8Array(width * height);
+            next = new Uint8Array(width * height);
+            
+            for (let i = 0; i < width * height; i++) {
+                grid[i] = Math.floor(Math.random() * states);
+            }
+        }
+
+        function update() {
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let idx = x + y * width;
+                    let state = grid[idx];
+                    let target = (state + 1) % states;
+                    
+                    let consumed = false;
+                    
+                    // Check Moore neighborhood
+                    for (let oy = -1; oy <= 1; oy++) {
+                        for (let ox = -1; ox <= 1; ox++) {
+                            if (ox === 0 && oy === 0) continue;
+                            
+                            let nx = x + ox;
+                            let ny = y + oy;
+                            
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                let nIdx = nx + ny * width;
+                                if (grid[nIdx] === target) {
+                                    consumed = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (consumed) break;
+                    }
+                    
+                    next[idx] = consumed ? target : state;
+                }
+            }
+            
+            // Swap grids
+            let temp = grid;
+            grid = next;
+            next = temp;
+        }
+
+        function draw() {
+            update();
+
+            let imgData = ctx.createImageData(width, height);
+            for (let i = 0; i < grid.length; i++) {
+                let state = grid[i];
+                let color = rgbColors[state];
+                let idx = i * 4;
+                imgData.data[idx] = color[0];
+                imgData.data[idx+1] = color[1];
+                imgData.data[idx+2] = color[2];
+                imgData.data[idx+3] = 255;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        init();
+        draw();
+    </script>
+</body>
+</html>

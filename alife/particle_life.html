@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Life</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Particle Life</h2>
+        <p>Emergent behavior from simple attraction/repulsion rules.</p>
+        <button onclick="randomizeRules()">Randomize Rules</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const particles = [];
+        const numParticles = 800;
+        const colors = ['#ff4040', '#40ff40', '#4040ff', '#ffff40', '#ff40ff', '#40ffff'];
+        const ruleMatrix = {};
+
+        function randomizeRules() {
+            for (let i = 0; i < colors.length; i++) {
+                ruleMatrix[colors[i]] = {};
+                for (let j = 0; j < colors.length; j++) {
+                    // Random attraction (-1) or repulsion (1)
+                    ruleMatrix[colors[i]][colors[j]] = (Math.random() * 2 - 1) * 0.5;
+                }
+            }
+        }
+
+        function createParticles() {
+            particles.length = 0;
+            for (let i = 0; i < numParticles; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: 0,
+                    vy: 0,
+                    color: colors[Math.floor(Math.random() * colors.length)]
+                });
+            }
+        }
+
+        function applyForces() {
+            const friction = 0.5;
+            const maxDist = 80;
+
+            for (let i = 0; i < particles.length; i++) {
+                let fx = 0;
+                let fy = 0;
+                const a = particles[i];
+                for (let j = 0; j < particles.length; j++) {
+                    if (i === j) continue;
+                    const b = particles[j];
+                    const dx = a.x - b.x;
+                    const dy = a.y - b.y;
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d > 0 && d < maxDist) {
+                        const force = ruleMatrix[a.color][b.color] / d;
+                        fx += force * dx;
+                        fy += force * dy;
+                    }
+                }
+                a.vx = (a.vx + fx) * friction;
+                a.vy = (a.vy + fy) * friction;
+                a.x += a.vx;
+                a.y += a.vy;
+
+                if (a.x < 0) a.x = canvas.width;
+                if (a.x > canvas.width) a.x = 0;
+                if (a.y < 0) a.y = canvas.height;
+                if (a.y > canvas.height) a.y = 0;
+            }
+        }
+
+        function loop() {
+            ctx.fillStyle = 'rgba(17, 17, 17, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            applyForces();
+
+            for (let i = 0; i < particles.length; i++) {
+                const p = particles[i];
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        randomizeRules();
+        createParticles();
+        loop();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+    </script>
+</body>
+</html>

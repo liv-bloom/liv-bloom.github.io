@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peter de Jong Attractor</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">Peter de Jong Attractor</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Randomize Parameters</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let a, b, c, d;
+        let x = 0, y = 0;
+        let iter = 0;
+
+        function reset() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Random parameters between -3 and 3
+            a = (Math.random() - 0.5) * 6;
+            b = (Math.random() - 0.5) * 6;
+            c = (Math.random() - 0.5) * 6;
+            d = (Math.random() - 0.5) * 6;
+            
+            x = 0;
+            y = 0;
+            iter = 0;
+            
+            document.getElementById('info').innerHTML = `Peter de Jong Attractor<br><span style="font-size:0.8em;color:#777;">a=${a.toFixed(2)}, b=${b.toFixed(2)}, c=${c.toFixed(2)}, d=${d.toFixed(2)}</span>`;
+        }
+
+        function draw() {
+            for (let i = 0; i < 3000; i++) {
+                let nextX = Math.sin(a * y) - Math.cos(b * x);
+                let nextY = Math.sin(c * x) - Math.cos(d * y);
+                
+                x = nextX;
+                y = nextY;
+
+                // Scale and center (values typically range between -2.5 and 2.5)
+                let drawX = width / 2 + x * (width / 5);
+                let drawY = height / 2 + y * (height / 5);
+
+                ctx.fillStyle = `hsla(${iter % 360}, 80%, 70%, 0.15)`;
+                ctx.fillRect(drawX, drawY, 1, 1);
+                iter += 0.05;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        reset();
+        draw();
+    </script>
+</body>
+</html>

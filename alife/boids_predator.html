@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boids with Predator</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Boids & Predator</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">Flocking behavior (separation, alignment, cohesion) with a predator (red) that actively chases the boids, causing them to scatter and regroup.</p>
+        <div class="controls">
+            <button onclick="reset()">Restart</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let boids = [];
+        let predator = null;
+        const NUM_BOIDS = 150;
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            reset();
+        }
+
+        class Boid {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+            }
+
+            update() {
+                let sepX = 0, sepY = 0;
+                let aliX = 0, aliY = 0;
+                let cohX = 0, cohY = 0;
+                let total = 0;
+
+                for (let other of boids) {
+                    if (other === this) continue;
+                    let dx = this.x - other.x;
+                    let dy = this.y - other.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+
+                    if (dist < 40) {
+                        sepX += dx / dist;
+                        sepY += dy / dist;
+                    }
+                    if (dist < 60) {
+                        aliX += other.vx;
+                        aliY += other.vy;
+                        cohX += other.x;
+                        cohY += other.y;
+                        total++;
+                    }
+                }
+
+                if (total > 0) {
+                    aliX /= total; aliY /= total;
+                    cohX /= total; cohY /= total;
+                    
+                    // Steer towards center
+                    cohX = (cohX - this.x) * 0.01;
+                    cohY = (cohY - this.y) * 0.01;
+                    
+                    // Match velocity
+                    aliX = (aliX - this.vx) * 0.05;
+                    aliY = (aliY - this.vy) * 0.05;
+                }
+
+                // Evade predator
+                let evdX = 0, evdY = 0;
+                let pdx = this.x - predator.x;
+                let pdy = this.y - predator.y;
+                let pdist = Math.sqrt(pdx*pdx + pdy*pdy);
+                if (pdist < 100) {
+                    evdX = (pdx / pdist) * 2;
+                    evdY = (pdy / pdist) * 2;
+                }
+
+                this.vx += sepX * 0.05 + aliX + cohX + evdX;
+                this.vy += sepY * 0.05 + aliY + cohY + evdY;
+
+                // Speed limit
+                let speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                if (speed > 4) {
+                    this.vx = (this.vx / speed) * 4;
+                    this.vy = (this.vy / speed) * 4;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wrap
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+
+            draw() {
+                let angle = Math.atan2(this.vy, this.vx);
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(angle);
+                ctx.fillStyle = '#8fd46b';
+                ctx.beginPath();
+                ctx.moveTo(8, 0);
+                ctx.lineTo(-4, 4);
+                ctx.lineTo(-4, -4);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Predator {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 5;
+                this.vy = (Math.random() - 0.5) * 5;
+            }
+
+            update() {
+                // Chase closest boid
+                let closest = null;
+                let minDist = Infinity;
+                for (let b of boids) {
+                    let dx = b.x - this.x;
+                    let dy = b.y - this.y;
+                    let dist = dx*dx + dy*dy;
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closest = b;
+                    }
+                }
+
+                if (closest) {
+                    this.vx += (closest.x - this.x) * 0.005;
+                    this.vy += (closest.y - this.y) * 0.005;
+                }
+
+                // Speed limit
+                let speed = Math.sqrt(this.vx*this.vx + this.vy*this.vy);
+                if (speed > 4.5) { // slightly faster than boids
+                    this.vx = (this.vx / speed) * 4.5;
+                    this.vy = (this.vy / speed) * 4.5;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wrap
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+
+            draw() {
+                let angle = Math.atan2(this.vy, this.vx);
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(angle);
+                ctx.fillStyle = '#e65f5f';
+                ctx.beginPath();
+                ctx.moveTo(12, 0);
+                ctx.lineTo(-6, 6);
+                ctx.lineTo(-6, -6);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function reset() {
+            boids = [];
+            for (let i = 0; i < NUM_BOIDS; i++) {
+                boids.push(new Boid(Math.random() * width, Math.random() * height));
+            }
+            predator = new Predator(width / 2, height / 2);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+
+            predator.update();
+            predator.draw();
+
+            for (let b of boids) {
+                b.update();
+                b.draw();
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

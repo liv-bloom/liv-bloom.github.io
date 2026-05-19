@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Ant Foraging</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { color: #f3d36b; }
+    h1 { color: #e77a61; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Ant Foraging (Swarm Intelligence)</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/ascii_ant.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    const NEST = {x: 30, y: 15};
+    const FOOD = {x: 50, y: 5};
+    let phero = Array.from({length: H}, () => Array.from({length: W}, () => 0.0));
+    let ants = Array.from({length: 40}, () => ({x: NEST.x, y: NEST.y, hasFood: false}));
+
+    function step() {
+      // evaporate
+      for(let y=0; y<H; y++) {
+        for(let x=0; x<W; x++) {
+          phero[y][x] *= 0.98;
+        }
+      }
+
+      for(let a of ants) {
+        if(a.hasFood) {
+          // move towards nest
+          let dx = NEST.x - a.x;
+          let dy = NEST.y - a.y;
+          if(dx===0 && dy===0) { a.hasFood = false; continue; }
+          // drop pheromone
+          phero[a.y][a.x] += 5.0;
+          
+          if(Math.random() < 0.8) {
+            a.x += Math.sign(dx);
+            a.y += Math.sign(dy);
+          } else {
+            a.x += Math.floor(Math.random()*3)-1;
+            a.y += Math.floor(Math.random()*3)-1;
+          }
+        } else {
+          // look for food
+          let dx = FOOD.x - a.x;
+          let dy = FOOD.y - a.y;
+          if(Math.abs(dx) <= 1 && Math.abs(dy) <= 1) { a.hasFood = true; continue; }
+          
+          // sense pheromone
+          let moves = [];
+          for(let ddy=-1; ddy<=1; ddy++) {
+            for(let ddx=-1; ddx<=1; ddx++) {
+              if(ddx===0 && ddy===0) continue;
+              let nx = Math.max(0, Math.min(W-1, a.x+ddx));
+              let ny = Math.max(0, Math.min(H-1, a.y+ddy));
+              moves.push({x: nx, y: ny, p: phero[ny][nx]});
+            }
+          }
+          moves.sort((m1, m2) => m2.p - m1.p);
+          
+          if(moves[0].p > 0.5 && Math.random() < 0.7) {
+            a.x = moves[0].x; a.y = moves[0].y;
+          } else {
+            let r = moves[Math.floor(Math.random()*moves.length)];
+            a.x = r.x; a.y = r.y;
+          }
+        }
+        a.x = Math.max(0, Math.min(W-1, a.x));
+        a.y = Math.max(0, Math.min(H-1, a.y));
+      }
+
+      let render = phero.map(row => row.map(p => p > 1.0 ? '.' : ' '));
+      render[NEST.y][NEST.x] = 'N';
+      render[FOOD.y][FOOD.x] = 'F';
+      for(let a of ants) {
+        render[a.y][a.x] = a.hasFood ? 'a' : 'A';
+      }
+
+      document.getElementById('field').textContent = render.map(row => row.join('')).join('\n');
+    }
+    setInterval(step, 80);
+  </script>
+</body>
+</html>

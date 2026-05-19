@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Schelling Model</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { color: #f3d36b; }
+    h1 { color: #76c7d5; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Schelling Segregation Model</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/ascii_schelling.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    const EMPTY = 0, RED = 1, BLUE = 2;
+    const TOLERANCE = 0.3; // Minimum fraction of same-color neighbors to be happy
+
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => {
+      let r = Math.random();
+      if(r < 0.1) return EMPTY;
+      if(r < 0.55) return RED;
+      return BLUE;
+    }));
+
+    function step() {
+      let unhappy = [];
+      let empty_spaces = [];
+
+      for(let y=0; y<H; y++) {
+        for(let x=0; x<W; x++) {
+          if(grid[y][x] === EMPTY) {
+            empty_spaces.push({x, y});
+            continue;
+          }
+          
+          let same = 0, total = 0;
+          for(let dy=-1; dy<=1; dy++) {
+            for(let dx=-1; dx<=1; dx++) {
+              if(dx===0 && dy===0) continue;
+              let nx = (x+dx+W)%W, ny = (y+dy+H)%H;
+              if(grid[ny][nx] !== EMPTY) {
+                total++;
+                if(grid[ny][nx] === grid[y][x]) same++;
+              }
+            }
+          }
+          
+          if(total > 0 && (same / total) < TOLERANCE) {
+            unhappy.push({x, y});
+          }
+        }
+      }
+
+      // Move a few unhappy agents per frame to an empty spot
+      for(let i=0; i<5 && unhappy.length > 0 && empty_spaces.length > 0; i++) {
+        let u_idx = Math.floor(Math.random() * unhappy.length);
+        let e_idx = Math.floor(Math.random() * empty_spaces.length);
+        
+        let u = unhappy.splice(u_idx, 1)[0];
+        let e = empty_spaces.splice(e_idx, 1)[0];
+        
+        grid[e.y][e.x] = grid[u.y][u.x];
+        grid[u.y][u.x] = EMPTY;
+        
+        empty_spaces.push(u); // former spot is now empty
+      }
+
+      document.getElementById('field').textContent = grid.map(row => row.map(c => {
+        if(c === RED) return 'X';
+        if(c === BLUE) return 'O';
+        return ' ';
+      }).join('')).join('\n');
+    }
+    setInterval(step, 50);
+  </script>
+</body>
+</html>

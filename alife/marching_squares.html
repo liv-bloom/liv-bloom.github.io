@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marching Squares (Metaballs)</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; }
+        a { color: #8fd46b; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Marching Squares</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">Generates smooth isolines from a discrete scalar field (metaballs). An essential algorithm for generating procedural terrain and organic boundaries.</p>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        const res = 10;
+        let cols, rows;
+        let field = [];
+        let points = [];
+
+        class Point {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.radius = Math.random() * 40 + 20;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                if (this.x > width || this.x < 0) this.vx *= -1;
+                if (this.y > height || this.y < 0) this.vy *= -1;
+            }
+        }
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            cols = 1 + width / res;
+            rows = 1 + height / res;
+            
+            points = [];
+            for (let i = 0; i < 8; i++) {
+                points.push(new Point(Math.random() * width, Math.random() * height));
+            }
+        }
+
+        function drawLine(v1, v2) {
+            ctx.beginPath();
+            ctx.moveTo(v1.x, v1.y);
+            ctx.lineTo(v2.x, v2.y);
+            ctx.stroke();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+
+            points.forEach(p => p.update());
+
+            for (let i = 0; i < cols; i++) {
+                field[i] = [];
+                for (let j = 0; j < rows; j++) {
+                    let sum = 0;
+                    let x = i * res;
+                    let y = j * res;
+                    for (let p of points) {
+                        let d = Math.sqrt((x - p.x) ** 2 + (y - p.y) ** 2);
+                        sum += p.radius / (d || 1);
+                    }
+                    field[i][j] = sum;
+                }
+            }
+
+            ctx.strokeStyle = '#8fd46b';
+            ctx.lineWidth = 2;
+
+            for (let i = 0; i < cols - 1; i++) {
+                for (let j = 0; j < rows - 1; j++) {
+                    let x = i * res;
+                    let y = j * res;
+                    
+                    let a = { x: x + res / 2, y: y };
+                    let b = { x: x + res, y: y + res / 2 };
+                    let c = { x: x + res / 2, y: y + res };
+                    let d = { x: x, y: y + res / 2 };
+                    
+                    let state = 
+                        (field[i][j] >= 1 ? 8 : 0) |
+                        (field[i+1][j] >= 1 ? 4 : 0) |
+                        (field[i+1][j+1] >= 1 ? 2 : 0) |
+                        (field[i][j+1] >= 1 ? 1 : 0);
+                        
+                    switch (state) {
+                        case 1: drawLine(c, d); break;
+                        case 2: drawLine(b, c); break;
+                        case 3: drawLine(b, d); break;
+                        case 4: drawLine(a, b); break;
+                        case 5: drawLine(a, d); drawLine(b, c); break;
+                        case 6: drawLine(a, c); break;
+                        case 7: drawLine(a, d); break;
+                        case 8: drawLine(a, d); break;
+                        case 9: drawLine(a, c); break;
+                        case 10: drawLine(a, b); drawLine(c, d); break;
+                        case 11: drawLine(a, b); break;
+                        case 12: drawLine(b, d); break;
+                        case 13: drawLine(b, c); break;
+                        case 14: drawLine(c, d); break;
+                    }
+                }
+            }
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

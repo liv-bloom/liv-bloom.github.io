@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elementary Cellular Automaton Explorer</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; display: flex; gap: 5px; align-items: center;}
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #8fd46b; color: #10120f; }
+        input[type="number"] { background: #10120f; color: #e5eadb; border: 1px solid #394034; width: 50px; font-family: monospace; padding: 2px; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Elementary CA Explorer</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">Explore all 256 rules of Stephen Wolfram's 1-dimensional cellular automata. Start with Rule 30 (chaotic), Rule 90 (Sierpinski), or Rule 110 (Turing complete).</p>
+        <div class="controls">
+            <label for="ruleInput">Rule:</label>
+            <input type="number" id="ruleInput" min="0" max="255" value="30">
+            <button onclick="applyRule()">Generate</button>
+            <button onclick="randomRule()">Random</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const ruleInput = document.getElementById('ruleInput');
+        
+        let width, height;
+        let ruleSet = [];
+        let cells = [];
+        let generation = 0;
+        let cellWidth = 2; // pixel size
+
+        function getRuleSet(rule) {
+            let rs = [];
+            for (let i = 7; i >= 0; i--) {
+                rs.push((rule >> i) & 1);
+            }
+            return rs;
+        }
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            
+            applyRule();
+        }
+
+        function applyRule() {
+            let rule = parseInt(ruleInput.value);
+            if (isNaN(rule) || rule < 0 || rule > 255) {
+                rule = 30;
+                ruleInput.value = 30;
+            }
+            ruleSet = getRuleSet(rule);
+            reset();
+        }
+
+        function randomRule() {
+            let rule = Math.floor(Math.random() * 256);
+            ruleInput.value = rule;
+            applyRule();
+        }
+
+        function reset() {
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+            
+            let totalCells = Math.floor(width / cellWidth);
+            cells = new Array(totalCells).fill(0);
+            cells[Math.floor(totalCells / 2)] = 1; // Center seed
+            generation = 0;
+            
+            draw();
+        }
+
+        function step() {
+            let nextCells = new Array(cells.length).fill(0);
+            for (let i = 0; i < cells.length; i++) {
+                let left = cells[(i - 1 + cells.length) % cells.length];
+                let middle = cells[i];
+                let right = cells[(i + 1) % cells.length];
+                
+                let state = (left << 2) | (middle << 1) | right;
+                nextCells[i] = ruleSet[7 - state];
+            }
+            cells = nextCells;
+            generation++;
+        }
+
+        function draw() {
+            // Draw up to max generations to fill the screen instantly
+            const maxGenerations = Math.floor(height / cellWidth);
+            
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Reset to generation 0
+            let totalCells = Math.floor(width / cellWidth);
+            cells = new Array(totalCells).fill(0);
+            cells[Math.floor(totalCells / 2)] = 1;
+            generation = 0;
+            
+            ctx.fillStyle = '#8fd46b';
+            
+            while (generation < maxGenerations) {
+                for (let i = 0; i < cells.length; i++) {
+                    if (cells[i] === 1) {
+                        ctx.fillRect(i * cellWidth, generation * cellWidth, cellWidth, cellWidth);
+                    }
+                }
+                step();
+            }
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+    </script>
+</body>
+</html>

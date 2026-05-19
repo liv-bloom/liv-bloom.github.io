@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vicsek Model (Active Matter)</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+        input[type="range"] { vertical-align: middle; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Vicsek Model</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A minimal model of flocking and active matter. Particles move at a constant speed and align their direction with their neighbors within a radius, plus some noise. At low noise, they phase-transition into an ordered flock.</p>
+        <div class="controls">
+            <label for="noise">Noise: <span id="noiseVal">0.30</span></label><br>
+            <input type="range" id="noise" min="0" max="3" step="0.05" value="0.30" oninput="updateNoise()">
+            <br><br>
+            <button onclick="reset()">Scatter</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles = [];
+        const NUM_PARTICLES = 600;
+        const R = 25; // Interaction radius
+        const V = 2.0; // Constant velocity
+        let eta = 0.3; // Noise
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            reset();
+        }
+
+        function reset() {
+            particles = [];
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                particles.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    theta: Math.random() * 2 * Math.PI
+                });
+            }
+        }
+
+        function updateNoise() {
+            eta = parseFloat(document.getElementById('noise').value);
+            document.getElementById('noiseVal').innerText = eta.toFixed(2);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+
+            let nextTheta = new Array(NUM_PARTICLES);
+
+            // Calculate new angles
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                let p1 = particles[i];
+                let sumSin = 0;
+                let sumCos = 0;
+
+                for (let j = 0; j < NUM_PARTICLES; j++) {
+                    let p2 = particles[j];
+                    // Toroidal distance
+                    let dx = Math.abs(p1.x - p2.x);
+                    let dy = Math.abs(p1.y - p2.y);
+                    dx = Math.min(dx, width - dx);
+                    dy = Math.min(dy, height - dy);
+                    
+                    if (dx*dx + dy*dy <= R*R) {
+                        sumSin += Math.sin(p2.theta);
+                        sumCos += Math.cos(p2.theta);
+                    }
+                }
+                
+                let avgTheta = Math.atan2(sumSin, sumCos);
+                let noise = (Math.random() - 0.5) * eta;
+                nextTheta[i] = avgTheta + noise;
+            }
+
+            // Update positions and draw
+            ctx.fillStyle = '#8fd46b';
+            for (let i = 0; i < NUM_PARTICLES; i++) {
+                let p = particles[i];
+                p.theta = nextTheta[i];
+                p.x = (p.x + V * Math.cos(p.theta) + width) % width;
+                p.y = (p.y + V * Math.sin(p.theta) + height) % height;
+
+                // Draw particle (arrow/triangle)
+                ctx.save();
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.theta);
+                ctx.beginPath();
+                ctx.moveTo(4, 0);
+                ctx.lineTo(-3, 2);
+                ctx.lineTo(-3, -2);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

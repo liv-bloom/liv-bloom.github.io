@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Percolation Model</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+        select { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px; font-family: monospace; cursor: pointer; margin-right: 5px; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Percolation</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">Simulates liquid pouring through a porous material. If the porosity is above a critical threshold (~0.5927 for site percolation on a square lattice), the liquid will reliably reach the bottom.</p>
+        <div class="controls">
+            <label for="porosity">Porosity:</label>
+            <select id="porosity" onchange="reset()">
+                <option value="0.5">0.50 (Blocked)</option>
+                <option value="0.55">0.55 (Rare)</option>
+                <option value="0.6" selected>0.60 (Critical)</option>
+                <option value="0.65">0.65 (Flowing)</option>
+                <option value="0.7">0.70 (Open)</option>
+            </select>
+            <button onclick="reset()">Restart</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let scale = 5;
+        let width, height;
+        let grid = [];
+        // 0 = solid rock (dark gray), 1 = open pore (black), 2 = liquid (blue)
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = Math.floor(minDim / scale);
+            height = Math.floor(minDim / scale);
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            reset();
+        }
+
+        function reset() {
+            const p = parseFloat(document.getElementById('porosity').value);
+            grid = [];
+            for (let x = 0; x < width; x++) {
+                grid[x] = [];
+                for (let y = 0; y < height; y++) {
+                    // Top row is always open and filled with liquid initially
+                    if (y === 0) {
+                        grid[x][y] = 2;
+                    } else {
+                        grid[x][y] = (Math.random() < p) ? 1 : 0;
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            let changed = false;
+            let nextGrid = grid.map(col => [...col]);
+
+            // Liquid flows into adjacent open pores (down, left, right)
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    if (grid[x][y] === 2) {
+                        // Check down
+                        if (y + 1 < height && grid[x][y+1] === 1) {
+                            nextGrid[x][y+1] = 2;
+                            changed = true;
+                        }
+                        // Check left
+                        if (x - 1 >= 0 && grid[x-1][y] === 1) {
+                            nextGrid[x-1][y] = 2;
+                            changed = true;
+                        }
+                        // Check right
+                        if (x + 1 < width && grid[x+1][y] === 1) {
+                            nextGrid[x+1][y] = 2;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            grid = nextGrid;
+
+            // Draw
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    if (grid[x][y] === 0) {
+                        ctx.fillStyle = '#2a2e28'; // solid obstacle
+                    } else if (grid[x][y] === 1) {
+                        ctx.fillStyle = '#10120f'; // open pore
+                    } else if (grid[x][y] === 2) {
+                        ctx.fillStyle = '#5faae6'; // liquid
+                    }
+                    ctx.fillRect(x * scale, y * scale, scale, scale);
+                }
+            }
+            
+            if (changed) {
+                setTimeout(() => requestAnimationFrame(draw), 20);
+            } else {
+                setTimeout(() => reset(), 2000); // restart after finishing
+                requestAnimationFrame(draw);
+            }
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

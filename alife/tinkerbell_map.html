@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tinkerbell Map Attractor</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">Tinkerbell Map Attractor</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Reset</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let a = 0.9;
+        let b = -0.6013;
+        let c = 2.0;
+        let d = 0.5;
+
+        let x = -0.72;
+        let y = -0.64;
+        let iter = 0;
+
+        function reset() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+            ctx.fillRect(0, 0, width, height);
+            
+            x = -0.72 + (Math.random() - 0.5) * 0.1;
+            y = -0.64 + (Math.random() - 0.5) * 0.1;
+            iter = 0;
+            
+            document.getElementById('info').innerHTML = `Tinkerbell Map Attractor<br><span style="font-size:0.8em;color:#777;">a=${a}, b=${b}, c=${c}, d=${d}</span>`;
+        }
+
+        function draw() {
+            for (let i = 0; i < 500; i++) {
+                let nextX = x * x - y * y + a * x + b * y;
+                let nextY = 2 * x * y + c * x + d * y;
+                
+                x = nextX;
+                y = nextY;
+
+                // Scale and center mapping for Tinkerbell domain
+                let drawX = width / 2 + x * (width / 4) + width / 10;
+                let drawY = height / 2 - y * (height / 4) + height / 5; // invert Y
+
+                ctx.fillStyle = `hsla(${iter % 360}, 80%, 70%, 0.15)`;
+                ctx.fillRect(drawX, drawY, 1, 1);
+                iter += 0.1;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        reset();
+        draw();
+    </script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clifford Attractor</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Clifford Attractor</h2>
+        <p>A 2D strange attractor generating intricate fractal-like patterns.</p>
+        <button onclick="randomize()">Randomize Parameters</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let a, b, c, d;
+        let x = 0, y = 0;
+        let scale = 150;
+        let offsetX, offsetY;
+        let iteration = 0;
+
+        function randomize() {
+            a = (Math.random() * 4 - 2).toFixed(2);
+            b = (Math.random() * 4 - 2).toFixed(2);
+            c = (Math.random() * 4 - 2).toFixed(2);
+            d = (Math.random() * 4 - 2).toFixed(2);
+            x = 0;
+            y = 0;
+            iteration = 0;
+            
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            document.querySelector('#info p').innerText = `a: ${a}, b: ${b}, c: ${c}, d: ${d}`;
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            offsetX = canvas.width / 2;
+            offsetY = canvas.height / 2;
+            scale = Math.min(canvas.width, canvas.height) / 6;
+            
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            iteration = 0; // restart drawing on resize
+        }
+
+        function draw() {
+            // Draw points in batches to improve performance
+            for (let i = 0; i < 5000; i++) {
+                let xn = Math.sin(a * y) + c * Math.cos(a * x);
+                let yn = Math.sin(b * x) + d * Math.cos(b * y);
+                
+                x = xn;
+                y = yn;
+
+                let plotX = offsetX + x * scale;
+                let plotY = offsetY + y * scale;
+
+                // Color based on position and iteration
+                ctx.fillStyle = `hsla(${(iteration * 0.001) % 360}, 70%, 60%, 0.1)`;
+                ctx.fillRect(plotX, plotY, 1, 1);
+                
+                iteration++;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        randomize();
+        draw();
+    </script>
+</body>
+</html>

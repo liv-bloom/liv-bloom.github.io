@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fireflies Synchronization</title>
+    <style>
+        body { margin: 0; background-color: #050510; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #aaffaa; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Fireflies Synchronization</h2>
+        <p>Kuramoto Model: Fireflies adjust their flashing phases based on nearby neighbors. Over time, random flashes spontaneously synchronize into unified waves.</p>
+        <button onclick="init()">Disrupt Sync</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        const numFireflies = 400;
+        let fireflies = [];
+        
+        // Kuramoto model parameters
+        const coupling = 0.05; 
+        const interactionRadius = 80;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+
+        class Firefly {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.phase = Math.random() * Math.PI * 2;
+                // Natural frequency
+                this.freq = 0.03 + Math.random() * 0.02;
+                // Movement
+                this.dx = (Math.random() - 0.5) * 1.5;
+                this.dy = (Math.random() - 0.5) * 1.5;
+            }
+
+            move() {
+                this.x += this.dx;
+                this.y += this.dy;
+                if (this.x < 0) this.x += width;
+                if (this.x > width) this.x -= width;
+                if (this.y < 0) this.y += height;
+                if (this.y > height) this.y -= height;
+            }
+        }
+
+        function init() {
+            fireflies = [];
+            for (let i = 0; i < numFireflies; i++) {
+                fireflies.push(new Firefly());
+            }
+        }
+
+        function update() {
+            // Calculate phase shifts based on neighbors
+            let phaseShifts = new Array(numFireflies).fill(0);
+            
+            for (let i = 0; i < numFireflies; i++) {
+                let f1 = fireflies[i];
+                let neighbors = 0;
+                let shift = 0;
+                
+                for (let j = 0; j < numFireflies; j++) {
+                    if (i === j) continue;
+                    let f2 = fireflies[j];
+                    let dx = f1.x - f2.x;
+                    let dy = f1.y - f2.y;
+                    
+                    // Simple wrap-around distance approximation
+                    if (Math.abs(dx) > width / 2) dx = width - Math.abs(dx);
+                    if (Math.abs(dy) > height / 2) dy = height - Math.abs(dy);
+                    
+                    let distSq = dx*dx + dy*dy;
+                    
+                    if (distSq < interactionRadius * interactionRadius) {
+                        shift += Math.sin(f2.phase - f1.phase);
+                        neighbors++;
+                    }
+                }
+                
+                if (neighbors > 0) {
+                    phaseShifts[i] = (coupling / neighbors) * shift;
+                }
+            }
+
+            // Apply updates
+            for (let i = 0; i < numFireflies; i++) {
+                let f = fireflies[i];
+                f.move();
+                f.phase += f.freq + phaseShifts[i];
+                if (f.phase > Math.PI * 2) {
+                    f.phase -= Math.PI * 2;
+                }
+            }
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(5, 5, 16, 0.3)'; // Trail effect
+            ctx.fillRect(0, 0, width, height);
+
+            for (let i = 0; i < numFireflies; i++) {
+                let f = fireflies[i];
+                
+                // Flash brightness peaks at phase = 0 (or 2PI)
+                let brightness = (Math.cos(f.phase) + 1) / 2; 
+                // Sharpen the flash
+                brightness = Math.pow(brightness, 8);
+                
+                let radius = 1 + brightness * 4;
+                
+                ctx.beginPath();
+                ctx.arc(f.x, f.y, radius, 0, Math.PI * 2);
+                
+                if (brightness > 0.1) {
+                    ctx.fillStyle = `rgba(170, 255, 100, ${brightness})`;
+                    ctx.shadowBlur = brightness * 15;
+                    ctx.shadowColor = '#aaff66';
+                } else {
+                    ctx.fillStyle = `rgba(100, 150, 50, 0.2)`;
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0; // reset
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        init();
+        loop();
+    </script>
+</body>
+</html>

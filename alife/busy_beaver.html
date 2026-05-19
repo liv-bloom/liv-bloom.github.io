@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Busy Beaver (Turing Machine)</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        #canvas-container { position: relative; margin-top: 20px; }
+        canvas { background-color: #222; border: 1px solid #444; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .controls { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; max-width: 800px; }
+        button, select { background-color: #333; color: #fff; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover, select:hover { background-color: #444; }
+        #info { margin-top: 10px; color: #aaa; text-align: center; font-size: 14px; max-width: 800px; }
+        pre { display: none; } /* for agent-readability */
+    </style>
+</head>
+<body>
+    <h2>Busy Beaver (Turing Machine)</h2>
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="800" height="400"></canvas>
+    </div>
+    <div class="controls">
+        <select id="beaverSelect">
+            <option value="2">2-State Busy Beaver (Max 6 steps)</option>
+            <option value="3" selected>3-State Busy Beaver (Max 21 steps)</option>
+            <option value="4">4-State Busy Beaver (Max 107 steps)</option>
+            <option value="5">5-State Busy Beaver (Max 47,176,870 steps)</option>
+        </select>
+        <button id="btnReset">Reset</button>
+        <button id="btnPlayPause">Pause</button>
+        <button id="btnStep">Step</button>
+    </div>
+    <div id="info">
+        State: <span id="lblState">A</span> | Steps: <span id="lblSteps">0</span><br>
+        The Busy Beaver game involves finding a Turing machine with N states that writes the maximum number of 1s on a blank tape before halting.
+    </div>
+
+    <!-- Agent Readable State -->
+    <pre id="agentState"></pre>
+
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const agentState = document.getElementById('agentState');
+        const lblState = document.getElementById('lblState');
+        const lblSteps = document.getElementById('lblSteps');
+        
+        const btnReset = document.getElementById('btnReset');
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        const btnStep = document.getElementById('btnStep');
+        const beaverSelect = document.getElementById('beaverSelect');
+
+        let isPlaying = true;
+        let animationId;
+        
+        // Machine state
+        let tape = [];
+        let headPos = 0;
+        let currentState = 'A';
+        let steps = 0;
+        let isHalted = false;
+        
+        // Configuration for Busy Beavers
+        // Format: rules[state][symbol] = { write, move, nextState }
+        // R = 1, L = -1, H = Halt
+        const machines = {
+            "2": {
+                'A': { 0: {w: 1, m: 1, n: 'B'}, 1: {w: 1, m: -1, n: 'B'} },
+                'B': { 0: {w: 1, m: -1, n: 'A'}, 1: {w: 1, m: 1, n: 'H'} }
+            },
+            "3": {
+                'A': { 0: {w: 1, m: 1, n: 'B'}, 1: {w: 1, m: 1, n: 'H'} },
+                'B': { 0: {w: 0, m: 1, n: 'C'}, 1: {w: 1, m: 1, n: 'B'} },
+                'C': { 0: {w: 1, m: -1, n: 'C'}, 1: {w: 1, m: -1, n: 'A'} }
+            },
+            "4": {
+                'A': { 0: {w: 1, m: 1, n: 'B'}, 1: {w: 1, m: -1, n: 'B'} },
+                'B': { 0: {w: 1, m: -1, n: 'A'}, 1: {w: 0, m: -1, n: 'C'} },
+                'C': { 0: {w: 1, m: 1, n: 'H'}, 1: {w: 1, m: -1, n: 'D'} },
+                'D': { 0: {w: 1, m: 1, n: 'D'}, 1: {w: 0, m: 1, n: 'A'} }
+            },
+            "5": {
+                'A': { 0: {w: 1, m: 1, n: 'B'}, 1: {w: 1, m: -1, n: 'C'} },
+                'B': { 0: {w: 1, m: 1, n: 'C'}, 1: {w: 1, m: 1, n: 'B'} },
+                'C': { 0: {w: 1, m: 1, n: 'D'}, 1: {w: 0, m: -1, n: 'E'} },
+                'D': { 0: {w: 1, m: -1, n: 'A'}, 1: {w: 1, m: -1, n: 'D'} },
+                'E': { 0: {w: 1, m: 1, n: 'H'}, 1: {w: 0, m: -1, n: 'A'} }
+            }
+        };
+        
+        let currentRules = machines["3"];
+        const maxDisplayCells = 40; // cells to show
+        let history = []; // Keep track of past tape states for visualization
+        const maxHistoryRows = 20;
+        
+        function resetMachine() {
+            tape = [];
+            headPos = 0;
+            currentState = 'A';
+            steps = 0;
+            isHalted = false;
+            currentRules = machines[beaverSelect.value];
+            history = [];
+            saveHistory();
+            updateAgentState();
+            btnPlayPause.textContent = "Pause";
+            isPlaying = true;
+        }
+
+        function getTapeAt(index) {
+            return tape[index] || 0;
+        }
+        
+        function setTapeAt(index, val) {
+            tape[index] = val;
+        }
+        
+        function saveHistory() {
+            let row = [];
+            for (let i = -maxDisplayCells/2; i < maxDisplayCells/2; i++) {
+                row.push({
+                    val: getTapeAt(i),
+                    isHead: (i === headPos)
+                });
+            }
+            history.unshift(row); // add to top
+            if (history.length > maxHistoryRows) {
+                history.pop();
+            }
+        }
+        
+        function stepMachine() {
+            if (isHalted) return;
+            
+            const symbol = getTapeAt(headPos);
+            const rule = currentRules[currentState][symbol];
+            
+            if (!rule) {
+                isHalted = true;
+                return;
+            }
+            
+            setTapeAt(headPos, rule.w);
+            headPos += rule.m;
+            currentState = rule.n;
+            steps++;
+            
+            if (currentState === 'H') {
+                isHalted = true;
+            }
+            
+            saveHistory();
+            updateAgentState();
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const cellW = canvas.width / maxDisplayCells;
+            const cellH = canvas.height / maxHistoryRows;
+            
+            // Draw history rows
+            for (let r = 0; r < history.length; r++) {
+                const row = history[r];
+                const y = r * cellH;
+                const alpha = 1.0 - (r / maxHistoryRows) * 0.8;
+                
+                for (let i = 0; i < row.length; i++) {
+                    const cell = row[i];
+                    const x = i * cellW;
+                    
+                    // Fill cell
+                    ctx.fillStyle = cell.val === 1 ? `rgba(255, 150, 0, ${alpha})` : `rgba(30, 30, 30, ${alpha})`;
+                    ctx.fillRect(x, y, cellW - 1, cellH - 1);
+                    
+                    // Draw head marker
+                    if (cell.isHead) {
+                        ctx.fillStyle = r === 0 ? '#0f0' : `rgba(0, 255, 0, ${alpha * 0.5})`;
+                        ctx.fillRect(x, y + cellH - 4, cellW - 1, 4);
+                        
+                        if (r === 0) {
+                            ctx.strokeStyle = '#0f0';
+                            ctx.lineWidth = 2;
+                            ctx.strokeRect(x, y, cellW - 1, cellH - 1);
+                        }
+                    }
+                }
+            }
+            
+            // Labels
+            lblState.textContent = isHalted ? "HALTED" : currentState;
+            lblState.style.color = isHalted ? "#f00" : "#0f0";
+            lblSteps.textContent = steps;
+        }
+
+        function updateAgentState() {
+            let stateStr = `State: ${currentState} | Steps: ${steps} | Halted: ${isHalted}\n`;
+            stateStr += `Tape[-10..10]:\n`;
+            for (let i = -10; i <= 10; i++) {
+                stateStr += (i === headPos) ? `[${getTapeAt(i)}] ` : ` ${getTapeAt(i)}  `;
+            }
+            agentState.textContent = stateStr;
+        }
+
+        function loop() {
+            if (isPlaying) {
+                // Determine speed based on states (5-state needs to run very fast)
+                let speed = 1;
+                if (beaverSelect.value === "4") speed = 5;
+                if (beaverSelect.value === "5") speed = 100; // super fast
+                
+                for(let i = 0; i < speed; i++) {
+                    if (!isHalted) stepMachine();
+                }
+            }
+            draw();
+            animationId = requestAnimationFrame(loop);
+        }
+
+        btnPlayPause.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            btnPlayPause.textContent = isPlaying ? "Pause" : "Play";
+        });
+        
+        btnStep.addEventListener('click', () => {
+            isPlaying = false;
+            btnPlayPause.textContent = "Play";
+            stepMachine();
+            draw();
+        });
+        
+        btnReset.addEventListener('click', resetMachine);
+        beaverSelect.addEventListener('change', resetMachine);
+
+        resetMachine();
+        loop();
+    </script>
+</body>
+</html>

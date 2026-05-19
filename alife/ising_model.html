@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Ising Model</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { line-height: 1.1; letter-spacing: 2px; }
+    h1 { color: #e77a61; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Ising Model (Ferromagnetism)</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/ising.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.random() > 0.5 ? 1 : -1));
+    const T = 2.0; // Temperature below critical point (~2.269) for domain formation
+
+    function step() {
+      for(let i=0; i<W*H; i++) {
+        let x = Math.floor(Math.random()*W), y = Math.floor(Math.random()*H);
+        let s = grid[y][x];
+        let sum = grid[(y-1+H)%H][x] + grid[(y+1)%H][x] + grid[y][(x-1+W)%W] + grid[y][(x+1)%W];
+        let dE = 2 * s * sum;
+        if(dE <= 0 || Math.random() < Math.exp(-dE / T)) {
+          grid[y][x] = -s;
+        }
+      }
+      
+      let out = "";
+      for(let y=0; y<H; y++) {
+        let row = "";
+        for(let x=0; x<W; x++) {
+          row += grid[y][x] === 1 ? '<span style="color:#e77a61;">■</span>' : '<span style="color:#718465;">●</span>';
+        }
+        out += row + "\n";
+      }
+      document.getElementById('field').innerHTML = out;
+    }
+    
+    setInterval(step, 50);
+  </script>
+</body>
+</html>

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction-Diffusion (Gray-Scott Model)</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+        select { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px; font-family: monospace; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Reaction-Diffusion</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">The Gray-Scott model simulates two virtual chemicals reacting and diffusing on a 2D grid, producing complex Turing patterns like spots, stripes, and dividing cells found in nature (e.g., animal coats, corals).</p>
+        <div class="controls">
+            <button onclick="reset()">Reset</button>
+            <select id="patternSelect" onchange="changePattern()">
+                <option value="default">Coral / Spots</option>
+                <option value="mitosis">Mitosis</option>
+                <option value="maze">Maze</option>
+            </select>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Use lower resolution for performance
+        let width = 120;
+        let height = 120;
+        let scale = 4;
+        
+        let grid = [];
+        let nextGrid = [];
+        
+        let dA = 1.0;
+        let dB = 0.5;
+        let feed = 0.055;
+        let k = 0.062;
+
+        function changePattern() {
+            const val = document.getElementById('patternSelect').value;
+            if (val === 'mitosis') {
+                feed = 0.0367;
+                k = 0.0649;
+            } else if (val === 'maze') {
+                feed = 0.029;
+                k = 0.057;
+            } else {
+                feed = 0.055;
+                k = 0.062;
+            }
+            reset();
+        }
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = Math.floor(minDim / scale);
+            height = Math.floor(minDim / scale);
+            // Cap at 150 to keep JS physics running reasonably fast
+            if (width > 150) { width = 150; height = 150; }
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            reset();
+        }
+
+        function reset() {
+            grid = [];
+            nextGrid = [];
+            for (let x = 0; x < width; x++) {
+                grid[x] = [];
+                nextGrid[x] = [];
+                for (let y = 0; y < height; y++) {
+                    grid[x][y] = { a: 1, b: 0 };
+                    nextGrid[x][y] = { a: 1, b: 0 };
+                }
+            }
+            
+            // Seed
+            for (let i = 0; i < 10; i++) {
+                let rx = Math.floor(Math.random() * (width - 10)) + 5;
+                let ry = Math.floor(Math.random() * (height - 10)) + 5;
+                for (let x = rx - 2; x < rx + 2; x++) {
+                    for (let y = ry - 2; y < ry + 2; y++) {
+                        grid[x][y].b = 1;
+                    }
+                }
+            }
+        }
+
+        function laplaceA(x, y) {
+            let sum = 0;
+            sum += grid[x][y].a * -1;
+            sum += grid[x-1][y].a * 0.2;
+            sum += grid[x+1][y].a * 0.2;
+            sum += grid[x][y-1].a * 0.2;
+            sum += grid[x][y+1].a * 0.2;
+            sum += grid[x-1][y-1].a * 0.05;
+            sum += grid[x+1][y-1].a * 0.05;
+            sum += grid[x+1][y+1].a * 0.05;
+            sum += grid[x-1][y+1].a * 0.05;
+            return sum;
+        }
+
+        function laplaceB(x, y) {
+            let sum = 0;
+            sum += grid[x][y].b * -1;
+            sum += grid[x-1][y].b * 0.2;
+            sum += grid[x+1][y].b * 0.2;
+            sum += grid[x][y-1].b * 0.2;
+            sum += grid[x][y+1].b * 0.2;
+            sum += grid[x-1][y-1].b * 0.05;
+            sum += grid[x+1][y-1].b * 0.05;
+            sum += grid[x+1][y+1].b * 0.05;
+            sum += grid[x-1][y+1].b * 0.05;
+            return sum;
+        }
+
+        function draw() {
+            // Speed up simulation by running multiple steps per frame
+            for (let s = 0; s < 10; s++) {
+                for (let x = 1; x < width - 1; x++) {
+                    for (let y = 1; y < height - 1; y++) {
+                        let a = grid[x][y].a;
+                        let b = grid[x][y].b;
+                        
+                        nextGrid[x][y].a = a + (dA * laplaceA(x, y) - a * b * b + feed * (1 - a));
+                        nextGrid[x][y].b = b + (dB * laplaceB(x, y) + a * b * b - (k + feed) * b);
+                        
+                        // Clamp
+                        if (nextGrid[x][y].a < 0) nextGrid[x][y].a = 0;
+                        if (nextGrid[x][y].b < 0) nextGrid[x][y].b = 0;
+                        if (nextGrid[x][y].a > 1) nextGrid[x][y].a = 1;
+                        if (nextGrid[x][y].b > 1) nextGrid[x][y].b = 1;
+                    }
+                }
+                let temp = grid;
+                grid = nextGrid;
+                nextGrid = temp;
+            }
+            
+            // Draw
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let a = grid[x][y].a;
+                    let b = grid[x][y].b;
+                    
+                    let c = Math.floor((a - b) * 255);
+                    c = Math.max(0, Math.min(255, c));
+                    
+                    // Map to theme colors
+                    // #10120f (16, 18, 15) to #8fd46b (143, 212, 107)
+                    let r = 16 + (c / 255) * (143 - 16);
+                    let g = 18 + (c / 255) * (212 - 18);
+                    let bl = 15 + (c / 255) * (107 - 15);
+                    
+                    ctx.fillStyle = `rgb(${r},${g},${bl})`;
+                    ctx.fillRect(x * scale, y * scale, scale, scale);
+                }
+            }
+            
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

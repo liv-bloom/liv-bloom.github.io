@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wireworld</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Wireworld</h2>
+        <p>A cellular automaton first proposed by Brian Silverman, capable of simulating universal Turing machines and electronic logic gates. States: Empty (Black), Conductor (Yellow), Electron Head (Blue), Electron Tail (Red).</p>
+        <button onclick="init()">Restart Circuit</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let cols = 150;
+        let rows = 150;
+        let cellSize;
+        let grid = [];
+        let next = [];
+        
+        // 0: Empty, 1: Conductor, 2: Electron Head, 3: Electron Tail
+        
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            cellSize = Math.floor(minDim / cols);
+            canvas.width = cols * cellSize;
+            canvas.height = rows * cellSize;
+            init();
+        }
+
+        function init() {
+            grid = new Array(cols * rows).fill(0);
+            next = new Array(cols * rows).fill(0);
+            
+            // Build a simple circuit (a loop with a diode-like structure)
+            const cx = Math.floor(cols / 2);
+            const cy = Math.floor(rows / 2);
+            const r = 20;
+
+            for (let i = 0; i < 360; i++) {
+                let rad = i * Math.PI / 180;
+                let x = cx + Math.floor(r * Math.cos(rad));
+                let y = cy + Math.floor(r * Math.sin(rad));
+                grid[x + y * cols] = 1; // Conductor
+            }
+
+            // A cross-wire
+            for (let i = -r - 10; i < r + 10; i++) {
+                let x = cx + i;
+                let y = cy;
+                grid[x + y * cols] = 1;
+            }
+
+            // Seed electron heads and tails
+            grid[(cx - r) + cy * cols] = 2; // Head
+            grid[(cx - r - 1) + cy * cols] = 3; // Tail
+            grid[(cx + r) + cy * cols] = 2; // Head
+            grid[(cx + r + 1) + cy * cols] = 3; // Tail
+        }
+
+        function update() {
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    let idx = x + y * cols;
+                    let state = grid[idx];
+                    
+                    if (state === 0) {
+                        next[idx] = 0;
+                    } else if (state === 2) {
+                        next[idx] = 3; // Head becomes Tail
+                    } else if (state === 3) {
+                        next[idx] = 1; // Tail becomes Conductor
+                    } else if (state === 1) {
+                        // Conductor becomes Head if 1 or 2 neighbors are Heads
+                        let headCount = 0;
+                        for (let oy = -1; oy <= 1; oy++) {
+                            for (let ox = -1; ox <= 1; ox++) {
+                                if (ox === 0 && oy === 0) continue;
+                                let nx = x + ox;
+                                let ny = y + oy;
+                                if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
+                                    if (grid[nx + ny * cols] === 2) {
+                                        headCount++;
+                                    }
+                                }
+                            }
+                        }
+                        if (headCount === 1 || headCount === 2) {
+                            next[idx] = 2;
+                        } else {
+                            next[idx] = 1;
+                        }
+                    }
+                }
+            }
+            
+            // Swap
+            let temp = grid;
+            grid = next;
+            next = temp;
+        }
+
+        function draw() {
+            update();
+            
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            for (let y = 0; y < rows; y++) {
+                for (let x = 0; x < cols; x++) {
+                    let state = grid[x + y * cols];
+                    if (state !== 0) {
+                        if (state === 1) ctx.fillStyle = '#FFB300'; // Conductor
+                        else if (state === 2) ctx.fillStyle = '#00B0FF'; // Head
+                        else if (state === 3) ctx.fillStyle = '#FF3D00'; // Tail
+                        
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+            
+            // Delay slightly for visual clarity
+            setTimeout(() => requestAnimationFrame(draw), 50);
+        }
+
+        window.addEventListener('resize', resize);
+        resize(); // calls init
+        draw();
+    </script>
+</body>
+</html>

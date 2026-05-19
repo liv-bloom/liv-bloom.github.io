@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hénon Map Attractor</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">Hénon Map Attractor</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Reset / Randomize</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let a = 1.4;
+        let b = 0.3;
+        let x = 0;
+        let y = 0;
+        let iter = 0;
+        let isRandom = false;
+
+        function reset() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+            ctx.fillRect(0, 0, width, height);
+            
+            if (isRandom) {
+                a = 1.0 + Math.random() * 0.4; // between 1.0 and 1.4
+                b = 0.2 + Math.random() * 0.15; // between 0.2 and 0.35
+            } else {
+                a = 1.4;
+                b = 0.3;
+                isRandom = true; // next click will randomize
+            }
+            
+            x = 0;
+            y = 0;
+            iter = 0;
+            
+            document.getElementById('info').innerHTML = `Hénon Map Attractor<br><span style="font-size:0.8em;color:#777;">a=${a.toFixed(3)}, b=${b.toFixed(3)}</span>`;
+        }
+
+        function draw() {
+            for (let i = 0; i < 500; i++) {
+                let nextX = 1 - a * x * x + y;
+                let nextY = b * x;
+                
+                x = nextX;
+                y = nextY;
+
+                // Scale and center for standard parameters
+                let scale = width / 3;
+                let drawX = width / 2 + x * scale;
+                let drawY = height / 2 - y * scale * 2.5; // invert Y for standard math rendering
+
+                ctx.fillStyle = `hsla(${iter % 360}, 80%, 70%, 0.5)`;
+                ctx.fillRect(drawX, drawY, 1, 1);
+                iter += 0.1;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        reset();
+        isRandom = false; // start with classic parameters
+        draw();
+    </script>
+</body>
+</html>

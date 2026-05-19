@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Spatial Predator-Prey</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { line-height: 1.1; letter-spacing: 2px; }
+    h1 { color: #8fd46b; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Spatial Predator-Prey (Lotka-Volterra)</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/predator_prey.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 60, H = 30;
+    // 0: Empty, 1: Prey, 2: Predator
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => {
+      let r = Math.random();
+      return r < 0.1 ? 2 : (r < 0.4 ? 1 : 0);
+    }));
+
+    const colors = ["#10120f", "#8fd46b", "#e77a61"];
+    const chars = [" ", "o", "X"];
+
+    function step() {
+      let next = Array.from({length: H}, () => Array.from({length: W}, () => 0));
+      for(let y=0; y<H; y++) {
+        for(let x=0; x<W; x++) {
+          let state = grid[y][x];
+          let preyCount = 0;
+          let predCount = 0;
+          for(let dy=-1; dy<=1; dy++) {
+            for(let dx=-1; dx<=1; dx++) {
+              if(dx===0 && dy===0) continue;
+              let ny = (y+dy+H)%H, nx = (x+dx+W)%W;
+              if(grid[ny][nx] === 1) preyCount++;
+              if(grid[ny][nx] === 2) predCount++;
+            }
+          }
+
+          if(state === 0) {
+            // Empty space becomes prey if prey is nearby (reproduction)
+            if(preyCount >= 2 && Math.random() < 0.1) next[y][x] = 1;
+            else next[y][x] = 0;
+          } else if(state === 1) {
+            // Prey dies if predators are nearby (eaten)
+            if(predCount >= 1 && Math.random() < 0.3) next[y][x] = 2; // Predator reproduces here
+            else next[y][x] = 1; // Survives
+          } else if(state === 2) {
+            // Predator dies of starvation if no prey nearby
+            if(preyCount === 0 && Math.random() < 0.2) next[y][x] = 0;
+            else next[y][x] = 2; // Survives
+          }
+        }
+      }
+      grid = next;
+
+      let out = "";
+      for(let y=0; y<H; y++) {
+        let row = "";
+        for(let x=0; x<W; x++) {
+          let v = grid[y][x];
+          row += `<span style="color:${colors[v]};">${chars[v]}</span>`;
+        }
+        out += row + "\n";
+      }
+      document.getElementById('field').innerHTML = out;
+    }
+    setInterval(step, 150);
+  </script>
+</body>
+</html>

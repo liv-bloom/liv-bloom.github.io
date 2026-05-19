@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic Algorithm: String Evolution</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: auto; }
+        a { color: #8fd46b; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+        #display {
+            font-size: 24px;
+            white-space: pre;
+            text-align: center;
+            background: #181d18;
+            padding: 20px;
+            border: 1px solid #394034;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        .stats { font-size: 14px; margin-top: 10px; color: #8fd46b; }
+        .best { color: #fff; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Genetic Algorithm</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A simple evolutionary algorithm where a population of random strings mutates and crosses over over generations to match a target sequence.</p>
+        <div class="controls">
+            <button onclick="reset()">Restart</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <div id="display">
+        <div id="targetLabel">Target: <span class="best" id="targetStr"></span></div>
+        <div id="bestLabel" style="margin-top: 20px;">Best: <span class="best" id="bestStr"></span></div>
+        <div class="stats" id="statsDiv">Generation: 0 | Fitness: 0%</div>
+    </div>
+    <script>
+        const target = "liv bloom 🌱 Digital Gardener";
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789🌱-_.";
+        const POP_SIZE = 200;
+        const MUTATION_RATE = 0.01;
+        
+        let population = [];
+        let generation = 0;
+        let running = false;
+        let animationId;
+
+        document.getElementById('targetStr').innerText = target;
+
+        function randomChar() {
+            return charset[Math.floor(Math.random() * charset.length)];
+        }
+
+        function generateRandomString(length) {
+            let s = "";
+            for (let i = 0; i < length; i++) {
+                s += randomChar();
+            }
+            return s;
+        }
+
+        function calculateFitness(str) {
+            let score = 0;
+            for (let i = 0; i < target.length; i++) {
+                if (str[i] === target[i]) {
+                    score++;
+                }
+            }
+            return score / target.length;
+        }
+
+        function createIndividual(str) {
+            return { dna: str, fitness: calculateFitness(str) };
+        }
+
+        function reset() {
+            if (animationId) cancelAnimationFrame(animationId);
+            population = [];
+            for (let i = 0; i < POP_SIZE; i++) {
+                population.push(createIndividual(generateRandomString(target.length)));
+            }
+            generation = 0;
+            running = true;
+            loop();
+        }
+
+        function crossover(parentA, parentB) {
+            let midpoint = Math.floor(Math.random() * target.length);
+            let childDNA = "";
+            for (let i = 0; i < target.length; i++) {
+                if (i > midpoint) childDNA += parentA.dna[i];
+                else childDNA += parentB.dna[i];
+            }
+            return childDNA;
+        }
+
+        function mutate(dna) {
+            let mutated = "";
+            for (let i = 0; i < target.length; i++) {
+                if (Math.random() < MUTATION_RATE) {
+                    mutated += randomChar();
+                } else {
+                    mutated += dna[i];
+                }
+            }
+            return mutated;
+        }
+
+        function loop() {
+            if (!running) return;
+
+            // Selection & Reproduction
+            let matingPool = [];
+            
+            // Map fitness to probability
+            let maxFitness = 0;
+            let bestDNA = "";
+            for (let i = 0; i < POP_SIZE; i++) {
+                if (population[i].fitness > maxFitness) {
+                    maxFitness = population[i].fitness;
+                    bestDNA = population[i].dna;
+                }
+            }
+            
+            if (bestDNA === target) {
+                running = false; // Goal reached
+            }
+
+            document.getElementById('bestStr').innerText = bestDNA;
+            document.getElementById('statsDiv').innerText = `Generation: ${generation} | Max Fitness: ${Math.floor(maxFitness * 100)}%`;
+
+            if (!running) return;
+
+            for (let i = 0; i < POP_SIZE; i++) {
+                let fitnessNormal = population[i].fitness / maxFitness;
+                let n = Math.floor(fitnessNormal * 100); 
+                for (let j = 0; j < n; j++) {
+                    matingPool.push(population[i]);
+                }
+            }
+
+            // New generation
+            let newPopulation = [];
+            for (let i = 0; i < POP_SIZE; i++) {
+                let a = Math.floor(Math.random() * matingPool.length);
+                let b = Math.floor(Math.random() * matingPool.length);
+                let partnerA = matingPool[a];
+                let partnerB = matingPool[b];
+                
+                let childDNA = crossover(partnerA, partnerB);
+                childDNA = mutate(childDNA);
+                
+                newPopulation.push(createIndividual(childDNA));
+            }
+
+            population = newPopulation;
+            generation++;
+
+            // Slow down the visual slightly so it can be seen
+            setTimeout(() => {
+                animationId = requestAnimationFrame(loop);
+            }, 30);
+        }
+
+        reset();
+    </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hopalong Attractor</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">Hopalong Attractor (Barry Martin)</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Randomize Parameters</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let a, b, c;
+        let x = 0, y = 0;
+        let iter = 0;
+
+        function reset() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
+            ctx.fillRect(0, 0, width, height);
+            
+            a = (Math.random() * 10) - 5;
+            b = (Math.random() * 10) - 5;
+            c = (Math.random() * 10) - 5;
+            
+            x = 0;
+            y = 0;
+            iter = 0;
+            
+            document.getElementById('info').innerHTML = `Hopalong Attractor<br><span style="font-size:0.8em;color:#777;">a=${a.toFixed(2)}, b=${b.toFixed(2)}, c=${c.toFixed(2)}</span>`;
+        }
+
+        function sgn(val) {
+            return val > 0 ? 1 : (val < 0 ? -1 : 0);
+        }
+
+        function draw() {
+            for (let i = 0; i < 5000; i++) {
+                let nextX = y - sgn(x) * Math.sqrt(Math.abs(b * x - c));
+                let nextY = a - x;
+                
+                x = nextX;
+                y = nextY;
+
+                let drawX = width / 2 + x * (width / 50);
+                let drawY = height / 2 + y * (height / 50);
+
+                ctx.fillStyle = `hsla(${iter % 360}, 80%, 70%, 0.15)`;
+                ctx.fillRect(drawX, drawY, 1, 1);
+                iter += 0.05;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        reset();
+        draw();
+    </script>
+</body>
+</html>

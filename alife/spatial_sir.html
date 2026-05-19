@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spatial SIR Epidemic Model</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Spatial SIR Model</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">Simulates the spread of an epidemic on a spatial grid. Individuals are <span style="color:#5faae6">Susceptible</span>, <span style="color:#e65f5f">Infectious</span>, or <span style="color:#6b8e5c">Recovered</span>. Recovered lose immunity over time (SIRS), leading to endemic waves.</p>
+        <div class="controls">
+            <button onclick="reset()">Restart</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let scale = 4;
+        let width, height;
+        let grid = [];
+        let nextGrid = [];
+
+        // States: 0 = Susceptible, 1...infTime = Infectious, -1...-recTime = Recovered
+        const INFECTIOUS_TIME = 10;
+        const RECOVERED_TIME = 40;
+        const INFECTION_RATE = 0.25;
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = Math.floor(minDim / scale);
+            height = Math.floor(minDim / scale);
+            if (width > 150) { width = 150; height = 150; }
+            canvas.width = width * scale;
+            canvas.height = height * scale;
+            reset();
+        }
+
+        function reset() {
+            grid = [];
+            for (let x = 0; x < width; x++) {
+                grid[x] = [];
+                nextGrid[x] = [];
+                for (let y = 0; y < height; y++) {
+                    grid[x][y] = 0; // Susceptible
+                    nextGrid[x][y] = 0;
+                }
+            }
+            // Seed infections
+            for(let i = 0; i < 4; i++) {
+                grid[Math.floor(width/2) + i][Math.floor(height/2)] = 1;
+            }
+        }
+
+        function draw() {
+            // Logic
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    let state = grid[x][y];
+                    
+                    if (state === 0) {
+                        // Susceptible -> maybe infected by neighbor
+                        let infectedNeighbors = 0;
+                        for(let dx=-1; dx<=1; dx++) {
+                            for(let dy=-1; dy<=1; dy++) {
+                                if(dx===0 && dy===0) continue;
+                                let nx = (x + dx + width) % width;
+                                let ny = (y + dy + height) % height;
+                                if(grid[nx][ny] > 0) infectedNeighbors++;
+                            }
+                        }
+                        if (infectedNeighbors > 0 && Math.random() < 1.0 - Math.pow((1.0 - INFECTION_RATE), infectedNeighbors)) {
+                            nextGrid[x][y] = 1;
+                        } else {
+                            nextGrid[x][y] = 0;
+                        }
+                    } else if (state > 0) {
+                        // Infectious -> increment time
+                        if (state >= INFECTIOUS_TIME) {
+                            nextGrid[x][y] = -RECOVERED_TIME; // enter recovered state
+                        } else {
+                            nextGrid[x][y] = state + 1;
+                        }
+                    } else if (state < 0) {
+                        // Recovered -> lose immunity over time
+                        if (state >= -1) {
+                            nextGrid[x][y] = 0; // become susceptible
+                        } else {
+                            nextGrid[x][y] = state + 1;
+                        }
+                    }
+                }
+            }
+            
+            // Swap and Draw
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            for (let x = 0; x < width; x++) {
+                for (let y = 0; y < height; y++) {
+                    grid[x][y] = nextGrid[x][y];
+                    
+                    let state = grid[x][y];
+                    if (state > 0) {
+                        ctx.fillStyle = '#e65f5f'; // Infectious (red)
+                        ctx.fillRect(x * scale, y * scale, scale, scale);
+                    } else if (state < 0) {
+                        ctx.fillStyle = '#6b8e5c'; // Recovered (dim green)
+                        ctx.fillRect(x * scale, y * scale, scale, scale);
+                    } else {
+                        // Susceptible
+                        ctx.fillStyle = '#5faae6'; // Susceptible (blue)
+                        ctx.fillRect(x * scale, y * scale, scale, scale);
+                    }
+                }
+            }
+            
+            setTimeout(() => requestAnimationFrame(draw), 50);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        draw();
+    </script>
+</body>
+</html>

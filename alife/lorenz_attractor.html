@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lorenz Attractor</title>
+    <style>
+        body { margin: 0; background-color: #050505; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>Lorenz Attractor (Chaos)</h2>
+        <p>A system of ordinary differential equations noted for having chaotic solutions. Demonstrates the "butterfly effect" where tiny differences in initial conditions yield diverging outcomes.</p>
+        <button onclick="addParticle()">Add Tracer</button>
+        <button onclick="init()">Reset</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        
+        // Lorenz parameters
+        const sigma = 10;
+        const rho = 28;
+        const beta = 8 / 3;
+        const dt = 0.005;
+        
+        let particles = [];
+        let colorHue = 0;
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        class Particle {
+            constructor(x, y, z, hue) {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+                this.hue = hue;
+            }
+
+            update() {
+                let dx = (sigma * (this.y - this.x)) * dt;
+                let dy = (this.x * (rho - this.z) - this.y) * dt;
+                let dz = (this.x * this.y - beta * this.z) * dt;
+                
+                this.x += dx;
+                this.y += dy;
+                this.z += dz;
+            }
+
+            draw() {
+                // Projection from 3D to 2D
+                let scale = Math.min(width, height) / 80;
+                let px = width / 2 + this.x * scale;
+                let py = height / 2 + (this.y - 20) * scale; // Offset y to center the butterfly
+                
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, 0.8)`;
+                ctx.fillRect(px, py, 1.5, 1.5);
+            }
+        }
+
+        function addParticle() {
+            // Add a particle with slightly randomized initial conditions to show divergence
+            let p = new Particle(0.1 + Math.random()*0.1, 0, 0, colorHue);
+            particles.push(p);
+            colorHue = (colorHue + 30) % 360;
+        }
+
+        function init() {
+            particles = [];
+            colorHue = 200; // Start with a blueish hue
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Start with one tracer
+            addParticle();
+        }
+
+        function draw() {
+            // Fade out slightly to create trails
+            ctx.fillStyle = 'rgba(5, 5, 5, 0.01)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Run multiple steps per frame to speed up the drawing
+            for (let s = 0; s < 5; s++) {
+                for (let p of particles) {
+                    p.update();
+                    p.draw();
+                }
+            }
+            
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+        init();
+        draw();
+    </script>
+</body>
+</html>

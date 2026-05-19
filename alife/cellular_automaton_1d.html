@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1D Cellular Automaton (Rule Explorer)</title>
+    <style>
+        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
+        a { color: #4CAF50; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
+        button:hover { background: #45a049; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2>1D Cellular Automaton</h2>
+        <p>Current Rule: <span id="ruleDisplay">90</span></p>
+        <button onclick="randomRule()">Random Rule</button>
+        <br><br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let rule = 90;
+        let ruleSet = [];
+        const cellSize = 2;
+        let cells = [];
+        let generation = 0;
+
+        function setRule(r) {
+            rule = r;
+            document.getElementById('ruleDisplay').innerText = rule;
+            ruleSet = rule.toString(2).padStart(8, '0').split('').map(Number).reverse();
+            reset();
+        }
+
+        function randomRule() {
+            setRule(Math.floor(Math.random() * 256));
+        }
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            reset();
+        }
+
+        function reset() {
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const numCells = Math.floor(canvas.width / cellSize);
+            cells = new Array(numCells).fill(0);
+            cells[Math.floor(numCells / 2)] = 1; // single active cell in the middle
+            generation = 0;
+            drawRow();
+        }
+
+        function rules(left, middle, right) {
+            const index = (left << 2) | (middle << 1) | right;
+            return ruleSet[index];
+        }
+
+        function generate() {
+            const nextCells = new Array(cells.length).fill(0);
+            for (let i = 1; i < cells.length - 1; i++) {
+                nextCells[i] = rules(cells[i - 1], cells[i], cells[i + 1]);
+            }
+            cells = nextCells;
+            generation++;
+        }
+
+        function drawRow() {
+            const y = generation * cellSize;
+            if (y >= canvas.height) {
+                // reset or shift up? Let's just reset with a new rule to keep it interesting
+                randomRule();
+                return;
+            }
+            
+            for (let i = 0; i < cells.length; i++) {
+                if (cells[i] === 1) {
+                    // color based on rule and generation
+                    const hue = (rule + generation) % 360;
+                    ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
+                    ctx.fillRect(i * cellSize, y, cellSize, cellSize);
+                }
+            }
+        }
+
+        function loop() {
+            generate();
+            drawRow();
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('resize', resize);
+        setRule(rule); // init
+        loop();
+    </script>
+</body>
+</html>

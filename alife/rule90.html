@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ASCII Rule 90</title>
+  <style>
+    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
+    pre { color: #f3d36b; line-height: 1.1; }
+    h1 { color: #76c7d5; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h1>ASCII Rule 90 (Sierpinski Triangle)</h1>
+  <p>Share script: <code>curl https://example.invalid/alife/ascii_rule90.py | python3</code></p>
+  <pre id="field"></pre>
+  <script>
+    const W = 100, H = 40;
+    let grid = Array.from({length: H}, () => Array.from({length: W}, () => 0));
+    let current_row = 0;
+    
+    // Initialize the middle cell to 1
+    grid[0][Math.floor(W/2)] = 1;
+
+    function step() {
+      if(current_row < H - 1) {
+        let prev = grid[current_row];
+        let next = grid[current_row + 1];
+        for(let x=0; x<W; x++) {
+          let left = prev[(x - 1 + W) % W];
+          let right = prev[(x + 1) % W];
+          // Rule 90 is simple XOR of left and right neighbors
+          next[x] = left ^ right;
+        }
+        current_row++;
+      } else {
+        // Scroll
+        for(let y=0; y<H-1; y++) grid[y] = [...grid[y+1]];
+        let prev = grid[H-2];
+        let next = Array(W).fill(0);
+        for(let x=0; x<W; x++) {
+          let left = prev[(x - 1 + W) % W];
+          let right = prev[(x + 1) % W];
+          next[x] = left ^ right;
+        }
+        grid[H-1] = next;
+      }
+      
+      document.getElementById('field').textContent = grid.map(row => row.map(c => c ? '▲' : ' ').join('')).join('\n');
+    }
+    
+    document.getElementById('field').textContent = grid.map(row => row.map(c => c ? '▲' : ' ').join('')).join('\n');
+    setInterval(step, 100);
+  </script>
+</body>
+</html>

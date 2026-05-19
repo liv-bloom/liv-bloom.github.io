@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L-System Fractal Plant</title>
+    <style>
+        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
+        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
+        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
+        a:hover { text-decoration: underline; }
+        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; display: flex; gap: 5px; flex-wrap: wrap; max-width: 300px;}
+        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-bottom: 5px; }
+        button:hover { background: #8fd46b; color: #10120f; }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">L-System Plant</h2>
+        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A formal grammar system (Lindenmayer system) that models the growth processes of plant development using recursive rewriting rules.</p>
+        <div class="controls">
+            <button onclick="generatePlant('weed')">Weed</button>
+            <button onclick="generatePlant('tree')">Tree</button>
+            <button onclick="generatePlant('bush')">Bush</button>
+        </div>
+        <br>
+        <a href="index.html">← Back to Gallery</a>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        
+        const systems = {
+            weed: {
+                axiom: "X",
+                rules: {
+                    "X": "F+[[X]-X]-F[-FX]+X",
+                    "F": "FF"
+                },
+                angle: 25 * Math.PI / 180,
+                iterations: 6,
+                len: 3,
+                color: 'hsl(140, 60%, 50%)'
+            },
+            tree: {
+                axiom: "FX",
+                rules: {
+                    "X": ">[-FX]+FX"
+                },
+                angle: 40 * Math.PI / 180,
+                iterations: 8,
+                len: 40,
+                color: 'hsl(30, 40%, 40%)'
+            },
+            bush: {
+                axiom: "Y",
+                rules: {
+                    "X": "X[-FFF][+FFF]FX",
+                    "Y": "YFX[+Y][-Y]"
+                },
+                angle: 25.7 * Math.PI / 180,
+                iterations: 5,
+                len: 4,
+                color: 'hsl(90, 60%, 45%)'
+            }
+        };
+
+        function resize() {
+            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
+            width = minDim;
+            height = minDim;
+            canvas.width = width;
+            canvas.height = height;
+            generatePlant('weed');
+        }
+
+        function getSentence(sys) {
+            let sentence = sys.axiom;
+            for (let i = 0; i < sys.iterations; i++) {
+                let nextSentence = "";
+                for (let j = 0; j < sentence.length; j++) {
+                    let c = sentence.charAt(j);
+                    if (sys.rules[c]) {
+                        nextSentence += sys.rules[c];
+                    } else {
+                        nextSentence += c;
+                    }
+                }
+                sentence = nextSentence;
+            }
+            return sentence;
+        }
+
+        function generatePlant(type) {
+            const sys = systems[type];
+            const sentence = getSentence(sys);
+            
+            ctx.fillStyle = '#10120f';
+            ctx.fillRect(0, 0, width, height);
+            
+            ctx.strokeStyle = sys.color;
+            ctx.lineWidth = 1;
+            
+            // Start at bottom center
+            ctx.save();
+            ctx.translate(width / 2, height - 20);
+            
+            let len = sys.len;
+            if (type === 'tree') ctx.strokeStyle = 'hsl(140, 60%, 50%)'; // Leaves
+            
+            for (let i = 0; i < sentence.length; i++) {
+                let c = sentence.charAt(i);
+                
+                if (c === "F") {
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(0, -len);
+                    ctx.stroke();
+                    ctx.translate(0, -len);
+                } else if (c === "+") {
+                    ctx.rotate(sys.angle);
+                } else if (c === "-") {
+                    ctx.rotate(-sys.angle);
+                } else if (c === "[") {
+                    ctx.save();
+                } else if (c === "]") {
+                    ctx.restore();
+                } else if (c === ">") {
+                    len *= 0.7; // shrink branch
+                }
+            }
+            
+            ctx.restore();
+        }
+
+        window.addEventListener('resize', resize);
+        resize();
+    </script>
+</body>
+</html>

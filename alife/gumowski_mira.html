@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gumowski-Mira Attractor</title>
+    <style>
+        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .controls { margin-top: 10px; display: flex; gap: 15px; }
+        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
+        button:hover { background: #444; }
+        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+    </style>
+</head>
+<body>
+    <div id="info">Gumowski-Mira Attractor</div>
+    <canvas id="canvas" width="600" height="600"></canvas>
+    <div class="controls">
+        <button onclick="reset()">Reset</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let x = 0;
+        let y = 0.5;
+        let a = -0.31;
+        let b = 1;
+        let iter = 0;
+
+        function reset() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, width, height);
+            x = 0;
+            y = 0.5;
+            iter = 0;
+            a = -0.1 + Math.random() * -0.5;
+        }
+
+        function f(x) {
+            return a * x + 2 * (1 - a) * x * x / (1 + x * x);
+        }
+
+        function draw() {
+            for (let i = 0; i < 2000; i++) {
+                let nextX = b * y + f(x);
+                let nextY = -x + f(nextX);
+                
+                x = nextX;
+                y = nextY;
+
+                let drawX = (x / 20) * width + width / 2;
+                let drawY = (y / 20) * height + height / 2;
+
+                ctx.fillStyle = `hsla(${iter % 360}, 80%, 60%, 0.3)`;
+                ctx.fillRect(drawX, drawY, 1, 1);
+                iter += 0.05;
+            }
+            requestAnimationFrame(draw);
+        }
+
+        reset();
+        draw();
+    </script>
+</body>
+</html>

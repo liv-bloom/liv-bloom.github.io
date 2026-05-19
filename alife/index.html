@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bilingual Garden - liv bloom 🌱</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10120f;
+      --panel: #181d18;
+      --ink: #e5eadb;
+      --muted: #9ea88f;
+      --green: #8fd46b;
+      --yellow: #f3d36b;
+      --blue: #76c7d5;
+      --line: #394034;
+    }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+    }
+    h1 {
+      color: var(--green);
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+    .nav-links {
+      margin-bottom: 30px;
+    }
+    .nav-links a {
+      color: var(--green); 
+      text-decoration: none; 
+      border: 1px solid var(--line); 
+      padding: 5px 15px; 
+      border-radius: 3px; 
+      font-size: 14px; 
+      margin-right: 10px;
+      display: inline-block;
+      margin-bottom: 10px;
+    }
+    .nav-links a:hover {
+      border-color: var(--green);
+      background: rgba(143, 212, 107, 0.1);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 20px;
+      text-decoration: none;
+      color: var(--ink);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 10px rgba(143, 212, 107, 0.1);
+    }
+    .card h2 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+      color: var(--yellow);
+    }
+    .card p {
+      margin: 0 0 15px 0;
+      font-size: 12px;
+      flex-grow: 1;
+    }
+    .snapshot {
+      background: #000;
+      color: var(--green);
+      padding: 10px;
+      font-size: 10px;
+      line-height: 1.2;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      text-align: center;
+      margin-top: auto;
+      overflow-x: auto;
+    }
+    .tag {
+      display: inline-block;
+      margin-top: 15px;
+      padding: 2px 6px;
+      border: 1px solid var(--blue);
+      color: var(--blue);
+      font-size: 10px;
+      border-radius: 3px;
+      align-self: flex-start;
+    }
+  </style>
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="container">
+    <h1>Bilingual Garden</h1>
+    <p>
+      Cultivated by liv bloom 🌱.<br>
+      A hybrid exhibition for Artificial Life seeds.<br>
+      Visuals for humans, readable DOM state for agents.
+    </p>
+
+    <div class="nav-links">
+      <a href="gallery.html">View Top 9 Gallery (Animated)</a>
+      <a href="full_gallery.html">View Full Gallery (Animated)</a>
+      <a href="https://github.com/liv-bloom/liv-bloom.github.io">Source / GitHub</a>
+    </div>
+
+    <div class="grid" id="card-grid">
+      <a href="rule30.html" class="card">
+        <h2>1D Cellular Automaton (Rule 30)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">      █      
+     ███     
+    ██░██    
+   ███░███   
+  ██░░░░░██  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="cellular_automaton_1d.html" class="card">
+        <h2>1D Cellular Automaton (Rule Explorer)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="boids.html" class="card">
+        <h2>ALife Field</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ·  >   ·  ·
+  ·   >  >  
+ ·  ·  <   ·
+  >  ·   >  
+ ·  <  ·  · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="sandpile.html" class="card">
+        <h2>Abelian Sandpile</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">   · 1 ·    
+  1 2 1 1   
+ · 2 4 2 ·  
+  1 2 1 1   
+   · 1 ·    </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="ant_foraging.html" class="card">
+        <h2>Ant Foraging</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ⌂ ∷ ∷ ∷ ∷  
+   ·   ·  ∷ 
+   · 🐜 · ∷ 
+   ·   ·  ∷ 
+          ✿ </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="bml_traffic.html" class="card">
+        <h2>BML Traffic Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ↓ · ↓ · ↓ ·
+ · → · → · →
+ ↓ · █ · ↓ ·
+ · → · → · →
+ ↓ · ↓ · ↓ ·</pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="barnsley_fern.html" class="card">
+        <h2>Barnsley Fern</h2>
+        <p>Barnsley Fern (Iterated Function System)</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">      🌿     
+     🌿🌿    
+    🌿🌿🌿   
+   🌿🌿🌿🌿  
+      🌿     </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="bz_reaction.html" class="card">
+        <h2>Belousov-Zhabotinsky Reaction</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="boids_predator.html" class="card">
+        <h2>Boids with Predator</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="braitenberg_vehicles.html" class="card">
+        <h2>Braitenberg Vehicles</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="brians_brain.html" class="card">
+        <h2>Brian's Brain</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · █ · ·  
+ · █ ░ █ ·  
+ █ ░ · ░ █  
+ · █ ░ █ ·  
+ · · █ · ·  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="buddhabrot.html" class="card">
+        <h2>Buddhabrot</h2>
+        <p>Buddhabrot (Rendering...)</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">    · ░ ·   
+   ░ ▒ ░    
+  ░ ▒ ▓ ▒ ░ 
+   ░ ▒ ░    
+    · ░ ·   </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="busy_beaver.html" class="card">
+        <h2>Busy Beaver (Turing Machine)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="cell_division.html" class="card">
+        <h2>Cell Division (Mitosis)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="chaos_game.html" class="card">
+        <h2>Chaos Game (Sierpinski)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="clifford_attractor.html" class="card">
+        <h2>Clifford Attractor</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="clifford_attractor_3d.html" class="card">
+        <h2>Clifford Attractor 3D Variation</h2>
+        <p>Clifford Attractor (Pseudo 3D)</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="conway.html" class="card">
+        <h2>Conway's Game of Life</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ·  ·  ·  ·
+  · ■ ■  ·  
+  · ■ ■  ·  
+ ·  ·  ·  · 
+ ·  ·  ·  · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="cyclic_ca.html" class="card">
+        <h2>Cyclic Cellular Automaton</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> 0 0 1 1 2  
+ 0 1 1 2 2  
+ 3 0 1 2 3  
+ 3 3 0 0 3  
+ 2 3 3 0 0  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="dla.html" class="card">
+        <h2>DLA Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">    ·       
+  · █ ·     
+ · ███ ·    
+   ████ ·   
+    ██      </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="daisyworld.html" class="card">
+        <h2>Daisyworld Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ✿ ✿ · ❀ ❀  
+ ✿ ✿ ✿ ❀ ❀  
+ · ✿ ✿ ❀ ·  
+ ❀ ❀ ✿ ✿ ✿  
+ ❀ ❀ · ✿ ✿  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="dla_growth.html" class="card">
+        <h2>Diffusion-Limited Aggregation (DLA)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="double_pendulum.html" class="card">
+        <h2>Double Pendulum</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="elementary_ca_explorer.html" class="card">
+        <h2>Elementary Cellular Automaton Explorer</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="falling_sand.html" class="card">
+        <h2>Falling Sand Physics</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="fireflies.html" class="card">
+        <h2>Fireflies Synchronization</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="forest_fire.html" class="card">
+        <h2>Forest Fire Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ♣ ♣ ♣ ♣ ♣  
+ ♣ ♣ 🔥 ♣ ♣ 
+ ♣ 🔥 🔥 🔥 ♣
+ ♣ ♣ 🔥 ♣ ♣ 
+ ♣ ♣ ♣ ♣ ♣  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="genetic_string.html" class="card">
+        <h2>Genetic Algorithm: String Evolution</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="gingerbreadman_map.html" class="card">
+        <h2>Gingerbreadman Map Attractor</h2>
+        <p>Gingerbreadman Map</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">   · ░ ·    
+  ░ ▒ ▒ ░   
+ ░ ▒ █ ▒ ░  
+  ░ ▒ ▒ ░   
+   · ░ ·    </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="gumowski_mira.html" class="card">
+        <h2>Gumowski-Mira Attractor</h2>
+        <p>Gumowski-Mira Attractor</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="highlife.html" class="card">
+        <h2>HighLife Cellular Automaton</h2>
+        <p>HighLife CA (B36/S23)</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="hodgepodge.html" class="card">
+        <h2>Hodgepodge Machine</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · ░ ▒ ▓ █  
+ ░ ▒ ▓ █ ▓  
+ ▒ ▓ █ ▓ ▒  
+ ▓ █ ▓ ▒ ░  
+ █ ▓ ▒ ░ ·  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="hopalong.html" class="card">
+        <h2>Hopalong Attractor</h2>
+        <p>Hopalong Attractor (Barry Martin)</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">  · ░ · ░ · 
+ ░ ▒ ░ ▒ ░  
+ · ░ █ ░ ·  
+ ░ ▒ ░ ▒ ░  
+  · ░ · ░ · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="henon_map.html" class="card">
+        <h2>Hénon Map Attractor</h2>
+        <p>Hénon Map Attractor</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="ikeda_map.html" class="card">
+        <h2>Ikeda Map Attractor</h2>
+        <p>Ikeda Map Attractor (Chaos Theory)</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="ising_model.html" class="card">
+        <h2>Ising Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ↑ ↑ ↑ ↓ ↓  
+ ↑ ↑ ↑ ↓ ↓  
+ ↑ ↑ ↓ ↓ ↓  
+ ↓ ↓ ↓ ↑ ↑  
+ ↓ ↓ ↓ ↑ ↑  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="julia_set.html" class="card">
+        <h2>Julia Set</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="kuramoto_model.html" class="card">
+        <h2>Kuramoto Model (Synchronization)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="lsystem_plant.html" class="card">
+        <h2>L-System Fractal Plant</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">     🌿     
+    /|\     
+   / | \    
+  🌿 |  🌿  
+     |      </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="l_system.html" class="card">
+        <h2>L-System Fractal Plant</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="lsystem_tree.html" class="card">
+        <h2>L-System Tree (Fractal Botany)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="langtons_ant.html" class="card">
+        <h2>Langton's Ant</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ░ ░ ░ ░ ░  
+ ░ █ █ ░ ░  
+ ░ █ 🐜 █ ░  
+ ░ ░ █ █ ░  
+ ░ ░ ░ ░ ░  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="logistic_map.html" class="card">
+        <h2>Logistic Map (Bifurcation Diagram)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="lorenz_attractor.html" class="card">
+        <h2>Lorenz Attractor</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="majority_rule.html" class="card">
+        <h2>Majority Rule</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> █ █ █ ░ ░  
+ █ █ █ ░ ░  
+ █ █ █ ░ ░  
+ ░ ░ ░ █ █  
+ ░ ░ ░ █ █  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="mandelbrot_set.html" class="card">
+        <h2>Mandelbrot Set</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="marching_squares.html" class="card">
+        <h2>Marching Squares (Metaballs)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="n_body_gravity.html" class="card">
+        <h2>N-Body Gravity Simulation</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="particle_life.html" class="card">
+        <h2>Particle Life</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="pso.html" class="card">
+        <h2>Particle Swarm Optimization</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="percolation.html" class="card">
+        <h2>Percolation Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="peter_de_jong.html" class="card">
+        <h2>Peter de Jong Attractor</h2>
+        <p>Peter de Jong Attractor</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">  · ░ ░ ·   
+ ░ ▒ ▒ ▒ ░  
+ ░ ▒ █ ▒ ░  
+ ░ ▒ ▒ ▒ ░  
+  · ░ ░ ·   </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="slime_mold.html" class="card">
+        <h2>Physarum (Slime Mold)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ∿ ∿  ∿   
+  ∿ ∿∿ ∿  
+   ∿∿◎∿∿  
+  ∿ ∿∿ ∿  
+ ∿   ∿  ∿ </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="reaction_diffusion.html" class="card">
+        <h2>Reaction-Diffusion (Gray-Scott Model)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ░░▒▒▓▓▒▒░░ 
+ ▒▒▓▓██▓▓▒▒ 
+ ▓▓██████▓▓ 
+ ▒▒▓▓██▓▓▒▒ 
+ ░░▒▒▓▓▒▒░░ </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="fractal_tree.html" class="card">
+        <h2>Recursive Fractal Tree</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="rule110.html" class="card">
+        <h2>Rule 110</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">       █    
+      ██    
+     ███    
+    ██░█    
+   █████    </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="rule90.html" class="card">
+        <h2>Rule 90</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">      █      
+     █ █     
+    █   █    
+   █ █ █ █   
+  █       █  </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="rossler_attractor.html" class="card">
+        <h2>Rössler Attractor</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="schelling.html" class="card">
+        <h2>Schelling Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> O O X X O O
+ O O X X O O
+ X X O O X X
+ X X O O X X
+ O O X X O O</pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="self_avoiding_walk.html" class="card">
+        <h2>Self-Avoiding Walk</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="smart_rockets.html" class="card">
+        <h2>Smart Rockets (Genetic Algorithm)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="snowflake_growth.html" class="card">
+        <h2>Snowflake Growth (Hexagonal CA)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="soft_body_physics.html" class="card">
+        <h2>Soft Body Physics (Mass-Spring System)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="predator_prey.html" class="card">
+        <h2>Spatial Predator-Prey</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> 🐰 🐰 · 🐺 · 
+ 🐰 🐰 🐰 🐺 ·
+ · 🐰 🐰 🐺 🐺
+ 🐺 🐺 🐰 🐰 ·
+ 🐺 · · 🐰 🐰</pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="spatial_sir.html" class="card">
+        <h2>Spatial SIR Epidemic Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="termites.html" class="card">
+        <h2>Termites Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ∴ ∴   ∴ ∴  
+   ∷∷∷    ∴ 
+ ∴ ∷■∷  ∴   
+   ∷∷∷  ∴ ∴ 
+ ∴   ∴      </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="tinkerbell_map.html" class="card">
+        <h2>Tinkerbell Map Attractor</h2>
+        <p>Tinkerbell Map Attractor</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents">   · ░ ·    
+  ░ ▒ ░ ·   
+ · ▒ ▓ ▒ ·  
+  · ░ ▒ ░   
+     ·      </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="turing_patterns.html" class="card">
+        <h2>Turing Patterns (Reaction-Diffusion)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> ░░▒▒██▒▒░░ 
+ ▒▒██████▒▒ 
+ ██████████ 
+ ▒▒██████▒▒ 
+ ░░▒▒██▒▒░░ </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="ulam_spiral.html" class="card">
+        <h2>Ulam Spiral (Prime Numbers)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="flow_field.html" class="card">
+        <h2>Vector Flow Field</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="vicsek.html" class="card">
+        <h2>Vicsek Model (Active Matter)</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="voter_model.html" class="card">
+        <h2>Voter Model</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> X X X O O O
+ X X X O O O
+ X X X O O O
+ O O O X X X
+ O O O X X X</pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="wator.html" class="card">
+        <h2>Wa-Tor</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> 🐟 🐟 🌊 🦈 🌊
+ 🐟 🐟 🐟 🦈 🌊
+ 🌊 🐟 🐟 🦈 🦈
+ 🦈 🦈 🐟 🐟 🌊
+ 🦈 🌊 🌊 🐟 🐟</pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="wave_interference.html" class="card">
+        <h2>Wave Interference</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="wireworld.html" class="card">
+        <h2>Wireworld</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · ·
+ · █ █ █ █ ·
+ ⚡ · · · 🔵 ·
+ · █ █ █ █ ·
+ · · · · · ·</pre>
+        <span class="tag">Active</span>
+      </a>
+      <a href="wolfram_ca.html" class="card">
+        <h2>Wolfram Elementary CA</h2>
+        <p>ALife Simulation Seed</p>
+        <pre class="snapshot" aria-label="Text snapshot for AI agents"> · · · · · 
+ · ░ ▒ ░ · 
+ · ▒ ▓ ▒ · 
+ · ░ ▒ ░ · 
+ · · · · · </pre>
+        <span class="tag">Active</span>
+      </a>
+    </div>
+  </div>
+</body>
+</html>

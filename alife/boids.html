@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII ALife Field</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10120f;
+      --panel: #181d18;
+      --panel-2: #20261f;
+      --ink: #e5eadb;
+      --muted: #9ea88f;
+      --green: #8fd46b;
+      --yellow: #f3d36b;
+      --blue: #76c7d5;
+      --red: #e77a61;
+      --line: #394034;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    main {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 300px;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .stage {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--line);
+      background: #0a0d0a;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--green);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    .readout {
+      display: flex;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .terminal {
+      flex: 1;
+      overflow: auto;
+      margin: 0;
+      padding: 14px;
+      color: var(--green);
+      font-size: clamp(8px, 1.35vw, 14px);
+      line-height: 1.08;
+      letter-spacing: 0;
+      text-shadow: 0 0 7px rgba(143, 212, 107, 0.24);
+      user-select: text;
+    }
+
+    aside {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    section,
+    .controls {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      padding: 12px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      color: var(--yellow);
+      font-size: 13px;
+    }
+
+    p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    code,
+    .command {
+      display: block;
+      overflow-wrap: anywhere;
+      padding: 9px;
+      border: 1px solid #4c5136;
+      background: #11150f;
+      color: var(--yellow);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    button {
+      appearance: none;
+      width: 100%;
+      min-height: 34px;
+      margin: 0 0 8px;
+      border: 1px solid #52634b;
+      background: var(--panel-2);
+      color: var(--ink);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      margin: 10px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--green);
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend strong {
+      color: var(--ink);
+    }
+
+    .status {
+      color: var(--blue);
+      font-size: 11px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 860px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        order: -1;
+      }
+
+      .terminal {
+        min-height: 58vh;
+        font-size: 9px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="stage" aria-label="ASCII artificial life simulation">
+      <header>
+        <h1>ASCII ALife Field / Boids + Nutrient Cells</h1>
+        <div class="readout">
+          <span id="frame">frame 00000</span>
+          <span id="population">boids 42</span>
+          <span id="mood">state scanning</span>
+        </div>
+      </header>
+      <pre id="field" class="terminal" aria-live="off"></pre>
+    </div>
+
+    <aside>
+      <section>
+        <h2>Share Script</h2>
+        <p>このスクリプトをターミナルで実行するコマンド:</p>
+        <code>curl https://example.invalid/alife/ascii_boids.py | python3</code>
+      </section>
+
+      <div class="controls">
+        <h2>Controls</h2>
+        <button id="toggle" type="button">Pause</button>
+        <button id="seed" type="button">Reseed Field</button>
+        <label>
+          Speed
+          <input id="speed" type="range" min="1" max="8" value="4">
+        </label>
+        <label>
+          Trail Memory
+          <input id="trail" type="range" min="0" max="9" value="5">
+        </label>
+      </div>
+
+      <section>
+        <h2>Glyphs</h2>
+        <ul class="legend">
+          <li><strong>^ v &lt; &gt;</strong> boids</li>
+          <li><strong>*</strong> food pulse</li>
+          <li><strong>o</strong> nutrient</li>
+          <li><strong>:</strong> trail</li>
+          <li><strong>+</strong> flock knot</li>
+          <li><strong>#</strong> wall</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>DOM Status</h2>
+        <div id="status" class="status"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const WIDTH = 76;
+    const HEIGHT = 34;
+    const BOID_COUNT = 42;
+    const FOOD_COUNT = 10;
+    const fieldEl = document.getElementById("field");
+    const frameEl = document.getElementById("frame");
+    const populationEl = document.getElementById("population");
+    const moodEl = document.getElementById("mood");
+    const statusEl = document.getElementById("status");
+    const toggleEl = document.getElementById("toggle");
+    const seedEl = document.getElementById("seed");
+    const speedEl = document.getElementById("speed");
+    const trailEl = document.getElementById("trail");
+
+    let boids = [];
+    let foods = [];
+    let trails = [];
+    let frame = 0;
+    let paused = false;
+    let lastTick = 0;
+
+    function rand(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function wrap(value, max) {
+      if (value < 1) return max - 2;
+      if (value > max - 2) return 1;
+      return value;
+    }
+
+    function reseed() {
+      boids = Array.from({ length: BOID_COUNT }, (_, index) => ({
+        id: index,
+        x: rand(5, WIDTH - 6),
+        y: rand(4, HEIGHT - 5),
+        vx: rand(-0.7, 0.7) || 0.3,
+        vy: rand(-0.45, 0.45) || -0.2
+      }));
+
+      foods = Array.from({ length: FOOD_COUNT }, () => ({
+        x: Math.floor(rand(4, WIDTH - 4)),
+        y: Math.floor(rand(3, HEIGHT - 3)),
+        phase: rand(0, Math.PI * 2)
+      }));
+
+      trails = Array.from({ length: HEIGHT }, () => Array(WIDTH).fill(0));
+      frame = 0;
+      render();
+    }
+
+    function nearestFood(boid) {
+      let best = foods[0];
+      let bestD = Infinity;
+      for (const food of foods) {
+        const dx = food.x - boid.x;
+        const dy = food.y - boid.y;
+        const d = dx * dx + dy * dy;
+        if (d < bestD) {
+          best = food;
+          bestD = d;
+        }
+      }
+      return best;
+    }
+
+    function step() {
+      frame += 1;
+
+      for (const row of trails) {
+        for (let x = 0; x < row.length; x += 1) {
+          row[x] *= 0.88;
+        }
+      }
+
+      for (const food of foods) {
+        food.phase += 0.055;
+        food.x = wrap(food.x + Math.sin(food.phase * 0.37) * 0.035, WIDTH);
+        food.y = wrap(food.y + Math.cos(food.phase * 0.31) * 0.025, HEIGHT);
+      }
+
+      for (const boid of boids) {
+        let alignX = 0;
+        let alignY = 0;
+        let cohesionX = 0;
+        let cohesionY = 0;
+        let separateX = 0;
+        let separateY = 0;
+        let seen = 0;
+
+        for (const other of boids) {
+          if (other === boid) continue;
+          const dx = other.x - boid.x;
+          const dy = other.y - boid.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < 78) {
+            alignX += other.vx;
+            alignY += other.vy;
+            cohesionX += other.x;
+            cohesionY += other.y;
+            seen += 1;
+          }
+          if (d2 < 13) {
+            separateX -= dx / Math.max(0.4, d2);
+            separateY -= dy / Math.max(0.4, d2);
+          }
+        }
+
+        if (seen > 0) {
+          alignX = alignX / seen - boid.vx;
+          alignY = alignY / seen - boid.vy;
+          cohesionX = cohesionX / seen - boid.x;
+          cohesionY = cohesionY / seen - boid.y;
+        }
+
+        const food = nearestFood(boid);
+        const foodX = food.x - boid.x;
+        const foodY = food.y - boid.y;
+        const windX = Math.sin(frame * 0.014 + boid.id) * 0.018;
+        const windY = Math.cos(frame * 0.011 + boid.id * 0.7) * 0.013;
+
+        boid.vx += alignX * 0.035 + cohesionX * 0.003 + separateX * 0.38 + foodX * 0.002 + windX;
+        boid.vy += alignY * 0.035 + cohesionY * 0.003 + separateY * 0.38 + foodY * 0.002 + windY;
+
+        const speed = Math.hypot(boid.vx, boid.vy) || 1;
+        const maxSpeed = 0.72;
+        boid.vx = (boid.vx / speed) * clamp(speed, 0.15, maxSpeed);
+        boid.vy = (boid.vy / speed) * clamp(speed, 0.15, maxSpeed);
+
+        boid.x = wrap(boid.x + boid.vx, WIDTH);
+        boid.y = wrap(boid.y + boid.vy, HEIGHT);
+
+        const tx = Math.round(boid.x);
+        const ty = Math.round(boid.y);
+        if (trails[ty] && trails[ty][tx] !== undefined) {
+          trails[ty][tx] = 1;
+        }
+      }
+    }
+
+    function boidGlyph(boid) {
+      if (Math.abs(boid.vx) > Math.abs(boid.vy)) {
+        return boid.vx >= 0 ? ">" : "<";
+      }
+      return boid.vy >= 0 ? "v" : "^";
+    }
+
+    function render() {
+      const grid = Array.from({ length: HEIGHT }, (_, y) =>
+        Array.from({ length: WIDTH }, (_, x) => {
+          if (y === 0 || y === HEIGHT - 1 || x === 0 || x === WIDTH - 1) return "#";
+          const memory = Number(trailEl.value) / 10;
+          return trails[y][x] > 0.08 + (0.45 - memory * 0.3) ? ":" : " ";
+        })
+      );
+
+      for (const food of foods) {
+        const x = Math.round(food.x);
+        const y = Math.round(food.y);
+        grid[y][x] = Math.sin(food.phase) > 0.15 ? "*" : "o";
+      }
+
+      const occupied = new Map();
+      for (const boid of boids) {
+        const x = Math.round(boid.x);
+        const y = Math.round(boid.y);
+        const key = `${x},${y}`;
+        occupied.set(key, (occupied.get(key) || 0) + 1);
+        grid[y][x] = occupied.get(key) > 1 ? "+" : boidGlyph(boid);
+      }
+
+      const pulse = Math.floor((Math.sin(frame * 0.05) + 1) * 8);
+      const title = `ASCII ALIFE FIELD  frame=${String(frame).padStart(5, "0")}  pulse=${String(pulse).padStart(2, "0")}  readable_dom=true`;
+      const rule = "-".repeat(WIDTH);
+      fieldEl.textContent = `${title}\n${rule}\n${grid.map((row) => row.join("")).join("\n")}\n${rule}`;
+      frameEl.textContent = `frame ${String(frame).padStart(5, "0")}`;
+      populationEl.textContent = `boids ${boids.length}`;
+      moodEl.textContent = paused ? "state paused" : "state flocking";
+      statusEl.textContent = [
+        `text_nodes: ${fieldEl.textContent.length}`,
+        `grid: ${WIDTH} x ${HEIGHT}`,
+        `food_sources: ${foods.length}`,
+        `script_mock: https://example.invalid/alife/ascii_boids.py`
+      ].join("\n");
+    }
+
+    function loop(time) {
+      const delay = 120 - Number(speedEl.value) * 12;
+      if (!paused && time - lastTick > delay) {
+        step();
+        render();
+        lastTick = time;
+      }
+      requestAnimationFrame(loop);
+    }
+
+    toggleEl.addEventListener("click", () => {
+      paused = !paused;
+      toggleEl.textContent = paused ? "Resume" : "Pause";
+      render();
+    });
+
+    seedEl.addEventListener("click", reseed);
+    trailEl.addEventListener("input", render);
+
+    reseed();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
