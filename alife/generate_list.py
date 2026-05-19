@@ -214,7 +214,7 @@ def main():
     files = glob.glob('projects/alife_web/*.html')
     models = []
     
-    skip = ['index.html', 'gallery.html', 'full_gallery.html']
+    skip = ['list.html', 'gallery.html', 'index.html']
     
     for fpath in files:
         fname = os.path.basename(fpath)
@@ -362,7 +362,7 @@ def main():
 
     <div class="nav-links">
       <a href="gallery.html">View Top 9 Gallery (Animated)</a>
-      <a href="full_gallery.html">View Full Gallery (Animated)</a>
+      <a href="index.html">View Full Gallery (Visual Grid)</a>
       <a href="https://github.com/liv-bloom/liv-bloom.github.io">Source / GitHub</a>
     </div>
 
@@ -384,9 +384,9 @@ def main():
 </html>
 """
 
-    with open('projects/alife_web/index.html', 'w', encoding='utf-8') as f:
+    with open('projects/alife_web/list.html', 'w', encoding='utf-8') as f:
         f.write(html_content)
-    print("Updated index.html with text snapshots.")
+    print("Updated list.html with text snapshots.")
 
 if __name__ == '__main__':
     main()
