@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Diffusion-Limited Aggregation</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Diffusion-Limited Aggregation (DLA)</strong><br><br>
+        DLA is a process where particles undergoing random walk (Brownian motion) cluster together to form highly branched, fractal structures.<br>
+        In this simulation, a seed (<span style="color:#e77a61; font-weight:bold;">#</span>) is placed in the center. Particles (<span style="color:#76c7d5;">.</span>) wander randomly across the grid. If a wandering particle touches an existing part of the structure, it sticks and becomes permanently attached.<br>
+        This simple local rule gives rise to complex, organic-looking patterns resembling lightning, snowflakes, corals, or root systems.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const NUM_PARTICLES = 100; // reduced for visual clarity in ascii
+        
+        // 0: empty, 1: stuck (structure), 2: moving particle
+        let grid = new Uint8Array(COLS * ROWS);
+        
+        // Place initial seed in the center
+        grid[(Math.floor(ROWS/2)) * COLS + Math.floor(COLS/2)] = 1;
+
+        let walkers = [];
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            walkers.push({
+                x: Math.floor(Math.random() * COLS),
+                y: Math.floor(Math.random() * ROWS)
+            });
+        }
+
+        const chars = [".", "#", "."];
+        const colors = ["#2b2b1a", "#e77a61", "#76c7d5"]; // empty, structure, particle
+
+        function step() {
+            // Move walkers rapidly per frame
+            for(let steps = 0; steps < 5; steps++) {
+                for (let i = walkers.length - 1; i >= 0; i--) {
+                    const w = walkers[i];
+                    
+                    // Check neighbors
+                    let stuck = false;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const nx = w.x + dx;
+                            const ny = w.y + dy;
+                            if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                                if (grid[ny * COLS + nx] === 1) {
+                                    stuck = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (stuck) break;
+                    }
+
+                    if (stuck) {
+                        grid[w.y * COLS + w.x] = 1; // Stick to structure
+                        // Respawn at edge
+                        if (Math.random() < 0.5) {
+                            w.x = Math.random() < 0.5 ? 0 : COLS - 1;
+                            w.y = Math.floor(Math.random() * ROWS);
+                        } else {
+                            w.x = Math.floor(Math.random() * COLS);
+                            w.y = Math.random() < 0.5 ? 0 : ROWS - 1;
+                        }
+                    } else {
+                        // Random walk
+                        const dir = Math.floor(Math.random() * 4);
+                        if (dir === 0) w.y = (w.y - 1 + ROWS) % ROWS;
+                        else if (dir === 1) w.x = (w.x + 1) % COLS;
+                        else if (dir === 2) w.y = (w.y + 1) % ROWS;
+                        else if (dir === 3) w.x = (w.x - 1 + COLS) % COLS;
+                    }
+                }
+            }
+            draw();
+        }
+
+        function draw() {
+            const display = new Uint8Array(grid);
+            for (const w of walkers) {
+                if (display[w.y * COLS + w.x] === 0) {
+                    display[w.y * COLS + w.x] = 2;
+                }
+            }
+
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const state = display[y * COLS + x];
+                    let fw = state === 1 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
+    </script>
+</body>
+</html>

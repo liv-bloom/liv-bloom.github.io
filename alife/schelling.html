@@ -1,80 +1,163 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Schelling Model</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { color: #f3d36b; }
-    h1 { color: #76c7d5; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Schelling's Segregation Model</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Schelling Segregation Model</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ascii_schelling.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    const EMPTY = 0, RED = 1, BLUE = 2;
-    const TOLERANCE = 0.3; // Minimum fraction of same-color neighbors to be happy
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Schelling's Segregation Model (1971)</strong><br><br>
+        Developed by economist Thomas Schelling, this classic agent-based model demonstrates how macroscopic segregation can emerge from very mild local preferences.<br>
+        There are two groups (<span style="color:#76c7d5; font-weight:bold;">Cyan @</span> and <span style="color:#8fd46b; font-weight:bold;">Green @</span>). Empty spaces are dots (<span style="color:#2b2b1a;">.</span>). Each agent wants a minimum percentage of its neighbors to be of the same group. If that threshold isn't met, the agent is "unhappy" and moves to a random empty spot.<br>
+        Even with a low preference (e.g., only needing 35% of neighbors to be similar), the grid rapidly self-organizes into highly segregated, stark borders. Here, the threshold is 40%.
+    </div>
 
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => {
-      let r = Math.random();
-      if(r < 0.1) return EMPTY;
-      if(r < 0.55) return RED;
-      return BLUE;
-    }));
-
-    function step() {
-      let unhappy = [];
-      let empty_spaces = [];
-
-      for(let y=0; y<H; y++) {
-        for(let x=0; x<W; x++) {
-          if(grid[y][x] === EMPTY) {
-            empty_spaces.push({x, y});
-            continue;
-          }
-          
-          let same = 0, total = 0;
-          for(let dy=-1; dy<=1; dy++) {
-            for(let dx=-1; dx<=1; dx++) {
-              if(dx===0 && dy===0) continue;
-              let nx = (x+dx+W)%W, ny = (y+dy+H)%H;
-              if(grid[ny][nx] !== EMPTY) {
-                total++;
-                if(grid[ny][nx] === grid[y][x]) same++;
-              }
-            }
-          }
-          
-          if(total > 0 && (same / total) < TOLERANCE) {
-            unhappy.push({x, y});
-          }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const THRESHOLD = 0.40; // 40% similar neighbors required to be happy
+        const EMPTY_RATIO = 0.15;
+        
+        let grid = new Int8Array(COLS * ROWS);
+        
+        for (let i = 0; i < grid.length; i++) {
+            const r = Math.random();
+            if (r < EMPTY_RATIO) grid[i] = 0;
+            else if (r < (1 + EMPTY_RATIO) / 2) grid[i] = 1;
+            else grid[i] = 2;
         }
-      }
 
-      // Move a few unhappy agents per frame to an empty spot
-      for(let i=0; i<5 && unhappy.length > 0 && empty_spaces.length > 0; i++) {
-        let u_idx = Math.floor(Math.random() * unhappy.length);
-        let e_idx = Math.floor(Math.random() * empty_spaces.length);
-        
-        let u = unhappy.splice(u_idx, 1)[0];
-        let e = empty_spaces.splice(e_idx, 1)[0];
-        
-        grid[e.y][e.x] = grid[u.y][u.x];
-        grid[u.y][u.x] = EMPTY;
-        
-        empty_spaces.push(u); // former spot is now empty
-      }
+        const colors = ["#2b2b1a", "#76c7d5", "#8fd46b"];
+        const chars = [".", "@", "@"];
 
-      document.getElementById('field').textContent = grid.map(row => row.map(c => {
-        if(c === RED) return 'X';
-        if(c === BLUE) return 'O';
-        return ' ';
-      }).join('')).join('\n');
-    }
-    setInterval(step, 50);
-  </script>
+        function getNeighbors(idx) {
+            let x = idx % COLS;
+            let y = Math.floor(idx / COLS);
+            let similar = 0;
+            let different = 0;
+            let myType = grid[idx];
+
+            for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                    if (dx === 0 && dy === 0) continue;
+                    let nx = (x + dx + COLS) % COLS;
+                    let ny = (y + dy + ROWS) % ROWS;
+                    let nType = grid[ny * COLS + nx];
+                    
+                    if (nType !== 0) {
+                        if (nType === myType) similar++;
+                        else different++;
+                    }
+                }
+            }
+            return { similar, different };
+        }
+
+        function step() {
+            let unhappy = [];
+            let emptySpaces = [];
+
+            for (let i = 0; i < grid.length; i++) {
+                if (grid[i] === 0) {
+                    emptySpaces.push(i);
+                } else {
+                    let { similar, different } = getNeighbors(i);
+                    let total = similar + different;
+                    if (total > 0 && (similar / total) < THRESHOLD) {
+                        unhappy.push(i);
+                    }
+                }
+            }
+
+            if (unhappy.length > 0 && emptySpaces.length > 0) {
+                for (let i = unhappy.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [unhappy[i], unhappy[j]] = [unhappy[j], unhappy[i]];
+                }
+
+                let moves = Math.min(unhappy.length, emptySpaces.length);
+                for (let i = 0; i < moves; i++) {
+                    let oldIdx = unhappy[i];
+                    let randomEmptyIndex = Math.floor(Math.random() * emptySpaces.length);
+                    let newIdx = emptySpaces.splice(randomEmptyIndex, 1)[0];
+                    
+                    grid[newIdx] = grid[oldIdx];
+                    grid[oldIdx] = 0;
+                }
+            }
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const v = grid[y * COLS + x];
+                    let style = `color:${colors[v]};`;
+                    if (v !== 0) style += "font-weight:bold;";
+                    html += `<span style="${style}">${chars[v]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
 </body>
 </html>

@@ -2,135 +2,135 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marching Squares (Metaballs)</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; }
-        a { color: #8fd46b; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Marching Squares</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">Generates smooth isolines from a discrete scalar field (metaballs). An essential algorithm for generating procedural terrain and organic boundaries.</p>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Marching Squares (ASCII Metaballs)</strong><br><br>
+        Generates smooth isolines from a continuous scalar field (metaballs) using the Marching Squares algorithm.<br>
+        In this ASCII translation, floating glowing spheres of "energy" bounce around the grid. Instead of drawing vector lines, we use block characters (`█, ▄, ▀`) to create a solid, organic blob that dynamically merges and splits based on the underlying field thresholds, rendered in the garden's cyan-green hue.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let width, height;
-        const res = 10;
-        let cols, rows;
-        let field = [];
+        const COLS = 80;
+        const ROWS = 60;
         let points = [];
 
         class Point {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.vx = (Math.random() - 0.5) * 2;
-                this.vy = (Math.random() - 0.5) * 2;
-                this.radius = Math.random() * 40 + 20;
+            constructor() {
+                this.x = Math.random() * COLS;
+                this.y = Math.random() * ROWS;
+                this.vx = (Math.random() - 0.5) * 1.5;
+                this.vy = (Math.random() - 0.5) * 1.5;
+                this.radius = Math.random() * 20 + 10;
             }
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-                if (this.x > width || this.x < 0) this.vx *= -1;
-                if (this.y > height || this.y < 0) this.vy *= -1;
+                if (this.x < 0 || this.x >= COLS) this.vx *= -1;
+                if (this.y < 0 || this.y >= ROWS) this.vy *= -1;
             }
         }
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            cols = 1 + width / res;
-            rows = 1 + height / res;
-            
-            points = [];
-            for (let i = 0; i < 8; i++) {
-                points.push(new Point(Math.random() * width, Math.random() * height));
-            }
-        }
-
-        function drawLine(v1, v2) {
-            ctx.beginPath();
-            ctx.moveTo(v1.x, v1.y);
-            ctx.lineTo(v2.x, v2.y);
-            ctx.stroke();
+        for (let i = 0; i < 6; i++) {
+            points.push(new Point());
         }
 
         function draw() {
-            ctx.clearRect(0, 0, width, height);
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, width, height);
-
             points.forEach(p => p.update());
 
-            for (let i = 0; i < cols; i++) {
-                field[i] = [];
-                for (let j = 0; j < rows; j++) {
-                    let sum = 0;
-                    let x = i * res;
-                    let y = j * res;
+            let html = "";
+            for (let y = 0; y < ROWS; y += 2) { // Read 2 vertical rows at once for half-block rendering
+                for (let x = 0; x < COLS; x++) {
+                    let sumTop = 0;
+                    let sumBot = 0;
+                    
                     for (let p of points) {
-                        let d = Math.sqrt((x - p.x) ** 2 + (y - p.y) ** 2);
-                        sum += p.radius / (d || 1);
+                        let dTop = Math.max(0.1, Math.sqrt((x - p.x) ** 2 + (y - p.y) ** 2));
+                        let dBot = Math.max(0.1, Math.sqrt((x - p.x) ** 2 + (y + 1 - p.y) ** 2));
+                        sumTop += p.radius / dTop;
+                        sumBot += p.radius / dBot;
                     }
-                    field[i][j] = sum;
-                }
-            }
-
-            ctx.strokeStyle = '#8fd46b';
-            ctx.lineWidth = 2;
-
-            for (let i = 0; i < cols - 1; i++) {
-                for (let j = 0; j < rows - 1; j++) {
-                    let x = i * res;
-                    let y = j * res;
                     
-                    let a = { x: x + res / 2, y: y };
-                    let b = { x: x + res, y: y + res / 2 };
-                    let c = { x: x + res / 2, y: y + res };
-                    let d = { x: x, y: y + res / 2 };
+                    let top = sumTop > 2.5;
+                    let bot = sumBot > 2.5;
                     
-                    let state = 
-                        (field[i][j] >= 1 ? 8 : 0) |
-                        (field[i+1][j] >= 1 ? 4 : 0) |
-                        (field[i+1][j+1] >= 1 ? 2 : 0) |
-                        (field[i][j+1] >= 1 ? 1 : 0);
-                        
-                    switch (state) {
-                        case 1: drawLine(c, d); break;
-                        case 2: drawLine(b, c); break;
-                        case 3: drawLine(b, d); break;
-                        case 4: drawLine(a, b); break;
-                        case 5: drawLine(a, d); drawLine(b, c); break;
-                        case 6: drawLine(a, c); break;
-                        case 7: drawLine(a, d); break;
-                        case 8: drawLine(a, d); break;
-                        case 9: drawLine(a, c); break;
-                        case 10: drawLine(a, b); drawLine(c, d); break;
-                        case 11: drawLine(a, b); break;
-                        case 12: drawLine(b, d); break;
-                        case 13: drawLine(b, c); break;
-                        case 14: drawLine(c, d); break;
+                    // Half-block character rendering
+                    let char = " ";
+                    if (top && bot) char = "█";
+                    else if (top) char = "▀";
+                    else if (bot) char = "▄";
+                    else if (sumTop > 1.5 || sumBot > 1.5) char = "·"; // Aura/glow
+                    
+                    if (char === "·") {
+                        html += `<span style="color:#394034;">${char}</span>`;
+                    } else if (char !== " ") {
+                        html += `<span style="color:#76c7d5;">${char}</span>`;
+                    } else {
+                        html += " ";
                     }
                 }
+                html += "\n";
             }
-            requestAnimationFrame(draw);
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                draw();
+            }
+        }, 50);
+
     </script>
 </body>
 </html>

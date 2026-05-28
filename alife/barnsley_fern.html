@@ -2,42 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Barnsley Fern</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        .controls { margin-top: 10px; display: flex; gap: 15px; }
-        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #444; }
-        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
-    <div id="info">Barnsley Fern (Iterated Function System)</div>
-    <canvas id="canvas" width="600" height="600"></canvas>
-    <div class="controls">
-        <button onclick="reset()">Reset</button>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Barnsley Fern (Iterated Function System)</strong><br><br>
+        The Barnsley Fern is a fractal created by British mathematician Michael Barnsley. It demonstrates how complex, organic-looking structures (like a fern leaf) can emerge from a very simple set of mathematical rules called an Iterated Function System (IFS).<br><br>
+        It uses four affine transformations (equations that scale, rotate, and translate points) chosen randomly with specific probabilities (1%, 85%, 7%, 7%). Over thousands of iterations, these simple operations perfectly construct the self-similar shape of the Black Spleenwort fern. It represents how nature might encode complex growth using extremely compact genetic information.
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        
+        // Iteration coordinates
         let x = 0;
         let y = 0;
 
-        function reset() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
-            ctx.fillRect(0, 0, width, height);
-            x = 0;
-            y = 0;
-        }
+        const chars = [".", ",", "+", "x", "*", "@"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#f3d36b", "#76c7d5"];
 
-        function draw() {
-            for (let i = 0; i < 500; i++) {
+        function step() {
+            // Run multiple iterations per frame to build the fern
+            for (let i = 0; i < 50; i++) {
                 let nextX, nextY;
                 let r = Math.random();
 
@@ -58,17 +74,62 @@
                 x = nextX;
                 y = nextY;
 
-                let drawX = width / 2 + x * (width / 11);
-                let drawY = height - y * (height / 11);
+                // Map coordinates to ASCII grid
+                let drawX = Math.floor(COLS / 2 + x * (COLS / 11));
+                let drawY = Math.floor(ROWS - y * (ROWS / 11));
 
-                ctx.fillStyle = 'rgba(50, 200, 50, 0.5)';
-                ctx.fillRect(drawX, drawY, 1, 1);
+                if (drawX >= 0 && drawX < COLS && drawY >= 0 && drawY < ROWS) {
+                    let idx = drawY * COLS + drawX;
+                    if (grid[idx] < 5) {
+                        grid[idx]++;
+                    }
+                }
             }
-            requestAnimationFrame(draw);
+            draw();
         }
 
-        reset();
-        draw();
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 2 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

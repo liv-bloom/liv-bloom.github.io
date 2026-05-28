@@ -2,31 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>L-System Fractal Plant</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
-        button:hover { background: #45a049; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>L-System Fractal Plant</h2>
-        <p>Recursive plant growth using Lindenmayer system grammars.</p>
-        <button onclick="generate()">Grow</button>
-        <button onclick="reset()">Reset</button>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>L-System Fractal Plant (Lindenmayer System)</strong><br><br>
+        Developed by theoretical biologist Aristid Lindenmayer in 1968.<br>
+        This model uses a recursive string rewriting system (grammar) to simulate the growth processes of plant development. Starting from a single axiom (seed), rules are applied iteratively to generate a complex branching structure.<br>
+        Here, we use a 2D text-based "turtle graphics" renderer. The string commands the turtle to move forward (drawing a branch), turn left/right, and save/restore its position (to create branches). As generations pass, a beautiful fractal weed organically unfolds on the text grid.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
         
         // Axiom and Rules (Fractal weed)
         const axiom = "X";
@@ -36,79 +50,135 @@
         };
         
         let sentence = axiom;
-        const angle = 25 * Math.PI / 180;
+        const ANGLE = 25 * Math.PI / 180;
         let generations = 0;
+        const MAX_GEN = 6;
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            draw();
-        }
+        let displayGrid = new Array(COLS * ROWS).fill(0);
 
         function generate() {
-            if (generations >= 6) return; // Limit to prevent freezing
-            let nextSentence = "";
-            for (let i = 0; i < sentence.length; i++) {
-                const char = sentence.charAt(i);
-                nextSentence += rules[char] || char;
+            if (generations >= MAX_GEN) {
+                // Reset and start over
+                sentence = axiom;
+                generations = 0;
+            } else {
+                let nextSentence = "";
+                for (let i = 0; i < sentence.length; i++) {
+                    const char = sentence.charAt(i);
+                    nextSentence += rules[char] || char;
+                }
+                sentence = nextSentence;
+                generations++;
             }
-            sentence = nextSentence;
-            generations++;
+            renderToGrid();
             draw();
         }
 
-        function reset() {
-            sentence = axiom;
-            generations = 0;
-            draw();
-            // Start with a few generations
-            generate();
-            generate();
-            generate();
-            generate();
-            generate();
+        // Draw line on a 1D grid using Bresenham's line algorithm
+        function drawLine(x0, y0, x1, y1) {
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
+
+            while (true) {
+                if (x0 >= 0 && x0 < COLS && y0 >= 0 && y0 < ROWS) {
+                    displayGrid[y0 * COLS + x0] = 1;
+                }
+                if (x0 === x1 && y0 === y1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+            }
         }
 
-        function draw() {
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function renderToGrid() {
+            displayGrid.fill(0);
             
-            ctx.strokeStyle = `hsl(120, 60%, 50%)`;
-            ctx.lineWidth = 1;
+            // Turtle state
+            let x = Math.floor(COLS / 2) + 5;
+            let y = ROWS - 1;
+            let dir = -Math.PI / 2; // pointing UP
             
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height);
+            let stack = [];
             
-            // Adjust length dynamically
-            let currentLen = (canvas.height / 3.5) / Math.pow(2, generations - 1);
-            if (currentLen < 2) currentLen = 2;
+            // Branch length scales down as generations increase to fit the screen
+            let len = (ROWS / 3.5) / Math.pow(2, generations - 1);
+            if (len < 1) len = 1;
+            // Map text aspect ratio (chars are taller than they are wide)
+            const aspect = 1.8; 
 
             for (let i = 0; i < sentence.length; i++) {
                 const char = sentence.charAt(i);
                 
                 if (char === "F") {
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(0, -currentLen);
-                    ctx.stroke();
-                    ctx.translate(0, -currentLen);
+                    let nx = Math.round(x + Math.cos(dir) * len * aspect);
+                    let ny = Math.round(y + Math.sin(dir) * len);
+                    drawLine(Math.round(x), Math.round(y), nx, ny);
+                    x = nx;
+                    y = ny;
                 } else if (char === "+") {
-                    ctx.rotate(angle);
+                    dir += ANGLE;
                 } else if (char === "-") {
-                    ctx.rotate(-angle);
+                    dir -= ANGLE;
                 } else if (char === "[") {
-                    ctx.save();
+                    stack.push({x: x, y: y, dir: dir});
                 } else if (char === "]") {
-                    ctx.restore();
+                    let state = stack.pop();
+                    x = state.x;
+                    y = state.y;
+                    dir = state.dir;
                 }
             }
-            
-            ctx.restore();
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        reset(); // Initializes with 5 generations
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const state = displayGrid[y * COLS + x];
+                    if (state === 1) {
+                        html += '<span style="color:#8fd46b; font-weight:bold;">🌿</span>';
+                    } else {
+                        html += '<span style="color:#181d18;">·</span>';
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        generate();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                generate();
+            }
+        }, 1500);
+ // evolve slowly
     </script>
 </body>
 </html>

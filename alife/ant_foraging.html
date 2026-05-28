@@ -1,88 +1,193 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Ant Foraging</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { color: #f3d36b; }
-    h1 { color: #e77a61; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Ant Foraging (Swarm Intelligence)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Ant Foraging (Swarm Intelligence)</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ascii_ant.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    const NEST = {x: 30, y: 15};
-    const FOOD = {x: 50, y: 5};
-    let phero = Array.from({length: H}, () => Array.from({length: W}, () => 0.0));
-    let ants = Array.from({length: 40}, () => ({x: NEST.x, y: NEST.y, hasFood: false}));
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Ant Foraging (Swarm Intelligence)</strong><br><br>
+        This model demonstrates how simple individual agents (ants) can discover optimal paths between their nest and a food source.<br>
+        Ants wander randomly looking for food (<span style="color:#8fd46b; font-weight:bold;">F</span>). Once they find it, they carry it back to the nest (<span style="color:#e77a61; font-weight:bold;">N</span>), dropping a trail of pheromones along the way.<br>
+        Other ants smell these pheromones and are more likely to follow stronger trails. Shorter paths accumulate pheromones faster, creating a positive feedback loop that optimizes the swarm's foraging route.
+    </div>
 
-    function step() {
-      // evaporate
-      for(let y=0; y<H; y++) {
-        for(let x=0; x<W; x++) {
-          phero[y][x] *= 0.98;
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const NEST = {x: Math.floor(COLS * 0.2), y: Math.floor(ROWS * 0.5)};
+        const FOOD = {x: Math.floor(COLS * 0.8), y: Math.floor(ROWS * 0.2)};
+        
+        let phero = new Float32Array(COLS * ROWS);
+        let ants = [];
+        const NUM_ANTS = 60;
+
+        for (let i = 0; i < NUM_ANTS; i++) {
+            ants.push({x: NEST.x, y: NEST.y, hasFood: false});
         }
-      }
 
-      for(let a of ants) {
-        if(a.hasFood) {
-          // move towards nest
-          let dx = NEST.x - a.x;
-          let dy = NEST.y - a.y;
-          if(dx===0 && dy===0) { a.hasFood = false; continue; }
-          // drop pheromone
-          phero[a.y][a.x] += 5.0;
-          
-          if(Math.random() < 0.8) {
-            a.x += Math.sign(dx);
-            a.y += Math.sign(dy);
-          } else {
-            a.x += Math.floor(Math.random()*3)-1;
-            a.y += Math.floor(Math.random()*3)-1;
-          }
-        } else {
-          // look for food
-          let dx = FOOD.x - a.x;
-          let dy = FOOD.y - a.y;
-          if(Math.abs(dx) <= 1 && Math.abs(dy) <= 1) { a.hasFood = true; continue; }
-          
-          // sense pheromone
-          let moves = [];
-          for(let ddy=-1; ddy<=1; ddy++) {
-            for(let ddx=-1; ddx<=1; ddx++) {
-              if(ddx===0 && ddy===0) continue;
-              let nx = Math.max(0, Math.min(W-1, a.x+ddx));
-              let ny = Math.max(0, Math.min(H-1, a.y+ddy));
-              moves.push({x: nx, y: ny, p: phero[ny][nx]});
+        const pheroChars = [" ", ".", ":", ";", "+", "*", "%", "#"];
+        const pheroColors = ["#10120f", "#181f13", "#232e1a", "#2f3d23", "#3e522e", "#4d6639", "#5e7c45", "#709452"];
+
+        function step() {
+            // Evaporate
+            for (let i = 0; i < phero.length; i++) {
+                phero[i] *= 0.985;
             }
-          }
-          moves.sort((m1, m2) => m2.p - m1.p);
-          
-          if(moves[0].p > 0.5 && Math.random() < 0.7) {
-            a.x = moves[0].x; a.y = moves[0].y;
-          } else {
-            let r = moves[Math.floor(Math.random()*moves.length)];
-            a.x = r.x; a.y = r.y;
-          }
+
+            for (let a of ants) {
+                if (a.hasFood) {
+                    // Move towards nest
+                    let dx = NEST.x - a.x;
+                    let dy = NEST.y - a.y;
+                    if (dx === 0 && dy === 0) { 
+                        a.hasFood = false; 
+                        continue; 
+                    }
+                    
+                    // Drop strong pheromone
+                    phero[a.y * COLS + a.x] += 10.0;
+                    
+                    if (Math.random() < 0.85) {
+                        a.x += Math.sign(dx);
+                        a.y += Math.sign(dy);
+                    } else {
+                        a.x += Math.floor(Math.random() * 3) - 1;
+                        a.y += Math.floor(Math.random() * 3) - 1;
+                    }
+                } else {
+                    // Move towards food if close
+                    let dx = FOOD.x - a.x;
+                    let dy = FOOD.y - a.y;
+                    if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) { 
+                        a.hasFood = true; 
+                        continue; 
+                    }
+                    
+                    // Sense pheromones around
+                    let moves = [];
+                    for (let ddy = -1; ddy <= 1; ddy++) {
+                        for (let ddx = -1; ddx <= 1; ddx++) {
+                            if (ddx === 0 && ddy === 0) continue;
+                            let nx = Math.max(0, Math.min(COLS - 1, a.x + ddx));
+                            let ny = Math.max(0, Math.min(ROWS - 1, a.y + ddy));
+                            moves.push({x: nx, y: ny, p: phero[ny * COLS + nx]});
+                        }
+                    }
+                    moves.sort((m1, m2) => m2.p - m1.p);
+                    
+                    // Follow pheromone or wander
+                    if (moves[0].p > 0.1 && Math.random() < 0.75) {
+                        a.x = moves[0].x; 
+                        a.y = moves[0].y;
+                    } else {
+                        let r = moves[Math.floor(Math.random() * moves.length)];
+                        a.x = r.x; 
+                        a.y = r.y;
+                    }
+                }
+                
+                a.x = Math.max(0, Math.min(COLS - 1, a.x));
+                a.y = Math.max(0, Math.min(ROWS - 1, a.y));
+            }
+
+            draw();
         }
-        a.x = Math.max(0, Math.min(W-1, a.x));
-        a.y = Math.max(0, Math.min(H-1, a.y));
-      }
 
-      let render = phero.map(row => row.map(p => p > 1.0 ? '.' : ' '));
-      render[NEST.y][NEST.x] = 'N';
-      render[FOOD.y][FOOD.x] = 'F';
-      for(let a of ants) {
-        render[a.y][a.x] = a.hasFood ? 'a' : 'A';
-      }
+        function draw() {
+            let renderGrid = new Array(COLS * ROWS);
+            
+            // Draw pheromones
+            for (let i = 0; i < phero.length; i++) {
+                let p = phero[i];
+                let idx = 0;
+                if (p > 50) idx = 7;
+                else if (p > 30) idx = 6;
+                else if (p > 15) idx = 5;
+                else if (p > 5) idx = 4;
+                else if (p > 2) idx = 3;
+                else if (p > 0.5) idx = 2;
+                else if (p > 0.1) idx = 1;
+                
+                renderGrid[i] = `<span style="color:${pheroColors[idx]};">${pheroChars[idx]}</span>`;
+            }
 
-      document.getElementById('field').textContent = render.map(row => row.join('')).join('\n');
-    }
-    setInterval(step, 80);
-  </script>
+            // Draw ants
+            for (let a of ants) {
+                let color = a.hasFood ? "#f3d36b" : "#a2cc9c";
+                let char = a.hasFood ? "&" : "a";
+                renderGrid[a.y * COLS + a.x] = `<span style="color:${color}; font-weight:bold;">${char}</span>`;
+            }
+
+            // Draw Nest and Food
+            renderGrid[NEST.y * COLS + NEST.x] = `<span style="color:#e77a61; font-weight:bold;">N</span>`;
+            renderGrid[FOOD.y * COLS + FOOD.x] = `<span style="color:#8fd46b; font-weight:bold;">F</span>`;
+
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    html += renderGrid[y * COLS + x];
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 60);
+
+    </script>
 </body>
 </html>

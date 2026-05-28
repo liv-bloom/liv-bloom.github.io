@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pheromone Attractor (Reaction-Diffusion)</title>
+    <style>
+        body {
+            background-color: #fafafa;
+            color: #171717;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.5vw, 10px);
+        }
+        .container {
+            position: relative;
+            background: rgba(250, 250, 250, 0.8);
+            backdrop-filter: blur(3px);
+            padding: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <pre id="canvas"></pre>
+    </div>
+    
+    <div style="max-width: 600px; margin-top: 30px; font-size: 14px; text-align: left; padding: 15px; border: 1px solid #ddd; background: #fff;">
+        <strong>Pheromone Attractor (Reaction-Diffusion)</strong><br><br>
+        This model is inspired by Reaction-Diffusion systems and Neural Cellular Automata. The environment contains a fixed "attractor" pattern (the word "THEIR"). Cells (represented by ascii density) diffuse their values to neighbors, get pulled toward the attractor mask, and are constantly perturbed by environmental noise.<br><br>
+        The result is an organic, breathing form that constantly boils and self-repairs, demonstrating how a simple pull (attractor) combined with noise and diffusion can create life-like homeostasis.
+    </div>
+
+    <script>
+        const TEXT_ART = [
+          "                                                                ",
+          "                                                                ",
+          "                                                                ",
+          "         #######  #     #  #######  ###  ######                 ",
+          "            #     #     #  #         #   #     #                ",
+          "            #     #######  #####     #   ######                 ",
+          "            #     #     #  #         #   #   #                  ",
+          "            #     #     #  #######  ###  #    #                 ",
+          "                                                                ",
+          "                                                                ",
+          "                                                                ",
+          "                                                                "
+        ];
+
+        const COLS = 64;
+        const ROWS = 12;
+
+        const mask = new Float32Array(COLS * ROWS);
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                if (TEXT_ART[y] && TEXT_ART[y][x] && TEXT_ART[y][x] !== " ") {
+                    mask[y * COLS + x] = 1.0;
+                } else {
+                    mask[y * COLS + x] = 0.0;
+                }
+            }
+        }
+
+        let grid = new Float32Array(COLS * ROWS);
+        for (let i = 0; i < grid.length; i++) {
+            grid[i] = Math.random();
+        }
+
+        const canvas = document.getElementById("canvas");
+
+        function step() {
+            const next = new Float32Array(COLS * ROWS);
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let sum = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = (x + dx + COLS) % COLS;
+                            const ny = (y + dy + ROWS) % ROWS;
+                            sum += grid[ny * COLS + nx];
+                        }
+                    }
+                    const avg = sum / 9.0;
+                    const maskVal = mask[y * COLS + x];
+
+                    let v = grid[y * COLS + x];
+                    
+                    v = v + 0.5 * (avg - v) + 0.2 * (maskVal - v);
+                    v += (Math.random() - 0.5) * 0.4;
+                    v *= 0.95; 
+                    
+                    next[y * COLS + x] = Math.max(0, Math.min(1, v));
+                }
+            }
+            grid = next;
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const v = grid[y * COLS + x];
+                    if (v > 0.6) {
+                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#171717; font-weight:bold;'>■</span>";
+                    } else if (v > 0.4) {
+                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#525252;'>#</span>";
+                    } else if (v > 0.2) {
+                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#a3a3a3;'>+</span>";
+                    } else if (v > 0.08) {
+                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#d4d4d4;'>.</span>";
+                    } else {
+                        html += "<span style='display:inline-block; width:1em; text-align:center; color:transparent'>&nbsp;</span>";
+                    }
+                }
+                html += "\n";
+            }
+            canvas.innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 150);
+
+    </script>
+</body>
+</html>

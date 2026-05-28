@@ -2,30 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tinkerbell Map Attractor</title>
+    <title>Tinkerbell Map</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        .controls { margin-top: 10px; display: flex; gap: 15px; }
-        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #444; }
-        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
-    <div id="info">Tinkerbell Map Attractor</div>
-    <canvas id="canvas" width="600" height="600"></canvas>
-    <div class="controls">
-        <button onclick="reset()">Reset</button>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Tinkerbell Map Attractor</strong><br><br>
+        A 2D discrete-time chaotic dynamical system.<br>
+        The equations are: <br>
+        <code>x(n+1) = x(n)² - y(n)² + a*x(n) + b*y(n)</code><br>
+        <code>y(n+1) = 2*x(n)*y(n) + c*x(n) + d*y(n)</code><br>
+        In this ASCII translation, thousands of iterations are accumulated on the grid. As the density increases, characters and colors cycle from dark green up to a bright yellow core, rendering the delicate fairy-like shape.
+        <div class="controls">
+            <button onclick="reset()">Reset Chaos</button>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-
+        const COLS = 120;
+        const ROWS = 60;
+        
+        let grid = new Uint32Array(COLS * ROWS);
+        
         let a = 0.9;
         let b = -0.6013;
         let c = 2.0;
@@ -33,40 +70,100 @@
 
         let x = -0.72;
         let y = -0.64;
-        let iter = 0;
+
+        const chars = [" ", ".", ":", "-", "=", "+", "*", "O", "@", "#"];
+        const colors = [
+            "#2b2b1a", "#394034", "#485341", "#59684f", 
+            "#718465", "#8fd46b", "#76c7d5", "#f3d36b", "#e77a61"
+        ];
 
         function reset() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 1.0)';
-            ctx.fillRect(0, 0, width, height);
-            
+            grid.fill(0);
             x = -0.72 + (Math.random() - 0.5) * 0.1;
             y = -0.64 + (Math.random() - 0.5) * 0.1;
-            iter = 0;
-            
-            document.getElementById('info').innerHTML = `Tinkerbell Map Attractor<br><span style="font-size:0.8em;color:#777;">a=${a}, b=${b}, c=${c}, d=${d}</span>`;
         }
 
-        function draw() {
-            for (let i = 0; i < 500; i++) {
+        function step() {
+            let maxDens = 1;
+            
+            // Do many iterations per frame
+            for (let i = 0; i < 2000; i++) {
                 let nextX = x * x - y * y + a * x + b * y;
                 let nextY = 2 * x * y + c * x + d * y;
                 
                 x = nextX;
                 y = nextY;
 
-                // Scale and center mapping for Tinkerbell domain
-                let drawX = width / 2 + x * (width / 4) + width / 10;
-                let drawY = height / 2 - y * (height / 4) + height / 5; // invert Y
+                // Scale and center for the grid
+                let drawX = Math.floor(COLS / 2 + x * (COLS / 4) + COLS / 10);
+                let drawY = Math.floor(ROWS / 2 - y * (ROWS / 4) + ROWS / 5);
 
-                ctx.fillStyle = `hsla(${iter % 360}, 80%, 70%, 0.15)`;
-                ctx.fillRect(drawX, drawY, 1, 1);
-                iter += 0.1;
+                if (drawX >= 0 && drawX < COLS && drawY >= 0 && drawY < ROWS) {
+                    let idx = drawY * COLS + drawX;
+                    grid[idx]++;
+                    if (grid[idx] > maxDens) maxDens = grid[idx];
+                }
             }
-            requestAnimationFrame(draw);
+
+            draw(maxDens);
+        }
+
+        function draw(maxDens) {
+            let html = "";
+            // We use a log scale so faint areas are visible
+            let logMax = Math.log(maxDens + 1);
+            
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    let val = grid[r * COLS + c];
+                    if (val === 0) {
+                        html += " ";
+                    } else {
+                        let normalized = Math.log(val + 1) / logMax;
+                        let idx = Math.floor(normalized * (chars.length - 1));
+                        if (idx < 1) idx = 1; // At least dimmest character
+                        if (idx >= chars.length) idx = chars.length - 1;
+                        
+                        let fw = idx > 5 ? "font-weight:bold;" : "";
+                        let colorIdx = Math.min(idx, colors.length - 1);
+                        html += `<span style="color:${colors[colorIdx]}; ${fw}">${chars[idx]}</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
         }
 
         reset();
-        draw();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

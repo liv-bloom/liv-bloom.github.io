@@ -1,96 +1,183 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Turing Patterns (Reaction-Diffusion)</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { line-height: 1.1; letter-spacing: 2px; }
-    h1 { color: #f3d36b; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Turing Patterns (Reaction-Diffusion)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Turing Patterns (Gray-Scott Reaction-Diffusion)</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/turing.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    // A and B concentrations
-    let A = Array.from({length: H}, () => Array.from({length: W}, () => 1.0));
-    let B = Array.from({length: H}, () => Array.from({length: W}, () => 0.0));
-    
-    // Seed B in the center
-    for(let y=H/2-2; y<H/2+2; y++) {
-      for(let x=W/2-2; x<W/2+2; x++) {
-        B[y][x] = 1.0;
-      }
-    }
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Turing Patterns (Reaction-Diffusion)</strong><br><br>
+        In 1952, Alan Turing proposed that patterns in nature (like zebra stripes or leopard spots) could emerge from two interacting chemicals: an "activator" and an "inhibitor".<br>
+        The activator creates more of itself and also creates the inhibitor. The inhibitor suppresses the activator. Crucially, the inhibitor diffuses (spreads) faster than the activator.<br>
+        This simple local competition creates stable, large-scale structures (spots, stripes, or labyrinths) out of random noise.
+    </div>
 
-    const dA = 1.0, dB = 0.5, f = 0.055, k = 0.062; // Gray-Scott parameters for coral/mitosis patterns
-    
-    const chars = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
-
-    function laplace(grid, x, y) {
-      let sum = 0;
-      sum += grid[y][x] * -1;
-      sum += grid[(y-1+H)%H][x] * 0.2;
-      sum += grid[(y+1)%H][x] * 0.2;
-      sum += grid[y][(x-1+W)%W] * 0.2;
-      sum += grid[y][(x+1)%W] * 0.2;
-      sum += grid[(y-1+H)%H][(x-1+W)%W] * 0.05;
-      sum += grid[(y-1+H)%H][(x+1)%W] * 0.05;
-      sum += grid[(y+1)%H][(x-1+W)%W] * 0.05;
-      sum += grid[(y+1)%H][(x+1)%W] * 0.05;
-      return sum;
-    }
-
-    function step() {
-      // Multiple physics steps per render frame to speed up visuals
-      for(let iter=0; iter<5; iter++) {
-        let nextA = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-        let nextB = Array.from({length: H}, () => Array.from({length: W}, () => 0));
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
         
-        for(let y=0; y<H; y++) {
-          for(let x=0; x<W; x++) {
-            let a = A[y][x];
-            let b = B[y][x];
-            let lapA = laplace(A, x, y);
-            let lapB = laplace(B, x, y);
-            
-            nextA[y][x] = a + (dA * lapA - a * b * b + f * (1 - a));
-            nextB[y][x] = b + (dB * lapB + a * b * b - (k + f) * b);
-            
-            // Constrain
-            if(nextA[y][x] < 0) nextA[y][x] = 0;
-            if(nextA[y][x] > 1) nextA[y][x] = 1;
-            if(nextB[y][x] < 0) nextB[y][x] = 0;
-            if(nextB[y][x] > 1) nextB[y][x] = 1;
-          }
+        let A = new Float32Array(COLS * ROWS);
+        let B = new Float32Array(COLS * ROWS);
+        let nextA = new Float32Array(COLS * ROWS);
+        let nextB = new Float32Array(COLS * ROWS);
+        
+        for (let i = 0; i < A.length; i++) {
+            A[i] = 1.0;
+            B[i] = 0.0;
         }
-        A = nextA;
-        B = nextB;
-      }
 
-      let out = "";
-      for(let y=0; y<H; y++) {
-        let row = "";
-        for(let x=0; x<W; x++) {
-          let b = B[y][x];
-          // Map B concentration (0.0 - 0.5 mostly) to characters
-          let idx = Math.floor(b * 20);
-          if(idx > 9) idx = 9;
-          if(idx < 0) idx = 0;
-          
-          if(idx === 0) row += '<span style="color:#10120f;">' + chars[idx] + '</span>';
-          else if(idx < 4) row += '<span style="color:#394034;">' + chars[idx] + '</span>';
-          else if(idx < 7) row += '<span style="color:#718465;">' + chars[idx] + '</span>';
-          else row += '<span style="color:#8fd46b;">' + chars[idx] + '</span>';
+        // Seed random spots
+        for (let y = ROWS/2 - 5; y < ROWS/2 + 5; y++) {
+            for (let x = COLS/2 - 5; x < COLS/2 + 5; x++) {
+                if (Math.random() < 0.5) B[y * COLS + x] = 1.0;
+            }
         }
-        out += row + "\n";
-      }
-      document.getElementById('field').innerHTML = out;
-    }
-    setInterval(step, 50);
-  </script>
+        for (let i = 0; i < 20; i++) {
+            let cx = Math.floor(Math.random() * COLS);
+            let cy = Math.floor(Math.random() * ROWS);
+            B[cy * COLS + cx] = 1.0;
+        }
+
+        const DA = 1.0;
+        const DB = 0.5;
+        const feed = 0.055;
+        const k = 0.062;
+
+        const chars = [" ", ".", "-", "+", "*", "o", "O", "@"];
+        const colors = ["#10120f", "#2a3b32", "#3a4d3f", "#4f6952", "#678768", "#83a881", "#a2cc9c", "#c9ffbd"];
+
+        function laplaceA(x, y) {
+            let sumA = 0;
+            const center = A[y * COLS + x];
+            sumA += center * -1;
+            sumA += A[y * COLS + ((x - 1 + COLS) % COLS)] * 0.2;
+            sumA += A[y * COLS + ((x + 1) % COLS)] * 0.2;
+            sumA += A[((y - 1 + ROWS) % ROWS) * COLS + x] * 0.2;
+            sumA += A[((y + 1) % ROWS) * COLS + x] * 0.2;
+            sumA += A[((y - 1 + ROWS) % ROWS) * COLS + ((x - 1 + COLS) % COLS)] * 0.05;
+            sumA += A[((y - 1 + ROWS) % ROWS) * COLS + ((x + 1) % COLS)] * 0.05;
+            sumA += A[((y + 1) % ROWS) * COLS + ((x - 1 + COLS) % COLS)] * 0.05;
+            sumA += A[((y + 1) % ROWS) * COLS + ((x + 1) % COLS)] * 0.05;
+            return sumA;
+        }
+
+        function laplaceB(x, y) {
+            let sumB = 0;
+            const center = B[y * COLS + x];
+            sumB += center * -1;
+            sumB += B[y * COLS + ((x - 1 + COLS) % COLS)] * 0.2;
+            sumB += B[y * COLS + ((x + 1) % COLS)] * 0.2;
+            sumB += B[((y - 1 + ROWS) % ROWS) * COLS + x] * 0.2;
+            sumB += B[((y + 1) % ROWS) * COLS + x] * 0.2;
+            sumB += B[((y - 1 + ROWS) % ROWS) * COLS + ((x - 1 + COLS) % COLS)] * 0.05;
+            sumB += B[((y - 1 + ROWS) % ROWS) * COLS + ((x + 1) % COLS)] * 0.05;
+            sumB += B[((y + 1) % ROWS) * COLS + ((x - 1 + COLS) % COLS)] * 0.05;
+            sumB += B[((y + 1) % ROWS) * COLS + ((x + 1) % COLS)] * 0.05;
+            return sumB;
+        }
+
+        function step() {
+            for(let iter=0; iter<10; iter++) {
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        const idx = y * COLS + x;
+                        const a = A[idx];
+                        const b = B[idx];
+                        
+                        const la = laplaceA(x, y);
+                        const lb = laplaceB(x, y);
+                        
+                        nextA[idx] = a + (DA * la - a * b * b + feed * (1 - a));
+                        nextB[idx] = b + (DB * lb + a * b * b - (k + feed) * b);
+                        
+                        if (nextA[idx] > 1) nextA[idx] = 1;
+                        if (nextA[idx] < 0) nextA[idx] = 0;
+                        if (nextB[idx] > 1) nextB[idx] = 1;
+                        if (nextB[idx] < 0) nextB[idx] = 0;
+                    }
+                }
+                
+                let tempA = A; A = nextA; nextA = tempA;
+                let tempB = B; B = nextB; nextB = tempB;
+            }
+            
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const val = A[y * COLS + x] - B[y * COLS + x];
+                    let norm = (val + 1) / 2;
+                    norm = 1.0 - norm; // Invert so spots are bright
+                    norm = Math.pow(norm, 2); // Contrast boost
+                    
+                    let charIdx = Math.min(chars.length - 1, Math.max(0, Math.floor(norm * chars.length * 1.5)));
+                    let fw = charIdx > 4 ? "font-weight:bold;" : "";
+                    
+                    html += `<span style="color:${colors[charIdx]}; ${fw}">${chars[charIdx]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
+    </script>
 </body>
 </html>

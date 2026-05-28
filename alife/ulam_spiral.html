@@ -2,30 +2,75 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ulam Spiral (Prime Numbers)</title>
+    <title>Ulam Spiral</title>
     <style>
-        body { margin: 0; background-color: #000; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Ulam Spiral</h2>
-        <p>Plotting integers in a spiral and highlighting prime numbers. Notice the diagonal lines indicating prime-rich quadratic polynomials. A simple mathematical pattern with emergent structure.</p>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Ulam Spiral</strong><br><br>
+        Plotting integers in a spiral and highlighting prime numbers.<br>
+        Notice the diagonal lines indicating prime-rich quadratic polynomials. A simple mathematical pattern with emergent structure.<br>
+        In this ASCII translation, primes are drawn sequentially using characters mapped to the garden's color palette.
+        <div class="controls">
+            <button onclick="reset()">Restart Spiral</button>
+        </div>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 120;
+        const ROWS = 60;
         
-        let cols, rows, cellSize;
-        let scale = 1;
-        let maxNum;
+        let grid = new Int8Array(COLS * ROWS);
+        let currentNum = 1;
+        let x, y, dir, stepsTaken, stepsNeeded, turns;
+        
+        const chars = ["+", "*", "O", "@", "#", "%", "&"];
+        const colors = [
+            "#394034", "#485341", "#59684f", "#718465", 
+            "#8fd46b", "#76c7d5", "#f3d36b"
+        ];
+
+        const dx = [1, 0, -1, 0];
+        const dy = [0, -1, 0, 1];
 
         function isPrime(num) {
             if (num <= 1) return false;
@@ -37,43 +82,34 @@
             return true;
         }
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            // use odd number for perfect center
-            cols = Math.floor(minDim / scale);
-            if(cols % 2 === 0) cols++;
-            rows = cols;
-            cellSize = scale;
-            
-            canvas.width = cols * cellSize;
-            canvas.height = rows * cellSize;
-            maxNum = cols * rows;
+        function reset() {
+            grid.fill(-1);
+            x = Math.floor(COLS / 2);
+            y = Math.floor(ROWS / 2);
+            currentNum = 1;
+            dir = 0; // 0: right, 1: up, 2: left, 3: down
+            stepsTaken = 0;
+            stepsNeeded = 1;
+            turns = 0;
             draw();
         }
 
-        function draw() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = '#4CAF50';
-            
-            let x = Math.floor(cols / 2);
-            let y = Math.floor(rows / 2);
-            
-            let num = 1;
-            let step = 1;
-            let dir = 0; // 0: right, 1: up, 2: left, 3: down
-            
-            const dx = [1, 0, -1, 0];
-            const dy = [0, -1, 0, 1];
-            
-            let stepsTaken = 0;
-            let stepsNeeded = step;
-            let turns = 0;
-            
-            while (num <= maxNum) {
-                if (isPrime(num)) {
-                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        function step() {
+            let maxNum = COLS * ROWS;
+            // Draw a chunk of numbers per frame
+            for (let i = 0; i < 50; i++) {
+                if (currentNum > maxNum) return;
+                
+                if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
+                    if (isPrime(currentNum)) {
+                        // Map the character/color to distance from center
+                        let dist = Math.max(Math.abs(x - COLS/2), Math.abs(y - ROWS/2));
+                        let idx = Math.floor((dist / (COLS/2)) * colors.length);
+                        if (idx >= colors.length) idx = colors.length - 1;
+                        grid[y * COLS + x] = idx;
+                    } else {
+                        grid[y * COLS + x] = -1; // Not a prime
+                    }
                 }
                 
                 x += dx[dir];
@@ -88,16 +124,57 @@
                         stepsNeeded++;
                     }
                 }
-                num++;
+                currentNum++;
             }
+            draw();
         }
 
-        window.addEventListener('resize', resize);
+        function draw() {
+            let html = "";
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    let val = grid[r * COLS + c];
+                    if (val === -1) {
+                        html += " ";
+                    } else {
+                        html += `<span style="color:${colors[val]}; font-weight:bold;">${chars[val]}</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        reset();
         
-        // Initial setup
-        scale = 2; // smaller pixels = larger spiral
-        if(window.innerWidth < 600) scale = 1;
-        resize();
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 20);
+
     </script>
 </body>
 </html>

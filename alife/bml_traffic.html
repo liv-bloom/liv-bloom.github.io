@@ -1,76 +1,154 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII BML Traffic Model</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { color: #f3d36b; }
-    h1 { color: #8fd46b; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>BML Traffic Model</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII BML Traffic Model</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ascii_bml.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    const EMPTY = 0, RIGHT = 1, DOWN = 2;
-    const DENSITY = 0.35; // Around 35% often shows the phase transition between free flow and global jam
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Biham-Middleton-Levine (BML) Traffic Model (1992)</strong><br><br>
+        A cellular automaton showing a sharp phase transition between free flow and global gridlock.<br>
+        1. <strong>Orange cars (<span style="color:#e77a61;">></span>)</strong> move East. <strong>Blue cars (<span style="color:#76c7d5;">v</span>)</strong> move South. They take turns moving.<br>
+        2. A car can only move if the space in front of it is empty.<br>
+        3. The map wraps around (toroidal).<br>
+        At low density, cars self-organize into moving diagonal bands (free flow). But once the density crosses a critical threshold (around 35%), the entire system collapses into an immovable, global traffic jam.
+    </div>
 
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => {
-      let r = Math.random();
-      if(r < DENSITY / 2) return RIGHT;
-      if(r < DENSITY) return DOWN;
-      return EMPTY;
-    }));
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        let next = new Uint8Array(COLS * ROWS);
+        
+        const DENSITY = 0.38; // Slightly above critical to eventually jam
+        const EMPTY = 0;
+        const EAST = 1;
+        const SOUTH = 2;
 
-    let turn = 0;
-
-    function step() {
-      let nextGrid = grid.map(arr => [...arr]);
-      let moved = false;
-
-      if(turn % 2 === 0) {
-        // Red cars (RIGHT) move east
-        for(let y=0; y<H; y++) {
-          for(let x=0; x<W; x++) {
-            if(grid[y][x] === RIGHT) {
-              let nx = (x + 1) % W;
-              if(grid[y][nx] === EMPTY) {
-                nextGrid[y][nx] = RIGHT;
-                nextGrid[y][x] = EMPTY;
-                moved = true;
-              }
+        for (let i = 0; i < grid.length; i++) {
+            let r = Math.random();
+            if (r < DENSITY / 2) {
+                grid[i] = EAST;
+            } else if (r < DENSITY) {
+                grid[i] = SOUTH;
+            } else {
+                grid[i] = EMPTY;
             }
-          }
         }
-      } else {
-        // Blue cars (DOWN) move south
-        for(let y=0; y<H; y++) {
-          for(let x=0; x<W; x++) {
-            if(grid[y][x] === DOWN) {
-              let ny = (y + 1) % H;
-              if(grid[ny][x] === EMPTY) {
-                nextGrid[ny][x] = DOWN;
-                nextGrid[y][x] = EMPTY;
-                moved = true;
-              }
+
+        const chars = [".", ">", "v"];
+        const colors = ["#2b2b1a", "#e77a61", "#76c7d5"];
+
+        let stepEast = true;
+
+        function step() {
+            next.set(grid);
+
+            if (stepEast) {
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        let idx = y * COLS + x;
+                        if (grid[idx] === EAST) {
+                            let nx = (x + 1) % COLS;
+                            let nIdx = y * COLS + nx;
+                            if (grid[nIdx] === EMPTY) {
+                                next[idx] = EMPTY;
+                                next[nIdx] = EAST;
+                            }
+                        }
+                    }
+                }
+            } else {
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        let idx = y * COLS + x;
+                        if (grid[idx] === SOUTH) {
+                            let ny = (y + 1) % ROWS;
+                            let nIdx = ny * COLS + x;
+                            if (grid[nIdx] === EMPTY) {
+                                next[idx] = EMPTY;
+                                next[nIdx] = SOUTH;
+                            }
+                        }
+                    }
+                }
             }
-          }
+
+            grid.set(next);
+            stepEast = !stepEast;
+
+            draw();
         }
-      }
 
-      grid = nextGrid;
-      turn++;
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state !== EMPTY ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
 
-      document.getElementById('field').textContent = grid.map(row => row.map(c => {
-        if(c === RIGHT) return '>'; // Red equivalent
-        if(c === DOWN) return 'v';  // Blue equivalent
-        return ' ';
-      }).join('')).join('\n');
-    }
-    setInterval(step, 80);
-  </script>
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
 </body>
 </html>

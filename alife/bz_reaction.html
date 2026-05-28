@@ -2,81 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Belousov-Zhabotinsky Reaction</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; image-rendering: pixelated; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
-        button:hover { background: #45a049; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>BZ Reaction</h2>
-        <p>A cellular automaton model of the Belousov-Zhabotinsky oscillating chemical reaction, producing spiral waves.</p>
-        <button onclick="init()">Reset</button>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Belousov-Zhabotinsky Reaction (ASCII)</strong><br><br>
+        A cellular automaton model of the Belousov-Zhabotinsky oscillating chemical reaction.<br>
+        This reaction produces striking, self-organizing spiral waves out of a homogeneous mixture. 
+        It mathematically models how three simulated chemicals (A, B, and C) react and diffuse over time. 
+        Instead of settling into a flat equilibrium, they constantly cycle, creating one of nature's most beautiful chemical clocks.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
         
-        const size = 150;
         let grid = [];
         let nextGrid = [];
         
-        // Parameters for the BZ reaction
-        const states = 255;
         const alpha = 1.2;
         const beta = 1.0;
         const gamma = 1.0;
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight);
-            canvas.width = size;
-            canvas.height = size;
-            canvas.style.width = minDim + 'px';
-            canvas.style.height = minDim + 'px';
-        }
-
-        function init() {
-            grid = [];
-            nextGrid = [];
-            for (let x = 0; x < size; x++) {
-                grid[x] = [];
-                nextGrid[x] = [];
-                for (let y = 0; y < size; y++) {
-                    grid[x][y] = {
-                        a: Math.random(),
-                        b: Math.random(),
-                        c: Math.random()
-                    };
-                    nextGrid[x][y] = { a: 0, b: 0, c: 0 };
-                }
+        for (let y = 0; y < ROWS; y++) {
+            grid[y] = [];
+            nextGrid[y] = [];
+            for (let x = 0; x < COLS; x++) {
+                grid[y][x] = { a: Math.random(), b: Math.random(), c: Math.random() };
+                nextGrid[y][x] = { a: 0, b: 0, c: 0 };
             }
         }
 
-        function update() {
-            for (let x = 0; x < size; x++) {
-                for (let y = 0; y < size; y++) {
-                    let cell = grid[x][y];
-                    
+        // 6-step ASCII brightness ramp + garden color mapping
+        const chars = [".", "-", "+", "*", "O", "@"];
+        
+        // Map purely to garden colors based on dominant chemical? 
+        // Let's use a unified ramp from dark to bright orange/yellow.
+        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#f3d36b", "#e77a61"];
+
+        function step() {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
                     let a_sum = 0, b_sum = 0, c_sum = 0;
                     
-                    // Moore neighborhood average
-                    for (let i = -1; i <= 1; i++) {
-                        for (let j = -1; j <= 1; j++) {
-                            let nx = (x + i + size) % size;
-                            let ny = (y + j + size) % size;
-                            a_sum += grid[nx][ny].a;
-                            b_sum += grid[nx][ny].b;
-                            c_sum += grid[nx][ny].c;
+                    for (let j = -1; j <= 1; j++) {
+                        for (let i = -1; i <= 1; i++) {
+                            let ny = (y + j + ROWS) % ROWS;
+                            let nx = (x + i + COLS) % COLS;
+                            a_sum += grid[ny][nx].a;
+                            b_sum += grid[ny][nx].b;
+                            c_sum += grid[ny][nx].c;
                         }
                     }
                     
@@ -84,44 +86,72 @@
                     let b_avg = b_sum / 9;
                     let c_avg = c_sum / 9;
 
-                    nextGrid[x][y].a = Math.max(0, Math.min(1, a_avg + a_avg * (alpha * b_avg - gamma * c_avg)));
-                    nextGrid[x][y].b = Math.max(0, Math.min(1, b_avg + b_avg * (beta * c_avg - alpha * a_avg)));
-                    nextGrid[x][y].c = Math.max(0, Math.min(1, c_avg + c_avg * (gamma * a_avg - beta * b_avg)));
+                    nextGrid[y][x].a = Math.max(0, Math.min(1, a_avg + a_avg * (alpha * b_avg - gamma * c_avg)));
+                    nextGrid[y][x].b = Math.max(0, Math.min(1, b_avg + b_avg * (beta * c_avg - alpha * a_avg)));
+                    nextGrid[y][x].c = Math.max(0, Math.min(1, c_avg + c_avg * (gamma * a_avg - beta * b_avg)));
                 }
             }
             
-            // Swap grids
             let temp = grid;
             grid = nextGrid;
             nextGrid = temp;
+
+            draw();
         }
 
         function draw() {
-            update();
-            update(); // Double speed
-            
-            let imgData = ctx.createImageData(size, size);
-            
-            for (let x = 0; x < size; x++) {
-                for (let y = 0; y < size; y++) {
-                    let idx = (y * size + x) * 4;
-                    let cell = grid[x][y];
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let cell = grid[y][x];
+                    // Use 'a' concentration to determine brightness/character
+                    let val = Math.floor(cell.a * 6);
+                    if (val > 5) val = 5;
+                    if (val < 0) val = 0;
                     
-                    imgData.data[idx + 0] = Math.floor(cell.a * 255); // R
-                    imgData.data[idx + 1] = Math.floor(cell.b * 255); // G
-                    imgData.data[idx + 2] = Math.floor(cell.c * 255); // B
-                    imgData.data[idx + 3] = 255; // Alpha
+                    let fw = val > 3 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[val]}; ${fw}">${chars[val]}</span>`;
                 }
+                html += "\n";
             }
-            
-            ctx.putImageData(imgData, 0, 0);
-            requestAnimationFrame(draw);
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        init();
-        draw();
+        // Run multiple steps per frame to speed up the slow spiral formation
+        function update() {
+            step();
+            step();
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                update();
+            }
+        }, 60);
+
     </script>
 </body>
 </html>

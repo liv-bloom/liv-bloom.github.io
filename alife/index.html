@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bilingual Garden - liv bloom 🌱</title>
+  <title>Bilingual Garden - liv bloom 🌱 (Page 1/15)</title>
   <style>
     :root {
       color-scheme: dark;
@@ -12,6 +12,7 @@
       --ink: #e5eadb;
       --green: #8fd46b;
       --line: #394034;
+      --hover: rgba(143, 212, 107, 0.1);
     }
     body {
       background: var(--bg);
@@ -37,7 +38,7 @@
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 15px;
       max-width: 1400px;
-      margin: 0 auto;
+      margin: 0 auto 30px auto;
     }
     .frame-container {
       border: 1px solid var(--line);
@@ -92,10 +93,33 @@
     }
     .nav a:hover {
       border-color: var(--green);
-      background: rgba(143, 212, 107, 0.1);
+      background: var(--hover);
     }
     a {
       text-decoration: none;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .pagination a {
+      color: var(--ink);
+      border: 1px solid var(--line);
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .pagination a:hover {
+      border-color: var(--green);
+      background: var(--hover);
+    }
+    .pagination a.active {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
     }
   </style>
 </head>
@@ -106,26 +130,9 @@
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
     <a href="gallery.html">Top 9 Gallery</a>
   </div>
-  <p style="text-align:center; font-size:12px; color:var(--green);">Showing all 76 seeds running concurrently.</p>
+  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 1 - 6 of 86 seeds</p>
+  
   <div class="grid" id="gallery">
-    <a href="rule30.html">
-      <div class="frame-container">
-        <iframe src="rule30.html" loading="lazy"></iframe>
-        <div class="overlay">1D Cellular Automaton (Rule 30)</div>
-      </div>
-    </a>
-    <a href="cellular_automaton_1d.html">
-      <div class="frame-container">
-        <iframe src="cellular_automaton_1d.html" loading="lazy"></iframe>
-        <div class="overlay">1D Cellular Automaton (Rule Explorer)</div>
-      </div>
-    </a>
-    <a href="boids.html">
-      <div class="frame-container">
-        <iframe src="boids.html" loading="lazy"></iframe>
-        <div class="overlay">ALife Field / Boids + Nutrient Cells</div>
-      </div>
-    </a>
     <a href="sandpile.html">
       <div class="frame-container">
         <iframe src="sandpile.html" loading="lazy"></iframe>
@@ -150,420 +157,52 @@
         <div class="overlay">Barnsley Fern</div>
       </div>
     </a>
+    <a href="turing_belousov_zhabotinsky.html">
+      <div class="frame-container">
+        <iframe src="turing_belousov_zhabotinsky.html" loading="lazy"></iframe>
+        <div class="overlay">Belousov-Zhabotinsky Reaction</div>
+      </div>
+    </a>
     <a href="bz_reaction.html">
       <div class="frame-container">
         <iframe src="bz_reaction.html" loading="lazy"></iframe>
         <div class="overlay">Belousov-Zhabotinsky Reaction</div>
       </div>
     </a>
-    <a href="boids_predator.html">
-      <div class="frame-container">
-        <iframe src="boids_predator.html" loading="lazy"></iframe>
-        <div class="overlay">Boids with Predator</div>
-      </div>
-    </a>
-    <a href="braitenberg_vehicles.html">
-      <div class="frame-container">
-        <iframe src="braitenberg_vehicles.html" loading="lazy"></iframe>
-        <div class="overlay">Braitenberg Vehicles</div>
-      </div>
-    </a>
-    <a href="brians_brain.html">
-      <div class="frame-container">
-        <iframe src="brians_brain.html" loading="lazy"></iframe>
-        <div class="overlay">Brian's Brain</div>
-      </div>
-    </a>
-    <a href="buddhabrot.html">
-      <div class="frame-container">
-        <iframe src="buddhabrot.html" loading="lazy"></iframe>
-        <div class="overlay">Buddhabrot</div>
-      </div>
-    </a>
-    <a href="busy_beaver.html">
-      <div class="frame-container">
-        <iframe src="busy_beaver.html" loading="lazy"></iframe>
-        <div class="overlay">Busy Beaver (Turing Machine)</div>
-      </div>
-    </a>
-    <a href="cell_division.html">
-      <div class="frame-container">
-        <iframe src="cell_division.html" loading="lazy"></iframe>
-        <div class="overlay">Cell Division (Mitosis)</div>
-      </div>
-    </a>
-    <a href="chaos_game.html">
-      <div class="frame-container">
-        <iframe src="chaos_game.html" loading="lazy"></iframe>
-        <div class="overlay">Chaos Game (Sierpinski)</div>
-      </div>
-    </a>
-    <a href="clifford_attractor.html">
-      <div class="frame-container">
-        <iframe src="clifford_attractor.html" loading="lazy"></iframe>
-        <div class="overlay">Clifford Attractor</div>
-      </div>
-    </a>
-    <a href="clifford_attractor_3d.html">
-      <div class="frame-container">
-        <iframe src="clifford_attractor_3d.html" loading="lazy"></iframe>
-        <div class="overlay">Clifford Attractor 3D Variation</div>
-      </div>
-    </a>
-    <a href="conway.html">
-      <div class="frame-container">
-        <iframe src="conway.html" loading="lazy"></iframe>
-        <div class="overlay">Conway's Game of Life</div>
-      </div>
-    </a>
-    <a href="cyclic_ca.html">
-      <div class="frame-container">
-        <iframe src="cyclic_ca.html" loading="lazy"></iframe>
-        <div class="overlay">Cyclic Cellular Automaton</div>
-      </div>
-    </a>
-    <a href="dla.html">
-      <div class="frame-container">
-        <iframe src="dla.html" loading="lazy"></iframe>
-        <div class="overlay">DLA (Diffusion-Limited Aggregation)</div>
-      </div>
-    </a>
-    <a href="dla_growth.html">
-      <div class="frame-container">
-        <iframe src="dla_growth.html" loading="lazy"></iframe>
-        <div class="overlay">Diffusion-Limited Aggregation (DLA)</div>
-      </div>
-    </a>
-    <a href="double_pendulum.html">
-      <div class="frame-container">
-        <iframe src="double_pendulum.html" loading="lazy"></iframe>
-        <div class="overlay">Double Pendulum</div>
-      </div>
-    </a>
-    <a href="elementary_ca_explorer.html">
-      <div class="frame-container">
-        <iframe src="elementary_ca_explorer.html" loading="lazy"></iframe>
-        <div class="overlay">Elementary Cellular Automaton Explorer</div>
-      </div>
-    </a>
-    <a href="falling_sand.html">
-      <div class="frame-container">
-        <iframe src="falling_sand.html" loading="lazy"></iframe>
-        <div class="overlay">Falling Sand Physics</div>
-      </div>
-    </a>
-    <a href="fireflies.html">
-      <div class="frame-container">
-        <iframe src="fireflies.html" loading="lazy"></iframe>
-        <div class="overlay">Fireflies Synchronization</div>
-      </div>
-    </a>
-    <a href="forest_fire.html">
-      <div class="frame-container">
-        <iframe src="forest_fire.html" loading="lazy"></iframe>
-        <div class="overlay">Forest Fire Model</div>
-      </div>
-    </a>
-    <a href="genetic_string.html">
-      <div class="frame-container">
-        <iframe src="genetic_string.html" loading="lazy"></iframe>
-        <div class="overlay">Genetic Algorithm: String Evolution</div>
-      </div>
-    </a>
-    <a href="gingerbreadman_map.html">
-      <div class="frame-container">
-        <iframe src="gingerbreadman_map.html" loading="lazy"></iframe>
-        <div class="overlay">Gingerbreadman Map Attractor</div>
-      </div>
-    </a>
-    <a href="gumowski_mira.html">
-      <div class="frame-container">
-        <iframe src="gumowski_mira.html" loading="lazy"></iframe>
-        <div class="overlay">Gumowski-Mira Attractor</div>
-      </div>
-    </a>
-    <a href="highlife.html">
-      <div class="frame-container">
-        <iframe src="highlife.html" loading="lazy"></iframe>
-        <div class="overlay">HighLife Cellular Automaton</div>
-      </div>
-    </a>
-    <a href="hodgepodge.html">
-      <div class="frame-container">
-        <iframe src="hodgepodge.html" loading="lazy"></iframe>
-        <div class="overlay">Hodgepodge Machine (BZ Reaction Analog)</div>
-      </div>
-    </a>
-    <a href="hopalong.html">
-      <div class="frame-container">
-        <iframe src="hopalong.html" loading="lazy"></iframe>
-        <div class="overlay">Hopalong Attractor</div>
-      </div>
-    </a>
-    <a href="henon_map.html">
-      <div class="frame-container">
-        <iframe src="henon_map.html" loading="lazy"></iframe>
-        <div class="overlay">Hénon Map Attractor</div>
-      </div>
-    </a>
-    <a href="ikeda_map.html">
-      <div class="frame-container">
-        <iframe src="ikeda_map.html" loading="lazy"></iframe>
-        <div class="overlay">Ikeda Map Attractor</div>
-      </div>
-    </a>
-    <a href="ising_model.html">
-      <div class="frame-container">
-        <iframe src="ising_model.html" loading="lazy"></iframe>
-        <div class="overlay">Ising Model (Ferromagnetism)</div>
-      </div>
-    </a>
-    <a href="julia_set.html">
-      <div class="frame-container">
-        <iframe src="julia_set.html" loading="lazy"></iframe>
-        <div class="overlay">Julia Set</div>
-      </div>
-    </a>
-    <a href="kuramoto_model.html">
-      <div class="frame-container">
-        <iframe src="kuramoto_model.html" loading="lazy"></iframe>
-        <div class="overlay">Kuramoto Model (Synchronization)</div>
-      </div>
-    </a>
-    <a href="lsystem_plant.html">
-      <div class="frame-container">
-        <iframe src="lsystem_plant.html" loading="lazy"></iframe>
-        <div class="overlay">L-System Fractal Plant</div>
-      </div>
-    </a>
-    <a href="l_system.html">
-      <div class="frame-container">
-        <iframe src="l_system.html" loading="lazy"></iframe>
-        <div class="overlay">L-System Fractal Plant</div>
-      </div>
-    </a>
-    <a href="lsystem_tree.html">
-      <div class="frame-container">
-        <iframe src="lsystem_tree.html" loading="lazy"></iframe>
-        <div class="overlay">L-System Tree (Fractal Botany)</div>
-      </div>
-    </a>
-    <a href="langtons_ant.html">
-      <div class="frame-container">
-        <iframe src="langtons_ant.html" loading="lazy"></iframe>
-        <div class="overlay">Langton's Ant</div>
-      </div>
-    </a>
-    <a href="logistic_map.html">
-      <div class="frame-container">
-        <iframe src="logistic_map.html" loading="lazy"></iframe>
-        <div class="overlay">Logistic Map (Bifurcation Diagram)</div>
-      </div>
-    </a>
-    <a href="lorenz_attractor.html">
-      <div class="frame-container">
-        <iframe src="lorenz_attractor.html" loading="lazy"></iframe>
-        <div class="overlay">Lorenz Attractor</div>
-      </div>
-    </a>
-    <a href="majority_rule.html">
-      <div class="frame-container">
-        <iframe src="majority_rule.html" loading="lazy"></iframe>
-        <div class="overlay">Majority Rule Cellular Automaton</div>
-      </div>
-    </a>
-    <a href="mandelbrot_set.html">
-      <div class="frame-container">
-        <iframe src="mandelbrot_set.html" loading="lazy"></iframe>
-        <div class="overlay">Mandelbrot Set</div>
-      </div>
-    </a>
-    <a href="marching_squares.html">
-      <div class="frame-container">
-        <iframe src="marching_squares.html" loading="lazy"></iframe>
-        <div class="overlay">Marching Squares (Metaballs)</div>
-      </div>
-    </a>
-    <a href="n_body_gravity.html">
-      <div class="frame-container">
-        <iframe src="n_body_gravity.html" loading="lazy"></iframe>
-        <div class="overlay">N-Body Gravity Simulation</div>
-      </div>
-    </a>
-    <a href="particle_life.html">
-      <div class="frame-container">
-        <iframe src="particle_life.html" loading="lazy"></iframe>
-        <div class="overlay">Particle Life</div>
-      </div>
-    </a>
-    <a href="pso.html">
-      <div class="frame-container">
-        <iframe src="pso.html" loading="lazy"></iframe>
-        <div class="overlay">Particle Swarm Optimization</div>
-      </div>
-    </a>
-    <a href="percolation.html">
-      <div class="frame-container">
-        <iframe src="percolation.html" loading="lazy"></iframe>
-        <div class="overlay">Percolation Model</div>
-      </div>
-    </a>
-    <a href="peter_de_jong.html">
-      <div class="frame-container">
-        <iframe src="peter_de_jong.html" loading="lazy"></iframe>
-        <div class="overlay">Peter de Jong Attractor</div>
-      </div>
-    </a>
-    <a href="slime_mold.html">
-      <div class="frame-container">
-        <iframe src="slime_mold.html" loading="lazy"></iframe>
-        <div class="overlay">Physarum (Slime Mold)</div>
-      </div>
-    </a>
-    <a href="reaction_diffusion.html">
-      <div class="frame-container">
-        <iframe src="reaction_diffusion.html" loading="lazy"></iframe>
-        <div class="overlay">Reaction-Diffusion (Gray-Scott Model)</div>
-      </div>
-    </a>
-    <a href="fractal_tree.html">
-      <div class="frame-container">
-        <iframe src="fractal_tree.html" loading="lazy"></iframe>
-        <div class="overlay">Recursive Fractal Tree</div>
-      </div>
-    </a>
-    <a href="rule110.html">
-      <div class="frame-container">
-        <iframe src="rule110.html" loading="lazy"></iframe>
-        <div class="overlay">Rule 110 (Turing Complete 1D CA)</div>
-      </div>
-    </a>
-    <a href="rule90.html">
-      <div class="frame-container">
-        <iframe src="rule90.html" loading="lazy"></iframe>
-        <div class="overlay">Rule 90 (Sierpinski Triangle)</div>
-      </div>
-    </a>
-    <a href="rossler_attractor.html">
-      <div class="frame-container">
-        <iframe src="rossler_attractor.html" loading="lazy"></iframe>
-        <div class="overlay">Rössler Attractor</div>
-      </div>
-    </a>
-    <a href="schelling.html">
-      <div class="frame-container">
-        <iframe src="schelling.html" loading="lazy"></iframe>
-        <div class="overlay">Schelling Segregation Model</div>
-      </div>
-    </a>
-    <a href="self_avoiding_walk.html">
-      <div class="frame-container">
-        <iframe src="self_avoiding_walk.html" loading="lazy"></iframe>
-        <div class="overlay">Self-Avoiding Walk</div>
-      </div>
-    </a>
-    <a href="smart_rockets.html">
-      <div class="frame-container">
-        <iframe src="smart_rockets.html" loading="lazy"></iframe>
-        <div class="overlay">Smart Rockets (Genetic Algorithm)</div>
-      </div>
-    </a>
-    <a href="snowflake_growth.html">
-      <div class="frame-container">
-        <iframe src="snowflake_growth.html" loading="lazy"></iframe>
-        <div class="overlay">Snowflake Growth (Hexagonal CA)</div>
-      </div>
-    </a>
-    <a href="soft_body_physics.html">
-      <div class="frame-container">
-        <iframe src="soft_body_physics.html" loading="lazy"></iframe>
-        <div class="overlay">Soft Body Physics (Mass-Spring System)</div>
-      </div>
-    </a>
-    <a href="daisyworld.html">
-      <div class="frame-container">
-        <iframe src="daisyworld.html" loading="lazy"></iframe>
-        <div class="overlay">Spatial Daisyworld</div>
-      </div>
-    </a>
-    <a href="predator_prey.html">
-      <div class="frame-container">
-        <iframe src="predator_prey.html" loading="lazy"></iframe>
-        <div class="overlay">Spatial Predator-Prey (Lotka-Volterra)</div>
-      </div>
-    </a>
-    <a href="spatial_sir.html">
-      <div class="frame-container">
-        <iframe src="spatial_sir.html" loading="lazy"></iframe>
-        <div class="overlay">Spatial SIR Epidemic Model</div>
-      </div>
-    </a>
-    <a href="voter_model.html">
-      <div class="frame-container">
-        <iframe src="voter_model.html" loading="lazy"></iframe>
-        <div class="overlay">Spatial Voter Model</div>
-      </div>
-    </a>
-    <a href="termites.html">
-      <div class="frame-container">
-        <iframe src="termites.html" loading="lazy"></iframe>
-        <div class="overlay">Termites (Woodchips Clustering)</div>
-      </div>
-    </a>
-    <a href="tinkerbell_map.html">
-      <div class="frame-container">
-        <iframe src="tinkerbell_map.html" loading="lazy"></iframe>
-        <div class="overlay">Tinkerbell Map Attractor</div>
-      </div>
-    </a>
-    <a href="turing_patterns.html">
-      <div class="frame-container">
-        <iframe src="turing_patterns.html" loading="lazy"></iframe>
-        <div class="overlay">Turing Patterns (Gray-Scott Reaction-Diffusion)</div>
-      </div>
-    </a>
-    <a href="ulam_spiral.html">
-      <div class="frame-container">
-        <iframe src="ulam_spiral.html" loading="lazy"></iframe>
-        <div class="overlay">Ulam Spiral (Prime Numbers)</div>
-      </div>
-    </a>
-    <a href="flow_field.html">
-      <div class="frame-container">
-        <iframe src="flow_field.html" loading="lazy"></iframe>
-        <div class="overlay">Vector Flow Field</div>
-      </div>
-    </a>
-    <a href="vicsek.html">
-      <div class="frame-container">
-        <iframe src="vicsek.html" loading="lazy"></iframe>
-        <div class="overlay">Vicsek Model (Active Matter)</div>
-      </div>
-    </a>
-    <a href="wator.html">
-      <div class="frame-container">
-        <iframe src="wator.html" loading="lazy"></iframe>
-        <div class="overlay">Wa-Tor (Ecological Simulation)</div>
-      </div>
-    </a>
-    <a href="wave_interference.html">
-      <div class="frame-container">
-        <iframe src="wave_interference.html" loading="lazy"></iframe>
-        <div class="overlay">Wave Interference</div>
-      </div>
-    </a>
-    <a href="wireworld.html">
-      <div class="frame-container">
-        <iframe src="wireworld.html" loading="lazy"></iframe>
-        <div class="overlay">Wireworld</div>
-      </div>
-    </a>
-    <a href="wolfram_ca.html">
-      <div class="frame-container">
-        <iframe src="wolfram_ca.html" loading="lazy"></iframe>
-        <div class="overlay">Wolfram Elementary CA</div>
-      </div>
-    </a>
   </div>
+
+  <div class="pagination">
+    <a href="index.html" class="active">1</a>
+    <a href="page2.html">2</a>
+    <a href="page3.html">3</a>
+    <a href="page4.html">4</a>
+    <a href="page5.html">5</a>
+    <a href="page6.html">6</a>
+    <a href="page7.html">7</a>
+    <a href="page8.html">8</a>
+    <a href="page9.html">9</a>
+    <a href="page10.html">10</a>
+    <a href="page11.html">11</a>
+    <a href="page12.html">12</a>
+    <a href="page13.html">13</a>
+    <a href="page14.html">14</a>
+    <a href="page15.html">15</a>
+    <a href="page2.html">Next &raquo;</a>
+  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const iframes = document.querySelectorAll("iframe");
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.contentWindow.postMessage("resume", "*");
+          } else {
+            entry.target.contentWindow.postMessage("pause", "*");
+          }
+        });
+      }, { threshold: 0.0 });
+      iframes.forEach(iframe => observer.observe(iframe));
+    });
+  </script>
 </body>
 </html>

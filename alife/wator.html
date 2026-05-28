@@ -1,139 +1,204 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Wa-Tor</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { line-height: 1.1; letter-spacing: 2px; }
-    h1 { color: #61a1b4; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Wa-Tor Ecology Model</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Wa-Tor (Ecological Simulation)</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/wator.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    // 0: empty, 1: fish, 2: shark
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-    let fish_age = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-    let shark_energy = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-    
-    const FISH_BREED = 5;
-    const SHARK_BREED = 12;
-    const SHARK_ENERGY = 4;
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Wa-Tor Ecology Simulation (1984)</strong><br><br>
+        A classic population dynamics model created by A.K. Dewdney.<br>
+        The grid is a toroidal ocean. Fish (<span style="color:#76c7d5">o</span>) swim randomly and breed over time. Sharks (<span style="color:#e77a61">S</span>) swim around looking for fish to eat. If a shark eats a fish, it gains energy. If a shark doesn't eat for a while, it starves and dies. Sharks also breed if they survive long enough.<br>
+        These simple rules generate classic Lotka-Volterra predator-prey population waves, where an abundance of fish leads to a shark boom, which then eats all the fish, causing a shark die-off, allowing fish to recover, in endless cycles.
+    </div>
 
-    for(let y=0; y<H; y++) {
-      for(let x=0; x<W; x++) {
-        let r = Math.random();
-        if(r < 0.05) {
-          grid[y][x] = 2;
-          shark_energy[y][x] = SHARK_ENERGY;
-        } else if(r < 0.3) {
-          grid[y][x] = 1;
-        }
-      }
-    }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        // 0: empty, 1: fish, 2: shark
+        let grid = new Uint8Array(COLS * ROWS);
+        let age = new Uint8Array(COLS * ROWS);
+        let energy = new Uint8Array(COLS * ROWS);
+        
+        const FISH_BREED = 6;
+        const SHARK_BREED = 12;
+        const SHARK_ENERGY = 6;
 
-    function step() {
-      let moved = Array.from({length: H}, () => Array.from({length: W}, () => false));
-      
-      // Fish move
-      for(let y=0; y<H; y++) {
-        for(let x=0; x<W; x++) {
-          if(grid[y][x] === 1 && !moved[y][x]) {
-            fish_age[y][x]++;
-            let adj = [];
-            if(grid[(y-1+H)%H][x] === 0) adj.push([(y-1+H)%H, x]);
-            if(grid[(y+1)%H][x] === 0) adj.push([(y+1)%H, x]);
-            if(grid[y][(x-1+W)%W] === 0) adj.push([y, (x-1+W)%W]);
-            if(grid[y][(x+1)%W] === 0) adj.push([y, (x+1)%W]);
-            
-            if(adj.length > 0) {
-              let [ny, nx] = adj[Math.floor(Math.random() * adj.length)];
-              grid[ny][nx] = 1;
-              moved[ny][nx] = true;
-              if(fish_age[y][x] >= FISH_BREED) {
-                fish_age[ny][nx] = 0;
-                fish_age[y][x] = 0;
-                // Old cell stays fish
-              } else {
-                fish_age[ny][nx] = fish_age[y][x];
-                grid[y][x] = 0;
-                fish_age[y][x] = 0;
-              }
+        for(let i=0; i < grid.length; i++) {
+            let r = Math.random();
+            if(r < 0.05) {
+                grid[i] = 2;
+                energy[i] = SHARK_ENERGY;
+            } else if(r < 0.3) {
+                grid[i] = 1;
             }
-          }
         }
-      }
 
-      // Shark move
-      for(let y=0; y<H; y++) {
-        for(let x=0; x<W; x++) {
-          if(grid[y][x] === 2 && !moved[y][x]) {
-            shark_energy[y][x]--;
-            if(shark_energy[y][x] <= 0) {
-              grid[y][x] = 0;
-              continue;
-            }
-            fish_age[y][x]++; // repurpose fish_age array for shark breeding age
-            
-            let fishes = [], empty = [];
-            if(grid[(y-1+H)%H][x] === 1) fishes.push([(y-1+H)%H, x]);
-            else if(grid[(y-1+H)%H][x] === 0) empty.push([(y-1+H)%H, x]);
-            
-            if(grid[(y+1)%H][x] === 1) fishes.push([(y+1)%H, x]);
-            else if(grid[(y+1)%H][x] === 0) empty.push([(y+1)%H, x]);
-            
-            if(grid[y][(x-1+W)%W] === 1) fishes.push([y, (x-1+W)%W]);
-            else if(grid[y][(x-1+W)%W] === 0) empty.push([y, (x-1+W)%W]);
-            
-            if(grid[y][(x+1)%W] === 1) fishes.push([y, (x+1)%W]);
-            else if(grid[y][(x+1)%W] === 0) empty.push([y, (x+1)%W]);
-            
-            let dest = null;
-            if(fishes.length > 0) {
-              dest = fishes[Math.floor(Math.random() * fishes.length)];
-              shark_energy[y][x] += SHARK_ENERGY;
-            } else if(empty.length > 0) {
-              dest = empty[Math.floor(Math.random() * empty.length)];
-            }
-            
-            if(dest) {
-              let [ny, nx] = dest;
-              grid[ny][nx] = 2;
-              shark_energy[ny][nx] = shark_energy[y][x];
-              moved[ny][nx] = true;
-              
-              if(fish_age[y][x] >= SHARK_BREED) {
-                fish_age[ny][nx] = 0;
-                fish_age[y][x] = 0;
-                shark_energy[y][x] = SHARK_ENERGY / 2;
-                // Old cell stays shark
-              } else {
-                fish_age[ny][nx] = fish_age[y][x];
-                grid[y][x] = 0;
-                fish_age[y][x] = 0;
-              }
-            }
-          }
-        }
-      }
+        const chars = [".", "o", "S"];
+        const colors = ["#1a1d1a", "#76c7d5", "#e77a61"];
 
-      let out = "";
-      for(let y=0; y<H; y++) {
-        let row = "";
-        for(let x=0; x<W; x++) {
-          if(grid[y][x] === 1) row += '<span style="color:#76c7d5;">o</span>';
-          else if(grid[y][x] === 2) row += '<span style="color:#e77a61;">X</span>';
-          else row += '<span style="color:#1e323b;">.</span>';
+        function step() {
+            let moved = new Uint8Array(COLS * ROWS);
+            
+            // Fish move
+            for(let y=0; y<ROWS; y++) {
+                for(let x=0; x<COLS; x++) {
+                    let idx = y * COLS + x;
+                    if(grid[idx] === 1 && !moved[idx]) {
+                        age[idx]++;
+                        let adj = [];
+                        let n_up = ((y-1+ROWS)%ROWS) * COLS + x;
+                        let n_dn = ((y+1)%ROWS) * COLS + x;
+                        let n_lf = y * COLS + ((x-1+COLS)%COLS);
+                        let n_rt = y * COLS + ((x+1)%COLS);
+                        
+                        if(grid[n_up] === 0) adj.push(n_up);
+                        if(grid[n_dn] === 0) adj.push(n_dn);
+                        if(grid[n_lf] === 0) adj.push(n_lf);
+                        if(grid[n_rt] === 0) adj.push(n_rt);
+                        
+                        if(adj.length > 0) {
+                            let next_idx = adj[Math.floor(Math.random() * adj.length)];
+                            grid[next_idx] = 1;
+                            moved[next_idx] = 1;
+                            
+                            if(age[idx] >= FISH_BREED) {
+                                age[next_idx] = 0;
+                                age[idx] = 0;
+                                // Old cell stays fish (reproduction)
+                            } else {
+                                age[next_idx] = age[idx];
+                                grid[idx] = 0;
+                                age[idx] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Shark move
+            for(let y=0; y<ROWS; y++) {
+                for(let x=0; x<COLS; x++) {
+                    let idx = y * COLS + x;
+                    if(grid[idx] === 2 && !moved[idx]) {
+                        energy[idx]--;
+                        if(energy[idx] <= 0) {
+                            grid[idx] = 0; // starvation
+                            continue;
+                        }
+                        age[idx]++;
+                        
+                        let fishes = [], empty = [];
+                        let n_up = ((y-1+ROWS)%ROWS) * COLS + x;
+                        let n_dn = ((y+1)%ROWS) * COLS + x;
+                        let n_lf = y * COLS + ((x-1+COLS)%COLS);
+                        let n_rt = y * COLS + ((x+1)%COLS);
+                        
+                        [n_up, n_dn, n_lf, n_rt].forEach(n => {
+                            if(grid[n] === 1) fishes.push(n);
+                            else if(grid[n] === 0) empty.push(n);
+                        });
+                        
+                        let dest = null;
+                        if(fishes.length > 0) {
+                            dest = fishes[Math.floor(Math.random() * fishes.length)];
+                            energy[idx] += SHARK_ENERGY;
+                        } else if(empty.length > 0) {
+                            dest = empty[Math.floor(Math.random() * empty.length)];
+                        }
+                        
+                        if(dest !== null) {
+                            grid[dest] = 2;
+                            energy[dest] = energy[idx];
+                            moved[dest] = 1;
+                            
+                            if(age[idx] >= SHARK_BREED) {
+                                age[dest] = 0;
+                                age[idx] = 0;
+                                energy[idx] = SHARK_ENERGY / 2;
+                                // Old cell stays shark (reproduction)
+                            } else {
+                                age[dest] = age[idx];
+                                grid[idx] = 0;
+                                age[idx] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+
+            draw();
         }
-        out += row + "\n";
-      }
-      document.getElementById('field').innerHTML = out;
-    }
-    setInterval(step, 150);
-  </script>
+
+        function draw() {
+            let html = "";
+            for(let y=0; y<ROWS; y++) {
+                for(let x=0; x<COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state !== 0 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById('canvas').innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
 </body>
 </html>

@@ -2,91 +2,123 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>1D Cellular Automaton (Rule 30)</title>
+    <title>Rule 30 (1D Cellular Automaton)</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Rule 30</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A one-dimensional cellular automaton introduced by Stephen Wolfram. From a single black cell, it generates a complex, chaotic, and seemingly random fractal pattern.</p>
-        <div class="controls">
-            <button onclick="reset()">Restart</button>
-        </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Rule 30 (1D Cellular Automaton)</strong><br><br>
+        Introduced by Stephen Wolfram in 1983.<br>
+        A 1-dimensional array of cells evolves over time, generating a new row downwards (or upwards, like a printer). A cell's next state depends on itself and its two neighbors. The rule 00011110 (30 in binary) dictates this evolution.<br>
+        Despite simple, deterministic rules, it generates complex, chaotic, and seemingly random fractal patterns (Class III behavior). It is so chaotic that the center column is famously used as a pseudorandom number generator in Mathematica.
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let scale = 2;
-        let cols, rows;
-        let generation = 0;
-        let cells = [];
 
-        // Rule 30 logic:
-        // 111 -> 0, 110 -> 0, 101 -> 0, 100 -> 1, 011 -> 1, 010 -> 1, 001 -> 1, 000 -> 0
+    <script>
+        const COLS = 120;
+        const ROWS = 60;
+        let historyGrid = []; 
+        
+        let currentGen = new Uint8Array(COLS);
+        currentGen[Math.floor(COLS / 2)] = 1; 
+        historyGrid.push(currentGen);
+        
         const ruleset = [0, 1, 1, 1, 1, 0, 0, 0];
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            cols = Math.floor(minDim / scale);
-            rows = Math.floor(minDim / scale);
-            canvas.width = cols * scale;
-            canvas.height = rows * scale;
-            reset();
-        }
-
-        function reset() {
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            cells = new Array(cols).fill(0);
-            cells[Math.floor(cols / 2)] = 1; // Initial state: middle cell is 1
-            generation = 0;
+        function step() {
+            let nextGen = new Uint8Array(COLS);
+            let lastGen = historyGrid[historyGrid.length - 1];
+            
+            for (let i = 0; i < COLS; i++) {
+                let left = lastGen[(i - 1 + COLS) % COLS];
+                let middle = lastGen[i];
+                let right = lastGen[(i + 1) % COLS];
+                let state = (left << 2) | (middle << 1) | right;
+                nextGen[i] = ruleset[state];
+            }
+            
+            historyGrid.push(nextGen);
+            if (historyGrid.length > ROWS) {
+                historyGrid.shift();
+            }
+            draw();
         }
 
         function draw() {
-            if (generation < rows) {
-                // Draw current generation
-                for (let i = 0; i < cols; i++) {
-                    if (cells[i] === 1) {
-                        ctx.fillStyle = '#8fd46b';
-                        ctx.fillRect(i * scale, generation * scale, scale, scale);
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                if (y < historyGrid.length) {
+                    for (let x = 0; x < COLS; x++) {
+                        let state = historyGrid[y][x];
+                        html += state 
+                            ? '<span style="color:#e77a61; font-weight:bold;">█</span>' 
+                            : '<span style="color:#2b2b1a;">·</span>';
                     }
+                } else {
+                    html += " ".repeat(COLS);
                 }
-
-                // Compute next generation
-                let nextGen = new Array(cols).fill(0);
-                for (let i = 0; i < cols; i++) {
-                    let left = cells[(i - 1 + cols) % cols];
-                    let middle = cells[i];
-                    let right = cells[(i + 1) % cols];
-                    
-                    let stateStr = "" + left + middle + right;
-                    let stateIndex = parseInt(stateStr, 2);
-                    nextGen[i] = ruleset[stateIndex];
-                }
-                
-                cells = nextGen;
-                generation++;
+                html += "\n";
             }
-            requestAnimationFrame(draw);
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
+        for (let i = 0; i < ROWS; i++) {
+            step();
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
     </script>
 </body>
 </html>

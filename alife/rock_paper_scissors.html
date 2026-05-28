@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spatial Rock-Paper-Scissors</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Spatial Rock-Paper-Scissors (Cyclic Dominance)</strong><br><br>
+        This model demonstrates cyclic competition among three species (Rock, Paper, Scissors). Each cell belongs to one of three states. At each step, a cell chooses a random neighbor. If the neighbor's state "beats" the cell's state (Rock > Scissors > Paper > Rock), the cell is replaced by the neighbor's state.<br>
+        Over time, this local competition creates spiraling waves and dynamic balance, showing how biodiversity can be maintained in spatial environments even when no single species is strictly superior.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Uint8Array(COLS * ROWS);
+
+        for (let i = 0; i < grid.length; i++) {
+            grid[i] = Math.floor(Math.random() * 3);
+        }
+
+        const chars = ["#", "=", "O"];
+        const colors = ["#e77a61", "#8fd46b", "#76c7d5"]; 
+
+        function step() {
+            const next = new Uint8Array(grid);
+            
+            const updates = COLS * ROWS * 2;
+            for (let i = 0; i < updates; i++) {
+                const x = Math.floor(Math.random() * COLS);
+                const y = Math.floor(Math.random() * ROWS);
+                
+                const neighbors = [
+                    [(x - 1 + COLS) % COLS, y],
+                    [(x + 1) % COLS, y],
+                    [x, (y - 1 + ROWS) % ROWS],
+                    [x, (y + 1) % ROWS]
+                ];
+                
+                const n = neighbors[Math.floor(Math.random() * 4)];
+                const selfState = next[y * COLS + x];
+                const neighborState = next[n[1] * COLS + n[0]];
+                
+                if ((neighborState === 0 && selfState === 2) || 
+                    (neighborState === 1 && selfState === 0) || 
+                    (neighborState === 2 && selfState === 1)) {
+                    next[y * COLS + x] = neighborState;
+                }
+            }
+            grid = next;
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const state = grid[y * COLS + x];
+                    html += `<span style="color:${colors[state]}; font-weight:bold;">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
+</body>
+</html>

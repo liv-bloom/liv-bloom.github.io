@@ -2,69 +2,150 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gumowski-Mira Attractor</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        .controls { margin-top: 10px; display: flex; gap: 15px; }
-        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #444; }
-        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
-    <div id="info">Gumowski-Mira Attractor</div>
-    <canvas id="canvas" width="600" height="600"></canvas>
-    <div class="controls">
-        <button onclick="reset()">Reset</button>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Gumowski-Mira Attractor</strong><br><br>
+        Developed at CERN in 1980 by Igor Gumowski and Christian Mira to calculate the trajectories of sub-atomic particles in a synchrotron. This strange attractor traces intricate, wing-like or microscopic organism-like orbits.<br>
+        The ASCII density accumulation algorithm highlights the most frequently visited areas of the chaotic orbit in bright orange and bold characters.
+        <div class="controls">
+            <button onclick="reset()">Randomize Parameters</button>
+            <span id="paramDisplay" style="margin-left: 10px; color: #76c7d5;"></span>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Uint8Array(COLS * ROWS);
+        
         let x = 0;
         let y = 0.5;
         let a = -0.31;
         let b = 1;
-        let iter = 0;
+
+        const chars = [".", ",", "+", "*", "O", "@"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#76c7d5", "#f3d36b", "#e77a61"];
+
+        function f(v) {
+            return a * v + 2 * (1 - a) * v * v / (1 + v * v);
+        }
 
         function reset() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, width, height);
+            grid.fill(0);
             x = 0;
             y = 0.5;
-            iter = 0;
-            a = -0.1 + Math.random() * -0.5;
+            a = -0.1 + Math.random() * -0.5; // Random between -0.1 and -0.6
+            document.getElementById("paramDisplay").innerText = `a = ${a.toFixed(3)}`;
         }
 
-        function f(x) {
-            return a * x + 2 * (1 - a) * x * x / (1 + x * x);
-        }
-
-        function draw() {
-            for (let i = 0; i < 2000; i++) {
+        function step() {
+            for (let i = 0; i < 600; i++) {
                 let nextX = b * y + f(x);
                 let nextY = -x + f(nextX);
                 
                 x = nextX;
                 y = nextY;
 
-                let drawX = (x / 20) * width + width / 2;
-                let drawY = (y / 20) * height + height / 2;
+                // Typical bounds vary based on 'a', but [-20, 20] is a safe start
+                let scaleX = COLS / 35;
+                let scaleY = ROWS / 35;
+                
+                let drawX = Math.floor(COLS / 2 + x * scaleX * 2); // aspect ratio compensation
+                let drawY = Math.floor(ROWS / 2 - y * scaleY); 
 
-                ctx.fillStyle = `hsla(${iter % 360}, 80%, 60%, 0.3)`;
-                ctx.fillRect(drawX, drawY, 1, 1);
-                iter += 0.05;
+                if (drawX >= 0 && drawX < COLS && drawY >= 0 && drawY < ROWS) {
+                    let idx = drawY * COLS + drawX;
+                    if (grid[idx] < 5) grid[idx]++;
+                }
             }
-            requestAnimationFrame(draw);
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 2 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
         }
 
         reset();
-        draw();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

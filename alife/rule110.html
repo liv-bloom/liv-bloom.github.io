@@ -1,60 +1,125 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Rule 110</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { color: #76c7d5; line-height: 1.1; }
-    h1 { color: #8fd46b; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Rule 110 (Turing Complete 1D CA)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Rule 110 (Turing Complete 1D CA)</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ascii_rule110.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 100, H = 40;
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-    let current_row = 0;
-    
-    // Initialize the last cell to 1
-    grid[0][W-2] = 1;
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Wolfram Rule 110</strong><br><br>
+        Rule 110 is one of the most significant discoveries in computer science and complex systems. It is a 1D elementary cellular automaton, introduced by Stephen Wolfram.<br><br>
+        <strong>The Significance:</strong><br>
+        While Rule 30 produces pure chaos, Rule 110 exhibits "Class IV" behavior—the boundary between order and chaos. It generates localized structures ("gliders") that move and interact with each other in complex, purposeful ways over time.<br><br>
+        In 2004, Matthew Cook proved that Rule 110 is <strong>Turing complete</strong>. This means this incredibly simple visual pattern—determined by just looking at a cell and its two immediate neighbors—can simulate any computer program or algorithm in the world, given enough time and space. It is profound evidence that universal computation can exist in the simplest natural systems.
+    </div>
 
-    function step() {
-      if(current_row < H - 1) {
-        let prev = grid[current_row];
-        let next = grid[current_row + 1];
-        for(let x=0; x<W; x++) {
-          let left = prev[(x - 1 + W) % W];
-          let center = prev[x];
-          let right = prev[(x + 1) % W];
-          let val = (left << 2) | (center << 1) | right;
-          let rule110 = [0,1,1,1,0,1,1,0];
-          next[x] = rule110[val];
+    <script>
+        const COLS = 120;
+        const ROWS = 60;
+        let historyGrid = []; 
+        
+        let currentGen = new Uint8Array(COLS);
+        currentGen[COLS - 2] = 1; 
+        historyGrid.push(currentGen);
+        
+        const ruleset = [0, 1, 1, 1, 0, 1, 1, 0];
+
+        function step() {
+            let nextGen = new Uint8Array(COLS);
+            let lastGen = historyGrid[historyGrid.length - 1];
+            
+            for (let i = 0; i < COLS; i++) {
+                let left = lastGen[(i - 1 + COLS) % COLS];
+                let middle = lastGen[i];
+                let right = lastGen[(i + 1) % COLS];
+                let state = (left << 2) | (middle << 1) | right;
+                nextGen[i] = ruleset[state];
+            }
+            
+            historyGrid.push(nextGen);
+            if (historyGrid.length > ROWS) {
+                historyGrid.shift();
+            }
+            draw();
         }
-        current_row++;
-      } else {
-        // Scroll
-        for(let y=0; y<H-1; y++) grid[y] = [...grid[y+1]];
-        let prev = grid[H-2];
-        let next = Array(W).fill(0);
-        for(let x=0; x<W; x++) {
-          let left = prev[(x - 1 + W) % W];
-          let center = prev[x];
-          let right = prev[(x + 1) % W];
-          let val = (left << 2) | (center << 1) | right;
-          let rule110 = [0,1,1,1,0,1,1,0];
-          next[x] = rule110[val];
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                if (y < historyGrid.length) {
+                    for (let x = 0; x < COLS; x++) {
+                        let state = historyGrid[y][x];
+                        html += state 
+                            ? '<span style="color:#76c7d5; font-weight:bold;">█</span>' 
+                            : '<span style="color:#2b2b1a;">·</span>';
+                    }
+                } else {
+                    html += " ".repeat(COLS);
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
         }
-        grid[H-1] = next;
-      }
-      
-      document.getElementById('field').textContent = grid.map(row => row.map(c => c ? '■' : ' ').join('')).join('\n');
-    }
-    
-    document.getElementById('field').textContent = grid.map(row => row.map(c => c ? '■' : ' ').join('')).join('\n');
-    setInterval(step, 100);
-  </script>
+
+        for (let i = 0; i < ROWS; i++) {
+            step();
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
 </body>
 </html>

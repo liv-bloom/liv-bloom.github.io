@@ -1,66 +1,156 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Termites Model</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { color: #f3d36b; }
-    h1 { color: #e77a61; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Termites (Woodchips Clustering)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Termites (Woodchips Clustering)</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ascii_termites.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.random() > 0.92 ? 1 : 0));
-    let termites = Array.from({length: 30}, () => ({x: Math.floor(Math.random()*W), y: Math.floor(Math.random()*H), carrying: false}));
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Termites (Woodchips Clustering)</strong><br><br>
+        A classic decentralized agent model proposed by Mitchel Resnick.<br>
+        1. Termites (<span style="color:#e77a61; font-weight:bold;">T</span>) wander randomly.<br>
+        2. If a termite bumps into a woodchip (<span style="color:#f3d36b;">*</span>) and is carrying nothing, it picks it up (<span style="color:#f3d36b; font-weight:bold;">T</span>).<br>
+        3. If it bumps into a woodchip and is already carrying one, it drops the woodchip in an empty adjacent space.<br>
+        From these purely local, random actions, the termites inevitably sort the initially chaotic field into large, organized piles.
+    </div>
 
-    function step() {
-      for(let t of termites) {
-        // Random walk
-        t.x = (t.x + Math.floor(Math.random()*3)-1 + W) % W;
-        t.y = (t.y + Math.floor(Math.random()*3)-1 + H) % H;
-
-        // Interaction
-        if(grid[t.y][t.x] === 1) {
-          if(!t.carrying) {
-            // Pick up
-            grid[t.y][t.x] = 0;
-            t.carrying = true;
-          } else {
-            // Drop nearby
-            let placed = false;
-            for(let dy=-1; dy<=1 && !placed; dy++) {
-              for(let dx=-1; dx<=1 && !placed; dx++) {
-                if(dx===0 && dy===0) continue;
-                let nx = (t.x+dx+W)%W, ny = (t.y+dy+H)%H;
-                if(grid[ny][nx] === 0) {
-                  grid[ny][nx] = 1;
-                  t.carrying = false;
-                  placed = true;
-                }
-              }
-            }
-          }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        
+        for (let i = 0; i < grid.length; i++) {
+            if (Math.random() < 0.1) grid[i] = 1;
         }
-      }
 
-      let render = grid.map(arr => [...arr]);
-      // Overlay termites
-      for(let t of termites) {
-        render[t.y][t.x] = t.carrying ? 'T' : 't';
-      }
+        let termites = [];
+        for (let i = 0; i < 50; i++) {
+            termites.push({
+                x: Math.floor(Math.random() * COLS),
+                y: Math.floor(Math.random() * ROWS),
+                carrying: false
+            });
+        }
 
-      document.getElementById('field').textContent = render.map(row => row.map(c => {
-        if(c === 1) return '*';
-        if(c === 0) return ' ';
-        return c; // 'T' or 't'
-      }).join('')).join('\n');
-    }
-    setInterval(step, 80);
-  </script>
+        const chars = [".", "*"];
+        const colors = ["#2b2b1a", "#f3d36b"];
+
+        function step() {
+            for (let t of termites) {
+                t.x = (t.x + Math.floor(Math.random() * 3) - 1 + COLS) % COLS;
+                t.y = (t.y + Math.floor(Math.random() * 3) - 1 + ROWS) % ROWS;
+
+                let idx = t.y * COLS + t.x;
+
+                if (grid[idx] === 1) {
+                    if (!t.carrying) {
+                        grid[idx] = 0;
+                        t.carrying = true;
+                    } else {
+                        let placed = false;
+                        for (let dy = -1; dy <= 1 && !placed; dy++) {
+                            for (let dx = -1; dx <= 1 && !placed; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                let nx = (t.x + dx + COLS) % COLS;
+                                let ny = (t.y + dy + ROWS) % ROWS;
+                                let nIdx = ny * COLS + nx;
+                                if (grid[nIdx] === 0) {
+                                    grid[nIdx] = 1;
+                                    t.carrying = false;
+                                    placed = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            let renderGrid = new Uint8Array(grid); 
+            
+            for (let t of termites) {
+                let idx = t.y * COLS + t.x;
+                renderGrid[idx] = t.carrying ? 3 : 2;
+            }
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let val = renderGrid[y * COLS + x];
+                    if (val === 0) {
+                        html += `<span style="color:#2b2b1a;">.</span>`;
+                    } else if (val === 1) {
+                        html += `<span style="color:#f3d36b;">*</span>`;
+                    } else if (val === 2) {
+                        html += `<span style="color:#e77a61; font-weight:bold;">T</span>`;
+                    } else if (val === 3) {
+                        html += `<span style="color:#f3d36b; font-weight:bold;">T</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 60);
+
+    </script>
 </body>
 </html>

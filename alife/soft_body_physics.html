@@ -2,62 +2,82 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soft Body Physics (Mass-Spring System)</title>
+    <title>Soft Body Physics</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; display: flex; gap: 5px; align-items: center;}
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Soft Body Physics</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A mass-spring-damper system simulating soft, squishy bodies. Points (masses) are connected by springs. Click and drag to throw the blob around.</p>
+        <strong>Soft Body Physics</strong><br><br>
+        A mass-spring-damper system simulating soft, squishy bodies.<br>
+        In this ASCII translation, masses (nodes) and springs (connections) are simulated dynamically. We render the springs using Bresenham's line algorithm with dim characters (`.`, `-`), and the masses as solid points (`O`, `@`).
         <div class="controls">
-            <button onclick="reset()">Reset Blob</button>
             <button onclick="addBlob()">Drop New Blob</button>
+            <button onclick="reset()">Clear Area</button>
         </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 120;
+        const ROWS = 60;
         
-        let width, height;
         let points = [];
         let springs = [];
         
-        const GRAVITY = 0.5;
+        // Tuned for the text grid aspect ratio
+        const GRAVITY = 0.05; 
         const FRICTION = 0.99;
         const BOUNCE = 0.8;
         const STIFFNESS = 0.2;
         const DAMPING = 0.5;
-        
-        let mouseX = 0, mouseY = 0;
-        let isDragging = false;
-        let draggedPoint = null;
 
         class Point {
-            constructor(x, y) {
+            constructor(x, y, isCenter=false) {
                 this.x = x;
                 this.y = y;
                 this.oldX = x;
                 this.oldY = y;
-                this.pinned = false;
-                this.mass = 1;
+                this.isCenter = isCenter;
             }
-            
             update() {
-                if (this.pinned) return;
-                
                 let vx = (this.x - this.oldX) * FRICTION;
                 let vy = (this.y - this.oldY) * FRICTION;
                 
@@ -65,21 +85,13 @@
                 this.oldY = this.y;
                 
                 this.x += vx;
-                this.y += vy;
-                this.y += GRAVITY;
+                this.y += vy + GRAVITY;
                 
                 // Bounds
-                if (this.x < 0) { this.x = 0; this.oldX = this.x + vx * BOUNCE; }
-                if (this.x > width) { this.x = width; this.oldX = this.x + vx * BOUNCE; }
-                if (this.y < 0) { this.y = 0; this.oldY = this.y + vy * BOUNCE; }
-                if (this.y > height) { this.y = height; this.oldY = this.y + vy * BOUNCE; }
-            }
-            
-            draw() {
-                ctx.fillStyle = '#e5eadb';
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 4, 0, Math.PI * 2);
-                ctx.fill();
+                if (this.x < 1) { this.x = 1; this.oldX = this.x + vx * BOUNCE; }
+                if (this.x >= COLS - 1) { this.x = COLS - 2; this.oldX = this.x + vx * BOUNCE; }
+                if (this.y < 1) { this.y = 1; this.oldY = this.y + vy * BOUNCE; }
+                if (this.y >= ROWS - 1) { this.y = ROWS - 2; this.oldY = this.y + vy * BOUNCE; }
             }
         }
         
@@ -91,11 +103,10 @@
                 this.stiffness = stiffness;
                 this.damping = damping;
             }
-            
             update() {
                 let dx = this.p2.x - this.p1.x;
                 let dy = this.p2.y - this.p1.y;
-                let dist = Math.sqrt(dx * dx + dy * dy);
+                let dist = Math.hypot(dx, dy);
                 
                 if (dist === 0) return;
                 
@@ -103,150 +114,162 @@
                 let forceX = dx * diff * this.stiffness;
                 let forceY = dy * diff * this.stiffness;
                 
-                // Simple damping approximation
                 forceX *= (1 - this.damping);
                 forceY *= (1 - this.damping);
                 
-                if (!this.p1.pinned) {
-                    this.p1.x -= forceX * 0.5;
-                    this.p1.y -= forceY * 0.5;
-                }
-                
-                if (!this.p2.pinned) {
-                    this.p2.x += forceX * 0.5;
-                    this.p2.y += forceY * 0.5;
-                }
-            }
-            
-            draw() {
-                ctx.strokeStyle = '#8fd46b';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(this.p1.x, this.p1.y);
-                ctx.lineTo(this.p2.x, this.p2.y);
-                ctx.stroke();
+                this.p1.x -= forceX * 0.5;
+                this.p1.y -= forceY * 0.5;
+                this.p2.x += forceX * 0.5;
+                this.p2.y += forceY * 0.5;
             }
         }
 
         function createBlob(cx, cy, radius, segments) {
             let blobPoints = [];
-            let centerPoint = new Point(cx, cy);
+            let centerPoint = new Point(cx, cy, true);
             points.push(centerPoint);
             blobPoints.push(centerPoint);
             
-            // Perimeter points
+            // Note: because ASCII grids have cells ~2x as tall as they are wide, 
+            // we adjust the y-radius to make it look circular instead of stretched.
+            let yRadius = radius * 0.5;
+
             for (let i = 0; i < segments; i++) {
                 let angle = (i / segments) * Math.PI * 2;
                 let px = cx + Math.cos(angle) * radius;
-                let py = cy + Math.sin(angle) * radius;
+                let py = cy + Math.sin(angle) * yRadius;
                 let p = new Point(px, py);
                 points.push(p);
                 blobPoints.push(p);
                 
-                // Connect to center
-                springs.push(new Spring(centerPoint, p, radius, 0.1, 0.5));
+                let dist = Math.hypot(px - cx, py - cy);
+                springs.push(new Spring(centerPoint, p, dist, 0.1, 0.5));
             }
             
-            // Connect perimeter
             for (let i = 1; i <= segments; i++) {
                 let p1 = blobPoints[i];
                 let p2 = blobPoints[i === segments ? 1 : i + 1];
-                let dist = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+                let dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
                 springs.push(new Spring(p1, p2, dist, 0.5, 0.2));
                 
-                // Structural cross-bracing (connect to point across)
                 let oppositeIdx = i + Math.floor(segments/2);
                 if (oppositeIdx > segments) oppositeIdx -= segments;
                 if (i < oppositeIdx) {
                     let pOpp = blobPoints[oppositeIdx];
-                    let distOpp = Math.sqrt(Math.pow(p1.x - pOpp.x, 2) + Math.pow(p1.y - pOpp.y, 2));
+                    let distOpp = Math.hypot(p1.x - pOpp.x, p1.y - pOpp.y);
                     springs.push(new Spring(p1, pOpp, distOpp, 0.1, 0.5));
                 }
             }
         }
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            if (points.length === 0) reset();
-        }
-
         function reset() {
             points = [];
             springs = [];
-            createBlob(width / 2, height / 3, 60, 16);
+            createBlob(COLS / 2, 10, 15, 12);
         }
 
         function addBlob() {
-            createBlob(Math.random() * (width - 100) + 50, 50, 40 + Math.random() * 30, 12 + Math.floor(Math.random()*8));
+            createBlob(Math.random() * (COLS - 40) + 20, 10, 8 + Math.random() * 10, 8 + Math.floor(Math.random()*6));
         }
 
-        function animate() {
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, width, height);
+        function drawLine(grid, x0, y0, x1, y1) {
+            x0 = Math.floor(x0); y0 = Math.floor(y0);
+            x1 = Math.floor(x1); y1 = Math.floor(y1);
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
             
-            // Physics iterations for stability
+            let count = 0;
+            while(true) {
+                if (x0 >= 0 && x0 < COLS && y0 >= 0 && y0 < ROWS) {
+                    // Do not overwrite points
+                    if (!grid[y0 * COLS + x0]) {
+                        grid[y0 * COLS + x0] = { char: ".", color: "#394034" };
+                    }
+                }
+                if (x0 === x1 && y0 === y1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+                
+                count++;
+                if (count > 200) break; // safety
+            }
+        }
+
+        function step() {
             for (let i = 0; i < 5; i++) {
                 for (let spring of springs) spring.update();
             }
-            
             for (let p of points) p.update();
             
-            // Mouse interaction
-            if (isDragging && draggedPoint) {
-                draggedPoint.x = mouseX;
-                draggedPoint.y = mouseY;
+            let grid = new Array(COLS * ROWS).fill(null);
+
+            // Draw springs
+            for (let s of springs) {
+                drawLine(grid, s.p1.x, s.p1.y, s.p2.x, s.p2.y);
             }
             
-            // Draw
-            for (let spring of springs) spring.draw();
-            for (let p of points) p.draw();
-            
-            requestAnimationFrame(animate);
-        }
-
-        // Mouse events
-        canvas.addEventListener('mousedown', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-            
-            let minDist = 30;
+            // Draw points
             for (let p of points) {
-                let dist = Math.sqrt(Math.pow(p.x - mouseX, 2) + Math.pow(p.y - mouseY, 2));
-                if (dist < minDist) {
-                    minDist = dist;
-                    draggedPoint = p;
+                let px = Math.floor(p.x);
+                let py = Math.floor(p.y);
+                if (px >= 0 && px < COLS && py >= 0 && py < ROWS) {
+                    if (p.isCenter) {
+                        grid[py * COLS + px] = { char: "@", color: "#f3d36b" }; // Yellow center
+                    } else {
+                        grid[py * COLS + px] = { char: "O", color: "#8fd46b" }; // Green outer
+                    }
                 }
             }
-            
-            if (draggedPoint) {
-                isDragging = true;
-            }
-        });
-        
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-        });
-        
-        canvas.addEventListener('mouseup', () => {
-            isDragging = false;
-            draggedPoint = null;
-        });
-        
-        canvas.addEventListener('mouseleave', () => {
-            isDragging = false;
-            draggedPoint = null;
-        });
 
-        window.addEventListener('resize', resize);
-        resize();
-        animate();
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let cell = grid[y * COLS + x];
+                    if (cell) {
+                        html += `<span style="color:${cell.color};">${cell.char}</span>`;
+                    } else {
+                        html += " ";
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        reset();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

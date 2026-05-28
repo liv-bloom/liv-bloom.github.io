@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Nagel-Schreckenberg Traffic Model</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    
+    <div style="max-width: 600px; margin-top: 20px; font-size: 12px; text-align: left;">
+        <strong>Nagel-Schreckenberg Traffic Model</strong><br><br>
+        A theoretical model of highway traffic demonstrating the spontaneous emergence of "phantom traffic jams."<br>
+        This visualization shows 60 independent circular lanes (wrapped horizontally). The top lane has the lowest car density, and the bottom lane has the highest.<br>
+        Each car follows 4 simple rules: (1) Accelerate if below speed limit, (2) Brake to avoid hitting the car ahead, (3) Randomly brake (dawdle) with some probability, and (4) Move forward. Watch how high density (bottom rows) triggers backward-propagating traffic waves.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const MAX_SPEED = 5;
+        const P_DAWDLE = 0.3; // Probability of random braking
+
+        // state: -1 means empty, 0..MAX_SPEED means a car with that speed
+        let grid = new Int8Array(COLS * ROWS);
+        
+        // Initialize lanes with increasing density from top (y=0) to bottom (y=ROWS-1)
+        for (let y = 0; y < ROWS; y++) {
+            let density = 0.05 + (y / ROWS) * 0.45; // Density ranges from 5% to 50%
+            for (let x = 0; x < COLS; x++) {
+                if (Math.random() < density) {
+                    grid[y * COLS + x] = Math.floor(Math.random() * (MAX_SPEED + 1));
+                } else {
+                    grid[y * COLS + x] = -1;
+                }
+            }
+        }
+
+        const colors = ["#e74c3c", "#e67e22", "#f1c40f", "#8fd46b", "#3498db", "#9b59b6"]; // Colors for speed 0 to 5
+        const chars = ["#", "=", "-", "~", ">", "»"];
+
+        function step() {
+            const nextGrid = new Int8Array(COLS * ROWS);
+            nextGrid.fill(-1);
+
+            for (let y = 0; y < ROWS; y++) {
+                // First pass: Calculate new speeds
+                let laneSpeeds = new Int8Array(COLS);
+                laneSpeeds.fill(-1);
+
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    if (grid[idx] !== -1) {
+                        let v = grid[idx];
+                        
+                        // 1. Accelerate
+                        if (v < MAX_SPEED) v++;
+                        
+                        // Find distance to next car
+                        let d = 1;
+                        while (d <= MAX_SPEED) {
+                            if (grid[y * COLS + ((x + d) % COLS)] !== -1) break;
+                            d++;
+                        }
+                        
+                        // 2. Slow down
+                        if (v >= d) v = d - 1;
+                        
+                        // 3. Randomization
+                        if (v > 0 && Math.random() < P_DAWDLE) v--;
+                        
+                        laneSpeeds[x] = v;
+                    }
+                }
+
+                // Second pass: Move cars
+                for (let x = 0; x < COLS; x++) {
+                    if (laneSpeeds[x] !== -1) {
+                        const v = laneSpeeds[x];
+                        const newX = (x + v) % COLS;
+                        nextGrid[y * COLS + newX] = v;
+                    }
+                }
+            }
+
+            grid = nextGrid;
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const v = grid[y * COLS + x];
+                    if (v === -1) {
+                        html += "<span style='color:transparent'>&nbsp;</span>";
+                    } else {
+                        html += `<span style="color:${colors[v]}; font-weight:bold;">${chars[v]}</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
+    </script>
+</body>
+</html>

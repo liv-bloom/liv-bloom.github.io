@@ -2,136 +2,108 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cell Division (Mitosis)</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Cell Division (Mitosis)</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A 2D physics model of tissue growth. Cells slowly grow and undergo mitosis when they reach a threshold size. Repulsion forces pack them tightly like real biological cells.</p>
-        <div class="controls">
-            <button onclick="reset()">Restart</button>
-        </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Cell Division (Mitosis) ASCII Physics Model</strong><br><br>
+        A 2D physics model of tissue growth adapted for a text grid. Cells (<span style="color:#8fd46b; font-weight:bold;">O</span>) slowly grow by accumulating energy.<br>
+        When they reach a threshold size, they undergo mitosis, splitting into two daughter cells.<br>
+        A repulsive force mimics physical cell membranes, pushing cells apart to form tightly packed structures resembling real biological tissue.
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let width, height;
-        let cells = [];
-        const MAX_CELLS = 400;
-        const SPLIT_RADIUS = 20;
-        const MIN_RADIUS = 8;
-        const GROWTH_RATE = 0.04;
-        
-        // Base hue for the tissue
-        const BASE_HUE = 140;
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            reset();
-        }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        let cells = [];
+
+        const MAX_CELLS = 150;
+        const SPLIT_ENERGY = 100;
+        const REPULSION = 0.5;
+
+        // Using ALife Garden unified palette
+        const chars = [".", "o", "O", "@"];
+        const colors = ["#2b2b1a", "#76c7d5", "#8fd46b", "#e77a61"];
 
         class Cell {
-            constructor(x, y, r, hue) {
+            constructor(x, y) {
                 this.x = x;
                 this.y = y;
-                this.r = r;
+                this.energy = Math.random() * 50;
                 this.vx = 0;
                 this.vy = 0;
-                this.hue = hue;
-                this.splitCooldown = 60; // frames before it can split again
+                this.state = 1; 
             }
 
             update() {
-                if (this.splitCooldown > 0) this.splitCooldown--;
+                this.energy += 1;
                 
-                // Grow
-                if (this.r < SPLIT_RADIUS + 2) {
-                    this.r += GROWTH_RATE;
+                if (this.energy > SPLIT_ENERGY * 0.8) {
+                    this.state = 2; // ready to split
+                } else {
+                    this.state = 1;
                 }
-                
-                // Physics (friction and velocity)
+
+                // Physics update
                 this.x += this.vx;
                 this.y += this.vy;
-                this.vx *= 0.7; // high friction (like viscous fluid)
-                this.vy *= 0.7;
                 
-                // Contain within circle slightly smaller than canvas
-                let dx = this.x - width/2;
-                let dy = this.y - height/2;
+                // high friction
+                this.vx *= 0.5;
+                this.vy *= 0.5;
+
+                // keep within bounds roughly centered
+                let dx = this.x - COLS/2;
+                let dy = this.y - ROWS/2;
                 let dist = Math.sqrt(dx*dx + dy*dy);
-                let containerRadius = width/2 - 20;
-                if (dist + this.r > containerRadius) {
-                    let force = (dist + this.r - containerRadius) * 0.1;
-                    this.vx -= (dx/dist) * force;
-                    this.vy -= (dy/dist) * force;
+                if (dist > ROWS/2 - 2) {
+                    this.vx -= dx * 0.01;
+                    this.vy -= dy * 0.01;
                 }
             }
 
             divide() {
-                // Split area in half: pi*r^2 / 2 -> new_r = r / sqrt(2)
-                let newR = this.r / Math.sqrt(2);
-                if (newR < MIN_RADIUS) return false;
-                
-                this.r = newR;
-                this.splitCooldown = 60;
-                
-                // Slight hue mutation
-                let newHue = this.hue + (Math.random() * 20 - 10);
-                
-                // Angle of division
+                this.energy /= 2;
+                this.state = 1;
                 let angle = Math.random() * Math.PI * 2;
-                let offset = newR * 0.5;
-                
-                let child = new Cell(
-                    this.x + Math.cos(angle) * offset,
-                    this.y + Math.sin(angle) * offset,
-                    newR,
-                    newHue
-                );
-                
-                this.x -= Math.cos(angle) * offset;
-                this.y -= Math.sin(angle) * offset;
-                
+                let child = new Cell(this.x + Math.cos(angle) * 1.5, this.y + Math.sin(angle) * 1.5);
+                child.energy = this.energy;
+                this.x -= Math.cos(angle) * 1.5;
+                this.y -= Math.sin(angle) * 1.5;
                 cells.push(child);
-                return true;
-            }
-
-            draw() {
-                ctx.fillStyle = `hsl(${this.hue}, 60%, 50%)`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Draw nucleus
-                ctx.fillStyle = `hsl(${this.hue}, 40%, 30%)`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.r * 0.3, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.strokeStyle = '#10120f';
-                ctx.lineWidth = 1;
-                ctx.stroke();
             }
         }
+
+        cells.push(new Cell(COLS/2, ROWS/2));
 
         function resolveCollisions() {
             for (let i = 0; i < cells.length; i++) {
@@ -141,57 +113,88 @@
                     let dx = c2.x - c1.x;
                     let dy = c2.y - c1.y;
                     let dist = Math.sqrt(dx*dx + dy*dy);
-                    let minDist = c1.r + c2.r;
+                    let minDist = 2.0; 
                     
-                    if (dist < minDist && dist > 0) {
+                    if (dist < minDist && dist > 0.001) {
                         let overlap = minDist - dist;
-                        let nx = dx / dist;
-                        let ny = dy / dist;
-                        // Repulsion force
-                        let force = overlap * 0.1;
-                        c1.vx -= nx * force;
-                        c1.vy -= ny * force;
-                        c2.vx += nx * force;
-                        c2.vy += ny * force;
+                        let force = overlap * REPULSION;
+                        let fx = (dx/dist) * force;
+                        let fy = (dy/dist) * force;
+                        
+                        c1.vx -= fx;
+                        c1.vy -= fy;
+                        c2.vx += fx;
+                        c2.vy += fy;
                     }
                 }
             }
         }
 
-        function reset() {
-            cells = [];
-            cells.push(new Cell(width/2, height/2, MIN_RADIUS * 1.5, BASE_HUE));
-        }
-
-        function draw() {
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, width, height);
-
+        function step() {
+            grid.fill(0);
             resolveCollisions();
-            
-            // Draw background boundary
-            ctx.strokeStyle = '#394034';
-            ctx.beginPath();
-            ctx.arc(width/2, height/2, width/2 - 20, 0, Math.PI * 2);
-            ctx.stroke();
 
             for (let i = cells.length - 1; i >= 0; i--) {
                 let c = cells[i];
                 c.update();
-                c.draw();
                 
-                // Check if ready to divide
-                if (c.r >= SPLIT_RADIUS && cells.length < MAX_CELLS && c.splitCooldown <= 0) {
+                if (c.energy >= SPLIT_ENERGY && cells.length < MAX_CELLS) {
                     c.divide();
+                }
+
+                // Snap to grid for rendering
+                let px = Math.floor(c.x);
+                let py = Math.floor(c.y);
+                if (px >= 0 && px < COLS && py >= 0 && py < ROWS) {
+                    grid[py * COLS + px] = c.state;
                 }
             }
 
-            requestAnimationFrame(draw);
+            draw();
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 0 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
     </script>
 </body>
 </html>

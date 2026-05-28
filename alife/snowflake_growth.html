@@ -2,125 +2,98 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Snowflake Growth (Hexagonal CA)</title>
+    <title>Snowflake Growth</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Snowflake Growth</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A hexagonal cellular automaton simulating the growth of a snowflake (Packard snowflake model). A cell freezes if it has exactly 1 frozen neighbor.</p>
+        <strong>Snowflake Growth (Hexagonal CA)</strong><br><br>
+        A cellular automaton simulating the growth of a snowflake (Packard snowflake model).<br>
+        To simulate a hexagonal grid on an ASCII square grid, we use a 6-neighbor rule. A cell freezes into ice (`*`) if it has exactly 1 frozen neighbor. The resulting fractal exhibits perfect 6-fold radial symmetry.
         <div class="controls">
-            <button onclick="reset()">Restart</button>
+            <button onclick="reset()">Restart Winter</button>
         </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        // Use a dense grid
+        const COLS = 120;
+        const ROWS = 60;
         
-        let width, height;
-        const HEX_SIZE = 3;
-        const HEX_HEIGHT = HEX_SIZE * 2;
-        const HEX_WIDTH = Math.sqrt(3) * HEX_SIZE;
+        let grid = new Uint8Array(COLS * ROWS);
+        let nextGrid = new Uint8Array(COLS * ROWS);
         
-        let cols, rows;
-        let grid, nextGrid;
-        
-        // Colors
-        const BG = '#10120f';
-        const ICE = '#8fd46b';
-        
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            cols = Math.floor(width / HEX_WIDTH);
-            rows = Math.floor(height / (HEX_HEIGHT * 0.75));
-            reset();
-        }
-
         function reset() {
-            grid = new Array(cols).fill(0).map(() => new Array(rows).fill(0));
-            nextGrid = new Array(cols).fill(0).map(() => new Array(rows).fill(0));
-            
+            grid.fill(0);
+            nextGrid.fill(0);
             // Seed the center
-            const cx = Math.floor(cols / 2);
-            const cy = Math.floor(rows / 2);
-            grid[cx][cy] = 1;
-            
-            ctx.fillStyle = BG;
-            ctx.fillRect(0, 0, width, height);
+            grid[Math.floor(ROWS / 2) * COLS + Math.floor(COLS / 2)] = 1;
+            draw();
         }
 
-        // Odd-R horizontal layout neighbors
-        const getNeighbors = (x, y) => {
+        // Hexagonal neighborhood on a square grid:
+        // (x-1, y), (x+1, y), (x, y-1), (x, y+1), (x-1, y+1), (x+1, y-1)
+        function getNeighbors(x, y) {
             let n = 0;
-            const parity = y % 2;
-            const directions = parity === 0 ? 
-                [[1, 0], [1, -1], [0, -1], [-1, 0], [0, 1], [1, 1]] :
-                [[1, 0], [0, -1], [-1, -1], [-1, 0], [-1, 1], [0, 1]];
-                
-            for (let d of directions) {
-                let nx = x + d[0];
-                let ny = y + d[1];
-                if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
-                    if (grid[nx][ny] === 1) n++;
-                }
-            }
+            if (x > 0) n += grid[y * COLS + (x - 1)];
+            if (x < COLS - 1) n += grid[y * COLS + (x + 1)];
+            if (y > 0) n += grid[(y - 1) * COLS + x];
+            if (y < ROWS - 1) n += grid[(y + 1) * COLS + x];
+            if (x > 0 && y < ROWS - 1) n += grid[(y + 1) * COLS + (x - 1)];
+            if (x < COLS - 1 && y > 0) n += grid[(y - 1) * COLS + (x + 1)];
             return n;
-        };
-
-        function drawHex(x, y) {
-            const pixelX = HEX_WIDTH * (x + 0.5 * (y % 2));
-            const pixelY = HEX_HEIGHT * 0.75 * y;
-            
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle_deg = 60 * i - 30;
-                const angle_rad = Math.PI / 180 * angle_deg;
-                const hx = pixelX + HEX_SIZE * Math.cos(angle_rad);
-                const hy = pixelY + HEX_SIZE * Math.sin(angle_rad);
-                if (i === 0) ctx.moveTo(hx, hy);
-                else ctx.lineTo(hx, hy);
-            }
-            ctx.closePath();
-            ctx.fill();
         }
 
-        let frameCount = 0;
         function step() {
-            frameCount++;
-            // Slow down growth
-            if (frameCount % 3 !== 0) return;
-            
             let changed = false;
-            
-            for (let x = 0; x < cols; x++) {
-                for (let y = 0; y < rows; y++) {
-                    nextGrid[x][y] = grid[x][y];
-                    if (grid[x][y] === 0) {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let idx = y * COLS + x;
+                    nextGrid[idx] = grid[idx];
+                    if (grid[idx] === 0) {
                         let n = getNeighbors(x, y);
-                        // Rule: freeze if exactly 1 frozen neighbor
-                        if (n === 1) {
-                            nextGrid[x][y] = 1;
+                        if (n === 1) { // Freeze condition
+                            nextGrid[idx] = 1;
                             changed = true;
-                            
-                            ctx.fillStyle = ICE;
-                            drawHex(x, y);
                         }
                     }
                 }
@@ -129,21 +102,56 @@
             let temp = grid;
             grid = nextGrid;
             nextGrid = temp;
+            
+            if (changed) draw();
         }
 
         function draw() {
-            step();
-            requestAnimationFrame(draw);
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (grid[y * COLS + x] === 1) {
+                        html += `<span style="color:#76c7d5; font-weight:bold;">*</span>`;
+                    } else {
+                        html += " ";
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
+        reset();
+        // Slower interval so the growth is visible
         
-        // Initial draw of the center seed
-        ctx.fillStyle = ICE;
-        drawHex(Math.floor(cols/2), Math.floor(rows/2));
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
         
-        draw();
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
     </script>
 </body>
 </html>

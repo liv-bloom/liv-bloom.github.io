@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cyclic Cellular Automaton</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Cyclic Cellular Automaton</strong><br><br>
+        A model demonstrating self-organizing spirals and waves out of pure noise.<br>
+        There are 6 states forming a loop (0 → 1 → 2 → 3 → 4 → 5 → 0). A cell in state S advances to state S+1 if and only if it has at least one neighboring cell already in state S+1 (it gets "eaten" by the next state in the food chain).<br>
+        Starting from complete randomness, small "seeds" of sequential states emerge and eventually dominate the entire grid with beautiful rotating spiral waves, reminiscent of excitable media like heart muscle tissue.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const STATES = 6;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        
+        // Random noise start
+        for (let i = 0; i < grid.length; i++) {
+            grid[i] = Math.floor(Math.random() * STATES);
+        }
+
+        const chars = [".", ",", "+", "*", "O", "@"];
+        const colors = ["#2b2b1a", "#394034", "#76c7d5", "#8fd46b", "#f3d36b", "#e77a61"];
+
+        function step() {
+            const nextGrid = new Uint8Array(grid);
+            
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    const currentState = grid[idx];
+                    const targetState = (currentState + 1) % STATES;
+                    
+                    let advanced = false;
+                    // Moore neighborhood
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const nx = (x + dx + COLS) % COLS;
+                            const ny = (y + dy + ROWS) % ROWS;
+                            if (grid[ny * COLS + nx] === targetState) {
+                                advanced = true;
+                                break;
+                            }
+                        }
+                        if (advanced) break;
+                    }
+                    
+                    if (advanced) {
+                        nextGrid[idx] = targetState;
+                    }
+                }
+            }
+            grid = nextGrid;
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const state = grid[y * COLS + x];
+                    let fw = state > 2 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
+</body>
+</html>

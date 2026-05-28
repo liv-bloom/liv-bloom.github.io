@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SmoothLife (Continuous Game of Life)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    
+    <div style="max-width: 600px; margin-top: 20px; font-size: 12px; text-align: left;">
+        <strong>SmoothLife (Continuous Game of Life)</strong><br><br>
+        A continuous-space, continuous-state generalization of Conway's Game of Life, proposed by Stephan Rafler in 2011.<br>
+        Instead of binary cells on a rigid grid, cells have continuous float values from 0.0 to 1.0. Neighborhoods are calculated using continuous integration (rings/discs) instead of discrete neighbors.<br>
+        This creates beautiful, organic, fluid-like behaviors such as gliding amoebas, pulsing blobs, and cellular mitosis.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Float32Array(COLS * ROWS);
+        let nextGrid = new Float32Array(COLS * ROWS);
+        
+        // Initialize with a random blob in the center
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                const cx = COLS / 2;
+                const cy = ROWS / 2;
+                if (Math.random() < 0.3 && Math.hypot(x-cx, y-cy) < 15) {
+                    grid[y * COLS + x] = Math.random();
+                } else {
+                    grid[y * COLS + x] = 0.0;
+                }
+            }
+        }
+
+        // SmoothLife Parameters (Rafler's original rules mapped to small radius)
+        const R_INNER = 2.0;  // Radius of the cell itself
+        const R_OUTER = 6.0;  // Radius of the neighborhood ring
+        const B1 = 0.257, B2 = 0.336; // Birth range
+        const D1 = 0.365, D2 = 0.549; // Death range
+        const ALPHA_N = 0.028; // Transition smoothness
+        const ALPHA_M = 0.147; 
+        
+        const chars = ["&nbsp;", ".", "-", "+", "*", "O", "0", "@"];
+        const colors = ["#10120f", "#1b2918", "#2a4a1f", "#3c6e26", "#50962f", "#67c439", "#8fd46b", "#e5eadb"];
+
+        // Sigmoid step function (smooth threshold)
+        function sigma(x, a, alpha) {
+            return 1.0 / (1.0 + Math.exp(-4.0 * (x - a) / alpha));
+        }
+
+        // Double sigmoid step function
+        function sigma_m(x, a, b) {
+            return sigma(x, a, ALPHA_N) * (1.0 - sigma(x, b, ALPHA_N));
+        }
+
+        function transition(n, m) {
+            const lerp = sigma(m, 0.5, ALPHA_M);
+            const a = B1 * (1 - lerp) + D1 * lerp;
+            const b = B2 * (1 - lerp) + D2 * lerp;
+            return sigma_m(n, a, b);
+        }
+
+        function step() {
+            // For each pixel, calculate inner and outer integrals
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let m = 0; // Inner sum
+                    let n = 0; // Outer sum
+                    let m_count = 0;
+                    let n_count = 0;
+
+                    for (let dy = -Math.ceil(R_OUTER); dy <= Math.ceil(R_OUTER); dy++) {
+                        for (let dx = -Math.ceil(R_OUTER); dx <= Math.ceil(R_OUTER); dx++) {
+                            const r = Math.hypot(dx, dy);
+                            if (r > R_OUTER) continue;
+
+                            const nx = (x + dx + COLS) % COLS;
+                            const ny = (y + dy + ROWS) % ROWS;
+                            const val = grid[ny * COLS + nx];
+
+                            if (r <= R_INNER) {
+                                m += val;
+                                m_count++;
+                            } else {
+                                n += val;
+                                n_count++;
+                            }
+                        }
+                    }
+
+                    // Normalize averages
+                    m = m_count > 0 ? m / m_count : 0;
+                    n = n_count > 0 ? n / n_count : 0;
+
+                    // Compute transition
+                    const delta = transition(n, m);
+                    
+                    // Simple temporal smoothing
+                    let nextVal = grid[y * COLS + x] + 0.1 * (delta - grid[y * COLS + x]);
+                    
+                    // Clamp
+                    nextVal = Math.max(0.0, Math.min(1.0, nextVal));
+                    nextGrid[y * COLS + x] = nextVal;
+                }
+            }
+
+            // Swap buffers
+            let temp = grid;
+            grid = nextGrid;
+            nextGrid = temp;
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const val = grid[y * COLS + x];
+                    const idx = Math.min(chars.length - 1, Math.floor(val * chars.length));
+                    html += `<span style="color:${colors[idx]};">${chars[idx]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
+    </script>
+</body>
+</html>

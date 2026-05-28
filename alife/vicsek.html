@@ -2,61 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vicsek Model (Active Matter)</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
-        input[type="range"] { vertical-align: middle; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button, input {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+            vertical-align: middle;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Vicsek Model</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A minimal model of flocking and active matter. Particles move at a constant speed and align their direction with their neighbors within a radius, plus some noise. At low noise, they phase-transition into an ordered flock.</p>
+        <strong>Vicsek Model (Active Matter)</strong><br><br>
+        A minimal model of flocking. Particles move at a constant speed and align their direction with their neighbors within a radius, plus some noise.<br>
+        In this ASCII translation, arrows (`>`, `<`, `^`, `v`, etc.) indicate the heading of each particle. The color (from dim green to bright yellow) indicates how strongly aligned a particle is with its neighbors. Lower the noise to see them phase-transition into an ordered flock.
         <div class="controls">
-            <label for="noise">Noise: <span id="noiseVal">0.30</span></label><br>
+            <label for="noise">Noise: <span id="noiseVal">0.30</span></label>
             <input type="range" id="noise" min="0" max="3" step="0.05" value="0.30" oninput="updateNoise()">
-            <br><br>
             <button onclick="reset()">Scatter</button>
         </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let width, height;
-        let particles = [];
-        const NUM_PARTICLES = 600;
-        const R = 25; // Interaction radius
-        const V = 2.0; // Constant velocity
-        let eta = 0.3; // Noise
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            reset();
-        }
+    <script>
+        const COLS = 80;
+        const ROWS = 40;
+        
+        const NUM_PARTICLES = 300;
+        let particles = [];
+        const R = 5; // Interaction radius (grid units)
+        const V = 0.5; // Constant velocity
+        let eta = 0.3; // Noise
 
         function reset() {
             particles = [];
             for (let i = 0; i < NUM_PARTICLES; i++) {
                 particles.push({
-                    x: Math.random() * width,
-                    y: Math.random() * height,
-                    theta: Math.random() * 2 * Math.PI
+                    x: Math.random() * COLS,
+                    y: Math.random() * ROWS,
+                    theta: Math.random() * 2 * Math.PI,
+                    alignment: 0
                 });
             }
         }
@@ -66,64 +84,129 @@
             document.getElementById('noiseVal').innerText = eta.toFixed(2);
         }
 
-        function draw() {
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, width, height);
+        function getChar(theta) {
+            let t = theta % (2 * Math.PI);
+            if (t < 0) t += 2 * Math.PI;
+            const deg = t * 180 / Math.PI;
+            
+            if (deg >= 337.5 || deg < 22.5) return ">";
+            if (deg >= 22.5 && deg < 67.5) return "\\";
+            if (deg >= 67.5 && deg < 112.5) return "v";
+            if (deg >= 112.5 && deg < 157.5) return "/";
+            if (deg >= 157.5 && deg < 202.5) return "<";
+            if (deg >= 202.5 && deg < 247.5) return "\\";
+            if (deg >= 247.5 && deg < 292.5) return "^";
+            if (deg >= 292.5 && deg < 337.5) return "/";
+            return "*";
+        }
 
+        function getColor(alignment) {
+            if (alignment > 0.8) return "#f3d36b"; // High alignment, yellow
+            if (alignment > 0.5) return "#8fd46b"; // Med alignment, bright green
+            return "#394034"; // Low alignment, dark green
+        }
+
+        function step() {
             let nextTheta = new Array(NUM_PARTICLES);
+            let nextAlign = new Array(NUM_PARTICLES);
 
-            // Calculate new angles
             for (let i = 0; i < NUM_PARTICLES; i++) {
                 let p1 = particles[i];
                 let sumSin = 0;
                 let sumCos = 0;
+                let count = 0;
 
                 for (let j = 0; j < NUM_PARTICLES; j++) {
                     let p2 = particles[j];
-                    // Toroidal distance
                     let dx = Math.abs(p1.x - p2.x);
                     let dy = Math.abs(p1.y - p2.y);
-                    dx = Math.min(dx, width - dx);
-                    dy = Math.min(dy, height - dy);
+                    // Toroidal distance
+                    dx = Math.min(dx, COLS - dx);
+                    dy = Math.min(dy, ROWS - dy);
                     
                     if (dx*dx + dy*dy <= R*R) {
                         sumSin += Math.sin(p2.theta);
                         sumCos += Math.cos(p2.theta);
+                        count++;
                     }
                 }
                 
                 let avgTheta = Math.atan2(sumSin, sumCos);
                 let noise = (Math.random() - 0.5) * eta;
                 nextTheta[i] = avgTheta + noise;
+                
+                // Alignment order parameter local to this particle's neighborhood
+                let rOrder = Math.sqrt(sumSin*sumSin + sumCos*sumCos) / count;
+                nextAlign[i] = rOrder;
             }
 
-            // Update positions and draw
-            ctx.fillStyle = '#8fd46b';
             for (let i = 0; i < NUM_PARTICLES; i++) {
                 let p = particles[i];
                 p.theta = nextTheta[i];
-                p.x = (p.x + V * Math.cos(p.theta) + width) % width;
-                p.y = (p.y + V * Math.sin(p.theta) + height) % height;
-
-                // Draw particle (arrow/triangle)
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(p.theta);
-                ctx.beginPath();
-                ctx.moveTo(4, 0);
-                ctx.lineTo(-3, 2);
-                ctx.lineTo(-3, -2);
-                ctx.closePath();
-                ctx.fill();
-                ctx.restore();
+                p.alignment = nextAlign[i];
+                p.x = (p.x + V * Math.cos(p.theta) + COLS) % COLS;
+                p.y = (p.y + V * Math.sin(p.theta) + ROWS) % ROWS;
             }
-
-            requestAnimationFrame(draw);
+            
+            draw();
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
+        function draw() {
+            let grid = new Array(COLS * ROWS).fill(null);
+
+            for (let p of particles) {
+                let px = Math.floor(p.x);
+                let py = Math.floor(p.y);
+                if (px >= 0 && px < COLS && py >= 0 && py < ROWS) {
+                    grid[py * COLS + px] = { char: getChar(p.theta), color: getColor(p.alignment) };
+                }
+            }
+
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let cell = grid[y * COLS + x];
+                    if (cell) {
+                        html += `<span style="color:${cell.color}; font-weight:bold;">${cell.char}</span>`;
+                    } else {
+                        html += " ";
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        reset();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
     </script>
 </body>
 </html>

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sugarscape (Epstein & Axtell)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Sugarscape Model (1996)</strong><br><br>
+        A classic artificial society model developed by Joshua Epstein and Robert Axtell.<br>
+        The grid represents a landscape with two "sugar peaks". Sugar grows back over time.<br>
+        Agents (@) wander looking for sugar. Each turn, an agent looks around (up to its vision limit), moves to the best unoccupied patch of sugar, harvests it, and burns a fixed amount of sugar (metabolism). If their sugar drops to zero, they die.<br>
+        Color indicates wealth: <span style="color:#e77a61">Orange</span> (Poor), <span style="color:#f3d36b">Yellow</span> (Rich), <span style="color:#76c7d5">Blue</span> (Wealthy). Watch population dynamics fluctuate around the resource carrying capacity.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const INITIAL_AGENTS = 250;
+        
+        let capacity = new Int8Array(COLS * ROWS);
+        let sugar = new Int8Array(COLS * ROWS);
+        let agents = [];
+
+        // Generate sugar peaks
+        const peak1 = {x: Math.floor(COLS*0.3), y: Math.floor(ROWS*0.3)};
+        const peak2 = {x: Math.floor(COLS*0.7), y: Math.floor(ROWS*0.7)};
+
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                const d1 = Math.sqrt((x-peak1.x)**2 + (y-peak1.y)**2);
+                const d2 = Math.sqrt((x-peak2.x)**2 + (y-peak2.y)**2);
+                const d = Math.min(d1, d2);
+                
+                let cap = 0;
+                if (d < 5) cap = 4;
+                else if (d < 12) cap = 3;
+                else if (d < 20) cap = 2;
+                else if (d < 30) cap = 1;
+                
+                let idx = y*COLS + x;
+                capacity[idx] = cap;
+                sugar[idx] = cap; // Start fully grown
+            }
+        }
+
+        function spawnAgent() {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * COLS);
+                y = Math.floor(Math.random() * ROWS);
+            } while (isOccupied(x, y));
+            
+            agents.push({
+                x: x,
+                y: y,
+                sugar: 5 + Math.floor(Math.random() * 20),
+                metabolism: 1 + Math.floor(Math.random() * 3), // Burn 1-3 per turn
+                vision: 2 + Math.floor(Math.random() * 4)      // See 2-5 cells away
+            });
+        }
+
+        for(let i=0; i<INITIAL_AGENTS; i++) {
+            spawnAgent();
+        }
+
+        function isOccupied(x, y) {
+            for (let i=0; i<agents.length; i++) {
+                if (agents[i].x === x && agents[i].y === y) return true;
+            }
+            return false;
+        }
+
+        const bgChars = [" ", ".", "-", "+", "*"];
+        const bgColors = ["#10120f", "#2b2a1a", "#4a481d", "#7a7722", "#adab22"];
+
+        function step() {
+            for (let i = 0; i < COLS * ROWS; i++) {
+                if (sugar[i] < capacity[i] && Math.random() < 0.1) {
+                    sugar[i]++;
+                }
+            }
+
+            for (let i = agents.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [agents[i], agents[j]] = [agents[j], agents[i]];
+            }
+            
+            for (let i = agents.length - 1; i >= 0; i--) {
+                let a = agents[i];
+                
+                let bestVal = -1;
+                let bestSpots = [];
+                
+                const dirs = [[0,-1], [1,0], [0,1], [-1,0]];
+                
+                bestVal = sugar[a.y * COLS + a.x];
+                bestSpots.push({x: a.x, y: a.y});
+
+                for (const [dx, dy] of dirs) {
+                    for (let v = 1; v <= a.vision; v++) {
+                        let nx = a.x + dx * v;
+                        let ny = a.y + dy * v;
+                        
+                        nx = (nx + COLS) % COLS;
+                        ny = (ny + ROWS) % ROWS;
+                        
+                        if (!isOccupied(nx, ny) || (nx === a.x && ny === a.y)) {
+                            let val = sugar[ny * COLS + nx];
+                            if (val > bestVal) {
+                                bestVal = val;
+                                bestSpots = [{x: nx, y: ny}];
+                            } else if (val === bestVal) {
+                                bestSpots.push({x: nx, y: ny});
+                            }
+                        }
+                    }
+                }
+                
+                const chosen = bestSpots[Math.floor(Math.random() * bestSpots.length)];
+                a.x = chosen.x;
+                a.y = chosen.y;
+                
+                a.sugar += sugar[a.y * COLS + a.x];
+                sugar[a.y * COLS + a.x] = 0;
+                
+                a.sugar -= a.metabolism;
+                
+                if (a.sugar <= 0) {
+                    agents.splice(i, 1);
+                }
+            }
+
+            if (agents.length < 20 && Math.random() < 0.2) {
+                spawnAgent();
+            }
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            let agentGrid = new Array(COLS * ROWS).fill(null);
+            
+            for (let i=0; i<agents.length; i++) {
+                let a = agents[i];
+                let color = "#e77a61"; // poor
+                if (a.sugar > 50) color = "#f3d36b"; // rich
+                if (a.sugar > 100) color = "#76c7d5"; // wealthy
+                agentGrid[a.y * COLS + a.x] = color;
+            }
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let idx = y * COLS + x;
+                    let agentCol = agentGrid[idx];
+                    
+                    if (agentCol) {
+                        html += `<span style="color:${agentCol}; font-weight:bold;">@</span>`;
+                    } else {
+                        let s = sugar[idx];
+                        html += `<span style="color:${bgColors[s]};">${bgChars[s]}</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
+</body>
+</html>

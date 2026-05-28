@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Boids Flocking (Craig Reynolds)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Boids Flocking (1986)</strong><br><br>
+        Developed by Craig Reynolds, this is the pure version of the Boids model, demonstrating collective behavior emerging from three simple local rules: Separation (avoid crowding neighbors), Alignment (steer towards the average heading of neighbors), and Cohesion (steer towards the average position of neighbors).<br>
+        Watch how hundreds of independent agents naturally self-organize into fluid, synchronized flocks, much like starlings in a murmuration.<br>
+        The color intensifies from dark green to bright yellow where boids densely cluster.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const NUM_BOIDS = 150; // optimized for ASCII density
+        
+        let boids = [];
+        for (let i = 0; i < NUM_BOIDS; i++) {
+            boids.push({
+                x: Math.random() * COLS,
+                y: Math.random() * ROWS,
+                vx: (Math.random() - 0.5) * 2,
+                vy: (Math.random() - 0.5) * 2
+            });
+        }
+
+        const boidChar = ["v", "<", "^", ">"];
+        const chars = [" ", "v", "<", "^", ">", "+", "*"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#76c7d5", "#f3d36b"];
+
+        function distance(x1, y1, x2, y2) {
+            let dx = Math.abs(x1 - x2);
+            let dy = Math.abs(y1 - y2);
+            // toroidal distance
+            if (dx > COLS / 2) dx = COLS - dx;
+            if (dy > ROWS / 2) dy = ROWS - dy;
+            return Math.sqrt(dx * dx + dy * dy);
+        }
+
+        function step() {
+            let newBoids = [];
+
+            for (let i = 0; i < boids.length; i++) {
+                let b = boids[i];
+                let sepX = 0, sepY = 0;
+                let aliX = 0, aliY = 0;
+                let cohX = 0, cohY = 0;
+                let count = 0;
+
+                for (let j = 0; j < boids.length; j++) {
+                    if (i === j) continue;
+                    let other = boids[j];
+                    let d = distance(b.x, b.y, other.x, other.y);
+
+                    if (d > 0 && d < 6) { // Perception radius
+                        // Separation
+                        if (d < 2) {
+                            let dx = b.x - other.x;
+                            let dy = b.y - other.y;
+                            if (dx > COLS/2) dx -= COLS; if (dx < -COLS/2) dx += COLS;
+                            if (dy > ROWS/2) dy -= ROWS; if (dy < -ROWS/2) dy += ROWS;
+                            
+                            sepX += dx / d;
+                            sepY += dy / d;
+                        }
+                        
+                        // Alignment & Cohesion
+                        aliX += other.vx;
+                        aliY += other.vy;
+                        
+                        let dx = other.x - b.x;
+                        let dy = other.y - b.y;
+                        if (dx > COLS/2) dx -= COLS; if (dx < -COLS/2) dx += COLS;
+                        if (dy > ROWS/2) dy -= ROWS; if (dy < -ROWS/2) dy += ROWS;
+                        
+                        cohX += dx;
+                        cohY += dy;
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    aliX /= count;
+                    aliY /= count;
+                    cohX /= count;
+                    cohY /= count;
+                }
+
+                // Apply rules with weights
+                let newVx = b.vx + sepX * 0.15 + aliX * 0.05 + cohX * 0.01;
+                let newVy = b.vy + sepY * 0.15 + aliY * 0.05 + cohY * 0.01;
+
+                let speed = Math.sqrt(newVx * newVx + newVy * newVy);
+                let targetSpeed = 1.0; // slightly slower for ASCII readbility
+                
+                if (speed < 0.1) {
+                    newVx = (Math.random() - 0.5);
+                    newVy = (Math.random() - 0.5);
+                    speed = Math.sqrt(newVx * newVx + newVy * newVy);
+                }
+                
+                newVx = (newVx / speed) * targetSpeed;
+                newVy = (newVy / speed) * targetSpeed;
+
+                newBoids.push({
+                    x: (b.x + newVx * 1.5 + COLS) % COLS, // scale X for char aspect ratio
+                    y: (b.y + newVy + ROWS) % ROWS,
+                    vx: newVx,
+                    vy: newVy
+                });
+            }
+
+            boids = newBoids;
+            draw();
+        }
+
+        function draw() {
+            let displayGrid = new Array(COLS * ROWS).fill(`<span style='color:${colors[0]}'>.</span>`);
+            let densities = new Int32Array(COLS * ROWS);
+
+            for (let b of boids) {
+                let ix = Math.floor(b.x);
+                let iy = Math.floor(b.y);
+                densities[iy * COLS + ix]++;
+            }
+
+            for (let b of boids) {
+                let ix = Math.floor(b.x);
+                let iy = Math.floor(b.y);
+                
+                let angle = Math.atan2(b.vy, b.vx);
+                let charIdx = 0;
+                if (angle >= -Math.PI/4 && angle < Math.PI/4) charIdx = 3; // Right
+                else if (angle >= Math.PI/4 && angle < 3*Math.PI/4) charIdx = 0; // Down
+                else if (angle >= -3*Math.PI/4 && angle < -Math.PI/4) charIdx = 2; // Up
+                else charIdx = 1; // Left
+
+                let density = densities[iy * COLS + ix];
+                let colorIdx = Math.min(colors.length - 1, 1 + density);
+                let ch = boidChar[charIdx];
+                if (density === 2) ch = "+";
+                if (density > 2) ch = "*";
+
+                displayGrid[iy * COLS + ix] = `<span style="color:${colors[colorIdx]}; font-weight:bold;">${ch}</span>`;
+            }
+
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    html += displayGrid[y * COLS + x];
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
+    </script>
+</body>
+</html>

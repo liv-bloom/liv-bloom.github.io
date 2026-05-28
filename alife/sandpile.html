@@ -1,73 +1,131 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Abelian Sandpile</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { line-height: 1.1; letter-spacing: 2px; }
-    h1 { color: #f3d36b; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Abelian Sandpile Model</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Abelian Sandpile Model</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/sandpile.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 50, H = 50;
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-    
-    // Drop a large amount of sand in the center initially
-    grid[Math.floor(H/2)][Math.floor(W/2)] = 10000;
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Abelian Sandpile Model (1987)</strong><br><br>
+        Introduced by Bak, Tang, and Wiesenfeld, this is the foundational model of "Self-Organized Criticality" (SOC).<br>
+        Grains of sand are constantly dropped onto the center of the grid.<br>
+        If a cell accumulates 4 or more grains, it becomes unstable and "topples", sending 1 grain to each of its 4 neighbors.<br>
+        This simple spilling mechanic creates a system that naturally evolves toward a critical state where one single grain can trigger an avalanche of any size, creating stunning fractal patterns.
+    </div>
 
-    const colors = ["#10120f", "#394034", "#718465", "#8fd46b"];
-
-    function step() {
-      // Speed up visual by multiple toppling passes per frame
-      for(let pass = 0; pass < 20; pass++) {
-        let next = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-        let active = false;
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
         
-        for(let y=0; y<H; y++) {
-          for(let x=0; x<W; x++) {
-            next[y][x] += grid[y][x];
-            if(grid[y][x] >= 4) {
-              active = true;
-              let topple = Math.floor(grid[y][x] / 4);
-              next[y][x] -= topple * 4;
-              
-              if(y > 0) next[y-1][x] += topple;
-              if(y < H-1) next[y+1][x] += topple;
-              if(x > 0) next[y][x-1] += topple;
-              if(x < W-1) next[y][x+1] += topple;
+        let grid = new Int32Array(COLS * ROWS);
+        let next = new Int32Array(COLS * ROWS);
+        
+        // Initial large pile in the center
+        grid[Math.floor(ROWS / 2) * COLS + Math.floor(COLS / 2)] = 30000;
+
+        const chars = [".", "1", "2", "3", "*"];
+        const colors = ["#2b2b1a", "#394034", "#76c7d5", "#f3d36b", "#e77a61"];
+
+        function step() {
+            for (let pass = 0; pass < 20; pass++) {
+                next.set(grid);
+                let active = false;
+                
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        let idx = y * COLS + x;
+                        if (grid[idx] >= 4) {
+                            active = true;
+                            let topple = Math.floor(grid[idx] / 4);
+                            next[idx] -= topple * 4;
+                            
+                            if (y > 0) next[(y - 1) * COLS + x] += topple;
+                            if (y < ROWS - 1) next[(y + 1) * COLS + x] += topple;
+                            if (x > 0) next[y * COLS + (x - 1)] += topple;
+                            if (x < COLS - 1) next[y * COLS + (x + 1)] += topple;
+                        }
+                    }
+                }
+                
+                grid.set(next);
+                
+                if (!active) {
+                    grid[Math.floor(ROWS / 2) * COLS + Math.floor(COLS / 2)] += 100;
+                }
             }
-          }
+
+            draw();
         }
-        grid = next;
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let val = grid[y * COLS + x];
+                    let state = val >= 4 ? 4 : val;
+                    let fw = state === 4 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
         
-        // Add random grains of sand occasionally to maintain criticality
-        if(!active) {
-            grid[Math.floor(H/2)][Math.floor(W/2)] += 100;
-        }
-      }
-      
-      let out = "";
-      for(let y=0; y<H; y++) {
-        let row = "";
-        for(let x=0; x<W; x++) {
-          let v = grid[y][x];
-          if(v === 0) row += '<span style="color:'+colors[0]+';">.</span>';
-          else if(v === 1) row += '<span style="color:'+colors[1]+';">1</span>';
-          else if(v === 2) row += '<span style="color:'+colors[2]+';">2</span>';
-          else if(v === 3) row += '<span style="color:'+colors[3]+';">3</span>';
-          else row += '<span style="color:#e77a61;">*</span>'; // toppling
-        }
-        out += row + "\n";
-      }
-      document.getElementById('field').innerHTML = out;
-    }
-    
-    setInterval(step, 100);
-  </script>
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
 </body>
 </html>

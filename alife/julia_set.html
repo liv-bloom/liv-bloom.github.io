@@ -2,57 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Julia Set</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Julia Set</h2>
-        <p>Fractal boundaries of complex dynamics.</p>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Julia Set</strong><br><br>
+        A classic fractal depicting the boundary of complex dynamics.<br>
+        <code>z(n+1) = z(n)² + c</code><br>
+        As the complex parameter <code>c</code> slowly orbits over time, the set morphs smoothly. Rendering fractals natively in a text terminal emphasizes the pure math over pixel density, using characters to approximate the escape-time gradient.
+        <div style="margin-top:10px; color:#76c7d5;" id="paramDisplay"></div>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
         
-        // Julia set parameters
-        let cx = -0.7;
-        let cy = 0.27015;
+        const chars = [" ", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
+        const colors = [
+            "#2b2b1a", "#394034", "#485341", "#59684f", 
+            "#718465", "#8fd46b", "#76c7d5", "#e77a61", "#f3d36b", "#e5eadb"
+        ];
+
         let time = 0;
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-
-        function drawJulia() {
-            const width = canvas.width;
-            const height = canvas.height;
-            const imgData = ctx.createImageData(width, height);
-            const data = imgData.data;
-
-            // Animate cx, cy slightly
-            cx = -0.8 + 0.1 * Math.sin(time);
-            cy = 0.156 + 0.1 * Math.cos(time);
+        function draw() {
+            let cx = -0.8 + 0.1 * Math.sin(time);
+            let cy = 0.156 + 0.1 * Math.cos(time);
             time += 0.05;
+            
+            document.getElementById("paramDisplay").innerText = `c = ${cx.toFixed(3)} + ${cy.toFixed(3)}i`;
 
-            const maxIter = 100;
+            const maxIter = 40;
             const zoom = 1.2;
-            const moveX = 0;
-            const moveY = 0;
 
-            for (let x = 0; x < width; x++) {
-                for (let y = 0; y < height; y++) {
-                    let zx = 1.5 * (x - width / 2) / (0.5 * zoom * width) + moveX;
-                    let zy = (y - height / 2) / (0.5 * zoom * height) + moveY;
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    // Aspect ratio correction (chars are typically 1:2 wide:tall, so scale X by 0.5 roughly)
+                    let zx = 1.5 * (x - COLS / 2) / (0.5 * zoom * COLS);
+                    let zy = (y - ROWS / 2) / (0.5 * zoom * ROWS);
                     let i = 0;
                     
                     while (zx * zx + zy * zy < 4 && i < maxIter) {
@@ -62,32 +77,49 @@
                         i++;
                     }
 
-                    const px = (x + y * width) * 4;
                     if (i === maxIter) {
-                        data[px] = 0;
-                        data[px + 1] = 0;
-                        data[px + 2] = 0;
-                        data[px + 3] = 255;
+                        html += `<span style="color:${colors[0]};">${chars[0]}</span>`;
                     } else {
-                        const hue = (i * 5) % 360;
-                        // HSL to RGB approximation for speed
-                        const c = i * 255 / maxIter;
-                        data[px] = c;
-                        data[px + 1] = c * 0.5;
-                        data[px + 2] = i * 2;
-                        data[px + 3] = 255;
+                        let idx = Math.floor((i / maxIter) * (chars.length - 1)) + 1;
+                        if (idx >= chars.length) idx = chars.length - 1;
+                        let fw = idx > 6 ? "font-weight:bold;" : "";
+                        html += `<span style="color:${colors[idx]}; ${fw}">${chars[idx]}</span>`;
                     }
                 }
+                html += "\n";
             }
-            ctx.putImageData(imgData, 0, 0);
-            
-            // Only re-draw periodically or on request to save CPU, but we can animate it
-            setTimeout(() => requestAnimationFrame(drawJulia), 100);
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        drawJulia();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                draw();
+            }
+        }, 80);
+ // Refresh rate
     </script>
 </body>
 </html>

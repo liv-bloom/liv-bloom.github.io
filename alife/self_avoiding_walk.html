@@ -2,126 +2,176 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Self-Avoiding Walk</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Self-Avoiding Walk</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A random walk on a grid that never crosses its own path. Often used to model polymer chains. If it gets trapped, it starts a new color.</p>
+        <strong>Self-Avoiding Walk</strong><br><br>
+        A random walk on a grid that never crosses its own path. It is often used in physics to model the spatial configuration of polymer chains.<br>
+        If the walker gets trapped (surrounded by its own path or borders), it stops and a new walk begins from a random empty spot. In this ASCII version, each new chain is represented by a different character and color from the garden palette.
         <div class="controls">
-            <button onclick="reset()">Restart</button>
+            <button onclick="reset()">Clear Grid</button>
         </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let width, height;
-        const CELL_SIZE = 5;
-        let cols, rows;
-        let grid;
-        let currentX, currentY;
-        let path = [];
-        let hues = [120, 200, 300, 60, 0, 40]; // Base hues for different paths
-        let colorIndex = 0;
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            cols = Math.floor(width / CELL_SIZE);
-            rows = Math.floor(height / CELL_SIZE);
-            reset();
-        }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        let currentX, currentY;
+        
+        const chars = ["+", "*", "O", "@", "#", "%", "&"];
+        const colors = [
+            "#718465", "#8fd46b", "#76c7d5", "#f3d36b", "#e77a61", "#d9654b", "#9ea88f"
+        ];
+        
+        let typeIndex = 1; // Start at 1 (0 is empty space)
 
         function reset() {
-            grid = new Array(cols).fill(0).map(() => new Array(rows).fill(false));
-            currentX = Math.floor(cols / 2);
-            currentY = Math.floor(rows / 2);
-            grid[currentX][currentY] = true;
-            path = [{x: currentX, y: currentY}];
-            colorIndex = 0;
-            
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, width, height);
+            grid.fill(0);
+            startNewWalk();
+            draw();
+        }
+
+        function startNewWalk() {
+            // Find an empty spot
+            let attempts = 0;
+            while (attempts < 500) {
+                let rx = Math.floor(Math.random() * COLS);
+                let ry = Math.floor(Math.random() * ROWS);
+                if (grid[ry * COLS + rx] === 0) {
+                    currentX = rx;
+                    currentY = ry;
+                    typeIndex = (typeIndex % chars.length) + 1; // Cycle through 1 to chars.length
+                    grid[currentY * COLS + currentX] = typeIndex;
+                    return true;
+                }
+                attempts++;
+            }
+            return false; // Board full
         }
 
         function getOptions(x, y) {
             let options = [];
-            if (x > 0 && !grid[x-1][y]) options.push({dx: -1, dy: 0});
-            if (x < cols-1 && !grid[x+1][y]) options.push({dx: 1, dy: 0});
-            if (y > 0 && !grid[x][y-1]) options.push({dx: 0, dy: -1});
-            if (y < rows-1 && !grid[x][y+1]) options.push({dx: 0, dy: 1});
+            if (x > 0 && grid[y * COLS + (x - 1)] === 0) options.push({dx: -1, dy: 0});
+            if (x < COLS - 1 && grid[y * COLS + (x + 1)] === 0) options.push({dx: 1, dy: 0});
+            if (y > 0 && grid[(y - 1) * COLS + x] === 0) options.push({dx: 0, dy: -1});
+            if (y < ROWS - 1 && grid[(y + 1) * COLS + x] === 0) options.push({dx: 0, dy: 1});
             return options;
         }
 
         function step() {
-            // Do multiple steps per frame to speed up
-            for (let i = 0; i < 50; i++) {
+            // Do multiple steps per frame
+            for (let i = 0; i < 5; i++) {
                 let options = getOptions(currentX, currentY);
                 
                 if (options.length === 0) {
-                    // Trapped. Find a new empty spot to start
-                    let found = false;
-                    for (let tr = 0; tr < 100; tr++) {
-                        let rx = Math.floor(Math.random() * cols);
-                        let ry = Math.floor(Math.random() * rows);
-                        if (!grid[rx][ry]) {
-                            currentX = rx;
-                            currentY = ry;
-                            grid[currentX][currentY] = true;
-                            path = [{x: currentX, y: currentY}];
-                            colorIndex = (colorIndex + 1) % hues.length;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) return; // Board mostly full
+                    // Trapped. Start a new one.
+                    if (!startNewWalk()) return; // Board full
                     continue;
                 }
 
                 let choice = options[Math.floor(Math.random() * options.length)];
-                let nextX = currentX + choice.dx;
-                let nextY = currentY + choice.dy;
-
-                // Draw line segment
-                ctx.strokeStyle = `hsl(${hues[colorIndex]}, 80%, 60%)`;
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.moveTo(currentX * CELL_SIZE + CELL_SIZE/2, currentY * CELL_SIZE + CELL_SIZE/2);
-                ctx.lineTo(nextX * CELL_SIZE + CELL_SIZE/2, nextY * CELL_SIZE + CELL_SIZE/2);
-                ctx.stroke();
-
-                currentX = nextX;
-                currentY = nextY;
-                grid[currentX][currentY] = true;
+                currentX += choice.dx;
+                currentY += choice.dy;
+                grid[currentY * COLS + currentX] = typeIndex;
             }
+            draw();
         }
 
         function draw() {
-            step();
-            requestAnimationFrame(draw);
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let val = grid[y * COLS + x];
+                    if (val === 0) {
+                        html += " ";
+                    } else {
+                        let idx = val - 1;
+                        // The current head flashes white/bold
+                        if (x === currentX && y === currentY) {
+                            html += `<span style="color:#ffffff; font-weight:bold; background-color:#394034;">${chars[idx]}</span>`;
+                        } else {
+                            html += `<span style="color:${colors[idx]}; font-weight:bold;">${chars[idx]}</span>`;
+                        }
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
+        reset();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

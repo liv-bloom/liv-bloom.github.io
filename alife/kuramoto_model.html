@@ -2,141 +2,143 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kuramoto Model (Synchronization)</title>
+    <title>Kuramoto Model (Firefly Synchronization)</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        label { display: block; margin-top: 5px; }
-        input[type=range] { vertical-align: middle; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Kuramoto Model</h2>
-        <p>A mathematical model of synchronization among coupled oscillators, resembling fireflies syncing their flashes.</p>
-        <label>Coupling (K): <input type="range" id="couplingSlider" min="0" max="100" value="40"></label>
-        <label>Radius (r): <input type="range" id="radiusSlider" min="10" max="200" value="80"></label>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Kuramoto Model (Firefly Synchronization)</strong><br><br>
+        A mathematical model used to describe the behavior of large groups of coupled oscillators (like flashing fireflies, pacemakers in the heart, or clapping audiences).<br>
+        Each oscillator has its own natural frequency, but it is weakly coupled to its neighbors. The coupling pulls the oscillator's phase closer to its neighbors' phases.<br>
+        Starting from completely random phases (unsynchronized blinking), you will eventually see patches of fireflies syncing up, slowly recruiting others until the entire grid pulses in unison.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const couplingSlider = document.getElementById('couplingSlider');
-        const radiusSlider = document.getElementById('radiusSlider');
+        const COLS = 80;
+        const ROWS = 60;
         
-        const numFireflies = 400;
-        let fireflies = [];
+        let phases = new Float32Array(COLS * ROWS);
+        let freqs = new Float32Array(COLS * ROWS);
         
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        for (let i = 0; i < phases.length; i++) {
+            phases[i] = Math.random() * 2 * Math.PI;
+            // Base frequency + slight random variation
+            freqs[i] = 0.15 + (Math.random() - 0.5) * 0.05;
         }
 
-        class Firefly {
-            constructor() {
-                this.x = Math.random() * window.innerWidth;
-                this.y = Math.random() * window.innerHeight;
-                this.vx = (Math.random() - 0.5) * 1.5;
-                this.vy = (Math.random() - 0.5) * 1.5;
-                this.phase = Math.random() * Math.PI * 2;
-                // Natural frequency (normally distributed around a mean)
-                this.omega = 0.05 + (Math.random() + Math.random() + Math.random() - 1.5) * 0.01;
+        const K = 0.9; // Coupling strength
+
+        const chars = [" ", ".", "-", "+", "*", "o", "O", "@"];
+        const colors = ["#10120f", "#1d2918", "#2a4220", "#3f612d", "#649942", "#8fd46b", "#cbf5a1", "#f9ffe8"];
+
+        function step() {
+            let nextPhases = new Float32Array(COLS * ROWS);
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    
+                    let couplingSum = 0;
+                    
+                    // Moore neighborhood coupling
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const nx = (x + dx + COLS) % COLS;
+                            const ny = (y + dy + ROWS) % ROWS;
+                            
+                            // sin(theta_neighbor - theta_self)
+                            couplingSum += Math.sin(phases[ny * COLS + nx] - phases[idx]);
+                        }
+                    }
+                    
+                    // Euler integration step
+                    const dTheta = freqs[idx] + (K / 8) * couplingSum;
+                    
+                    nextPhases[idx] = (phases[idx] + dTheta) % (2 * Math.PI);
+                    if (nextPhases[idx] < 0) nextPhases[idx] += 2 * Math.PI;
+                }
             }
 
-            move() {
-                this.x += this.vx;
-                this.y += this.vy;
-                
-                // Bounce off edges
-                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
-                if (this.y < 0 || this.y > canvas.height) this.vy *= -1;
-                
-                // Keep strictly inside to prevent getting stuck
-                this.x = Math.max(0, Math.min(canvas.width, this.x));
-                this.y = Math.max(0, Math.min(canvas.height, this.y));
-            }
-
-            draw() {
-                // Brightness peaks when phase is near 0 or 2PI (cos(phase) is near 1)
-                let brightness = (Math.cos(this.phase) + 1) / 2; // Range 0 to 1
-                
-                // Draw glow
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 4 + brightness * 6, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(200, 255, 100, ${brightness * 0.8})`;
-                ctx.fill();
-                
-                // Draw core
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + brightness * 0.8})`;
-                ctx.fill();
-            }
-        }
-
-        function init() {
-            fireflies = [];
-            for (let i = 0; i < numFireflies; i++) {
-                fireflies.push(new Firefly());
-            }
+            phases = nextPhases;
+            draw();
         }
 
         function draw() {
-            ctx.fillStyle = 'rgba(17, 17, 17, 0.4)'; // trail effect
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            const K = couplingSlider.value / 1000; // Scale down for stability
-            const radius = radiusSlider.value;
-            const rSq = radius * radius;
-
-            // Compute phase updates
-            let newPhases = new Array(numFireflies);
-            
-            // Spatial Kuramoto Model interaction
-            for (let i = 0; i < numFireflies; i++) {
-                let f1 = fireflies[i];
-                let sumSin = 0;
-                let neighbors = 0;
-                
-                for (let j = 0; j < numFireflies; j++) {
-                    if (i === j) continue;
-                    let f2 = fireflies[j];
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const phase = phases[y * COLS + x];
+                    // Map phase (0 to 2PI) to brightness. Flashes when phase is near 0 or 2PI.
+                    // Normalize cos from 0 to 1
+                    const brightness = (Math.cos(phase) + 1) / 2; 
+                    // Make the flash sharper (power curve)
+                    const intensity = Math.pow(brightness, 5);
                     
-                    let dx = f2.x - f1.x;
-                    let dy = f2.y - f1.y;
-                    if (dx*dx + dy*dy < rSq) {
-                        sumSin += Math.sin(f2.phase - f1.phase);
-                        neighbors++;
-                    }
+                    let charIdx = Math.min(chars.length - 1, Math.floor(intensity * chars.length));
+                    let fw = charIdx > 4 ? "font-weight:bold;" : "";
+                    
+                    html += `<span style="color:${colors[charIdx]}; ${fw}">${chars[charIdx]}</span>`;
                 }
-                
-                let coupling = neighbors > 0 ? (K * sumSin / neighbors) : 0;
-                newPhases[i] = f1.phase + f1.omega + coupling;
+                html += "\n";
             }
-
-            // Apply updates and draw
-            for (let i = 0; i < numFireflies; i++) {
-                fireflies[i].phase = newPhases[i] % (Math.PI * 2);
-                if (fireflies[i].phase < 0) fireflies[i].phase += Math.PI * 2;
-                fireflies[i].move();
-                fireflies[i].draw();
-            }
-
-            requestAnimationFrame(draw);
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        init();
-        draw();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
     </script>
 </body>
 </html>

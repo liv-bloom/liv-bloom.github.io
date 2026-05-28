@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Turmite (Spiral Growth)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Turmite (Spiral Growth)</strong><br><br>
+        A Turmite is a generalized 2D Turing machine, similar to Langton's Ant, but with an internal state as well as a color on the grid.<br>
+        Depending on the current color of the cell and its internal state, the Turmite (<span style="color:#e77a61; font-weight:bold;">@</span>) decides to turn, change the cell's color, and change its own internal state.<br>
+        This specific configuration produces a complex, beautifully patterned expanding spiral. It demonstrates how highly structured, algorithmic behavior emerges from completely deterministic local rules.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        
+        let tx = Math.floor(COLS / 2);
+        let ty = Math.floor(ROWS / 2);
+        let dir = 0; 
+        let state = 0; 
+
+        const activeRules = [
+            [ [1, 1, 1], [1, 1, 0] ],
+            [ [1, 3, 1], [0, 0, 0] ]
+        ];
+
+        const chars = [".", "#", "+", ".", "@"];
+        const colors = ["#2b2b1a", "#8fd46b", "#3f5439", "#a3a3a3", "#e77a61"];
+
+        function step() {
+            for (let i = 0; i < 50; i++) {
+                const idx = ty * COLS + tx;
+                const cColor = grid[idx];
+                const cState = state;
+                
+                const action = activeRules[cState][cColor];
+                const nextColor = action[0];
+                const turn = action[1];
+                const nextState = action[2];
+
+                grid[idx] = nextColor;
+                state = nextState;
+                dir = (dir + turn) % 4;
+
+                if (dir === 0) ty = (ty - 1 + ROWS) % ROWS;
+                else if (dir === 1) tx = (tx + 1) % COLS;
+                else if (dir === 2) ty = (ty + 1) % ROWS;
+                else if (dir === 3) tx = (tx - 1 + COLS) % COLS;
+            }
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            let renderGrid = new Uint8Array(grid);
+            renderGrid[ty * COLS + tx] = 4; 
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const v = renderGrid[y * COLS + x];
+                    let fw = v !== 0 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[v]}; ${fw}">${chars[v]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 20);
+
+    </script>
+</body>
+</html>

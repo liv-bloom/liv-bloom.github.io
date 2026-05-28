@@ -1,66 +1,160 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Hodgepodge Machine</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { color: #f3d36b; }
-    h1 { color: #8fd46b; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Hodgepodge Machine (BZ Reaction)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Hodgepodge Machine (BZ Reaction Analog)</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ascii_hodgepodge.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    const N = 100; // States 0 to N
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.floor(Math.random() * N)));
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Hodgepodge Machine (BZ Reaction)</strong><br><br>
+        This Cellular Automaton models the Belousov-Zhabotinsky (BZ) chemical reaction, creating expanding concentric rings and spiral waves out of a chaotic soup (a "hodgepodge").<br>
+        Cells can be Healthy (0), Infected (1 to N-1), or Ill (N).<br>
+        Healthy cells get infected based on ill neighbors. Infected cells get sicker based on neighboring infection levels plus an internal rate. Ill cells instantly become Healthy again. These three simple rules give rise to macro-scale, pulsating, self-sustaining chemical clocks.
+    </div>
 
-    const K1 = 2, K2 = 3, G = 34;
-
-    function step() {
-      let next = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-      for(let y=0; y<H; y++) {
-        for(let x=0; x<W; x++) {
-          let c = grid[y][x];
-          if (c === N) {
-            next[y][x] = 0;
-          } else if (c === 0) {
-            let inf = 0, ill = 0;
-            for(let dy=-1; dy<=1; dy++) {
-              for(let dx=-1; dx<=1; dx++) {
-                if(dx===0 && dy===0) continue;
-                let st = grid[(y+dy+H)%H][(x+dx+W)%W];
-                if(st > 0 && st < N) inf++;
-                if(st === N) ill++;
-              }
-            }
-            next[y][x] = Math.floor(inf/K1) + Math.floor(ill/K2);
-          } else {
-            let sum = 0, ill = 0, inf = 0;
-            for(let dy=-1; dy<=1; dy++) {
-              for(let dx=-1; dx<=1; dx++) {
-                if(dx===0 && dy===0) continue;
-                let st = grid[(y+dy+H)%H][(x+dx+W)%W];
-                sum += st;
-                if(st > 0 && st < N) inf++;
-                if(st === N) ill++;
-              }
-            }
-            next[y][x] = Math.min(N, Math.floor(c + sum / (inf + ill + 1) + G));
-          }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const N = 100; // Number of states
+        
+        let grid = new Int32Array(COLS * ROWS);
+        let nextGrid = new Int32Array(COLS * ROWS);
+        
+        // Initialize with random states
+        for (let i = 0; i < grid.length; i++) {
+            grid[i] = Math.floor(Math.random() * (N + 1));
         }
-      }
-      grid = next;
-      const chars = " .:-=+*#%@";
-      document.getElementById('field').textContent = grid.map(row => row.map(c => {
-        let idx = Math.floor((c / N) * (chars.length - 1));
-        return chars[Math.max(0, Math.min(chars.length-1, idx))];
-      }).join('')).join('\n');
-    }
-    setInterval(step, 80);
-  </script>
+
+        const k1 = 2;
+        const k2 = 3;
+        const g = 34; // internal infection rate
+
+        // Color palette from dark blue/purple to bright cyan
+        const chars = ["&nbsp;", ".", "-", "+", "*", "O", "0", "@"];
+        const colors = ["#10120f", "#291b36", "#422852", "#5f3875", "#814e9c", "#a267c2", "#c488e6", "#e8baff", "#ffffff"];
+
+        function step() {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    const state = grid[idx];
+                    
+                    let ill = 0;
+                    let infected = 0;
+                    let sum = 0;
+
+                    // Moore neighborhood
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (dx === 0 && dy === 0) continue;
+                            const nx = (x + dx + COLS) % COLS;
+                            const ny = (y + dy + ROWS) % ROWS;
+                            const nState = grid[ny * COLS + nx];
+                            
+                            if (nState === N) ill++;
+                            else if (nState > 0) {
+                                infected++;
+                                sum += nState;
+                            }
+                        }
+                    }
+
+                    if (state === 0) {
+                        // Healthy
+                        let nextState = Math.floor(infected / k1) + Math.floor(ill / k2);
+                        nextGrid[idx] = Math.min(N, nextState);
+                    } else if (state === N) {
+                        // Ill -> Healthy
+                        nextGrid[idx] = 0;
+                    } else {
+                        // Infected -> More infected
+                        let nextState = Math.floor(sum / (infected + ill + 1)) + g;
+                        nextGrid[idx] = Math.min(N, nextState);
+                    }
+                }
+            }
+            
+            let temp = grid;
+            grid = nextGrid;
+            nextGrid = temp;
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const v = grid[y * COLS + x];
+                    // Normalize to color palette
+                    let norm = v / N;
+                    // Boost contrast for visibility
+                    norm = Math.pow(norm, 1.5);
+                    let colorIdx = Math.floor(norm * (colors.length - 1));
+                    let charIdx = Math.floor(norm * (chars.length - 1));
+                    
+                    html += `<span style="color:${colors[colorIdx]};">${chars[charIdx]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
+    </script>
 </body>
 </html>

@@ -2,96 +2,133 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chaos Game (Sierpinski)</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Chaos Game</h2>
-        <p>Emergence of a Sierpinski Triangle from purely random choices.</p>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Chaos Game (Sierpinski Triangle)</strong><br><br>
+        How does perfect geometric order emerge from pure randomness? The Chaos Game demonstrates this beautifully.<br>
+        1. Place 3 anchor points (<span style="color:#e77a61; font-weight:bold;">A</span>) forming a triangle.<br>
+        2. Pick any starting point.<br>
+        3. Randomly choose one of the 3 anchors, and move halfway towards it. Plot a point.<br>
+        4. Repeat forever.<br>
+        Even though every move is completely random, the resulting structure is never random. It always perfectly constructs the Sierpinski Triangle fractal.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        
+        let anchors = [
+            {x: COLS/2, y: 5},
+            {x: 10, y: ROWS - 5},
+            {x: COLS - 10, y: ROWS - 5}
+        ];
 
-        const vertices = [];
-        const padding = 50;
+        let cx = COLS / 2;
+        let cy = ROWS / 2;
 
-        function initVertices() {
-            vertices.length = 0;
-            // Equilateral triangle
-            const cx = canvas.width / 2;
-            const cy = canvas.height / 2 + 50;
-            const r = Math.min(canvas.width, canvas.height) / 2 - padding;
+        const chars = [".", ",", "+", "*", "A"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#e77a61"];
 
-            for (let i = 0; i < 3; i++) {
-                const angle = -Math.PI / 2 + (i * 2 * Math.PI / 3);
-                vertices.push({
-                    x: cx + r * Math.cos(angle),
-                    y: cy + r * Math.sin(angle)
-                });
-            }
-        }
-
-        initVertices();
-
-        let currentPoint = {
-            x: canvas.width / 2,
-            y: canvas.height / 2
-        };
-
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Draw vertices
-        ctx.fillStyle = '#ff4040';
-        vertices.forEach(v => {
-            ctx.beginPath();
-            ctx.arc(v.x, v.y, 3, 0, Math.PI * 2);
-            ctx.fill();
-        });
-
-        ctx.fillStyle = 'rgba(76, 175, 80, 0.5)';
-
-        function loop() {
-            for (let i = 0; i < 100; i++) {
-                const target = vertices[Math.floor(Math.random() * vertices.length)];
-                currentPoint.x = (currentPoint.x + target.x) / 2;
-                currentPoint.y = (currentPoint.y + target.y) / 2;
-
-                ctx.fillRect(currentPoint.x, currentPoint.y, 1, 1);
-            }
-            requestAnimationFrame(loop);
-        }
-
-        loop();
-
-        window.addEventListener('resize', () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            initVertices();
-            ctx.fillStyle = '#ff4040';
-            vertices.forEach(v => {
-                ctx.beginPath();
-                ctx.arc(v.x, v.y, 3, 0, Math.PI * 2);
-                ctx.fill();
+        function step() {
+            // plot anchors continuously to keep them visible
+            anchors.forEach(a => {
+                let px = Math.floor(a.x);
+                let py = Math.floor(a.y);
+                grid[py * COLS + px] = 4; // Anchor
             });
-            ctx.fillStyle = 'rgba(76, 175, 80, 0.5)';
-            currentPoint = { x: canvas.width / 2, y: canvas.height / 2 };
+
+            for (let i = 0; i < 50; i++) {
+                let target = anchors[Math.floor(Math.random() * anchors.length)];
+                cx = (cx + target.x) / 2;
+                cy = (cy + target.y) / 2;
+
+                let px = Math.floor(cx);
+                let py = Math.floor(cy);
+
+                if (px >= 0 && px < COLS && py >= 0 && py < ROWS) {
+                    let idx = py * COLS + px;
+                    if (grid[idx] < 3) {
+                        grid[idx]++; // increase density up to 3
+                    }
+                }
+            }
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 2 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
         });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

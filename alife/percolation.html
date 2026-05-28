@@ -2,129 +2,173 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Percolation Model</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
-        select { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px; font-family: monospace; cursor: pointer; margin-right: 5px; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button, select {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover, select:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Percolation</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">Simulates liquid pouring through a porous material. If the porosity is above a critical threshold (~0.5927 for site percolation on a square lattice), the liquid will reliably reach the bottom.</p>
+        <strong>Percolation Theory</strong><br><br>
+        Simulates liquid pouring through a porous material (like water through coffee grounds or oil through rock).<br>
+        If the porosity (probability of a cell being open) is above a critical threshold (~0.5927 for site percolation on a 2D square lattice), the liquid will reliably reach the bottom. In this ASCII version, cyan (`#76c7d5`) represents the flowing liquid (`~`), dark green (`#394034`) is solid rock (`#`), and empty space is black (` `).
         <div class="controls">
             <label for="porosity">Porosity:</label>
             <select id="porosity" onchange="reset()">
                 <option value="0.5">0.50 (Blocked)</option>
                 <option value="0.55">0.55 (Rare)</option>
-                <option value="0.6" selected>0.60 (Critical)</option>
+                <option value="0.593" selected>0.593 (Critical Threshold)</option>
                 <option value="0.65">0.65 (Flowing)</option>
-                <option value="0.7">0.70 (Open)</option>
+                <option value="0.75">0.75 (Open)</option>
             </select>
-            <button onclick="reset()">Restart</button>
+            <button onclick="reset()">Pour Again</button>
         </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let scale = 5;
-        let width, height;
-        let grid = [];
-        // 0 = solid rock (dark gray), 1 = open pore (black), 2 = liquid (blue)
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = Math.floor(minDim / scale);
-            height = Math.floor(minDim / scale);
-            canvas.width = width * scale;
-            canvas.height = height * scale;
-            reset();
-        }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        // 0 = rock, 1 = empty pore, 2 = liquid
+        let grid = new Uint8Array(COLS * ROWS);
+        let active = false;
 
         function reset() {
-            const p = parseFloat(document.getElementById('porosity').value);
-            grid = [];
-            for (let x = 0; x < width; x++) {
-                grid[x] = [];
-                for (let y = 0; y < height; y++) {
-                    // Top row is always open and filled with liquid initially
+            const p = parseFloat(document.getElementById("porosity").value);
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
                     if (y === 0) {
-                        grid[x][y] = 2;
+                        grid[y * COLS + x] = 2; // Top row filled with liquid
                     } else {
-                        grid[x][y] = (Math.random() < p) ? 1 : 0;
+                        grid[y * COLS + x] = Math.random() < p ? 1 : 0;
                     }
                 }
+            }
+            active = true;
+            draw();
+        }
+
+        function step() {
+            if (!active) return;
+            let changed = false;
+            let nextGrid = new Uint8Array(grid);
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    if (grid[y * COLS + x] === 2) {
+                        // Flow down
+                        if (y + 1 < ROWS && grid[(y + 1) * COLS + x] === 1) {
+                            nextGrid[(y + 1) * COLS + x] = 2;
+                            changed = true;
+                        }
+                        // Flow left
+                        if (x - 1 >= 0 && grid[y * COLS + (x - 1)] === 1) {
+                            nextGrid[y * COLS + (x - 1)] = 2;
+                            changed = true;
+                        }
+                        // Flow right
+                        if (x + 1 < COLS && grid[y * COLS + (x + 1)] === 1) {
+                            nextGrid[y * COLS + (x + 1)] = 2;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+
+            grid = nextGrid;
+            draw();
+
+            if (!changed) {
+                active = false;
+                setTimeout(reset, 3000); // Wait 3s then restart automatically
             }
         }
 
         function draw() {
-            let changed = false;
-            let nextGrid = grid.map(col => [...col]);
-
-            // Liquid flows into adjacent open pores (down, left, right)
-            for (let x = 0; x < width; x++) {
-                for (let y = 0; y < height; y++) {
-                    if (grid[x][y] === 2) {
-                        // Check down
-                        if (y + 1 < height && grid[x][y+1] === 1) {
-                            nextGrid[x][y+1] = 2;
-                            changed = true;
-                        }
-                        // Check left
-                        if (x - 1 >= 0 && grid[x-1][y] === 1) {
-                            nextGrid[x-1][y] = 2;
-                            changed = true;
-                        }
-                        // Check right
-                        if (x + 1 < width && grid[x+1][y] === 1) {
-                            nextGrid[x+1][y] = 2;
-                            changed = true;
-                        }
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    if (state === 0) {
+                        html += `<span style="color:#394034;">#</span>`; // Rock
+                    } else if (state === 1) {
+                        html += ` `; // Empty pore
+                    } else if (state === 2) {
+                        html += `<span style="color:#76c7d5; font-weight:bold;">~</span>`; // Liquid
                     }
                 }
+                html += "\n";
             }
-            grid = nextGrid;
-
-            // Draw
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            for (let x = 0; x < width; x++) {
-                for (let y = 0; y < height; y++) {
-                    if (grid[x][y] === 0) {
-                        ctx.fillStyle = '#2a2e28'; // solid obstacle
-                    } else if (grid[x][y] === 1) {
-                        ctx.fillStyle = '#10120f'; // open pore
-                    } else if (grid[x][y] === 2) {
-                        ctx.fillStyle = '#5faae6'; // liquid
-                    }
-                    ctx.fillRect(x * scale, y * scale, scale, scale);
-                }
-            }
-            
-            if (changed) {
-                setTimeout(() => requestAnimationFrame(draw), 20);
-            } else {
-                setTimeout(() => reset(), 2000); // restart after finishing
-                requestAnimationFrame(draw);
-            }
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
+        reset();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

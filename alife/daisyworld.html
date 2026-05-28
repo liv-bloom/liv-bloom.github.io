@@ -1,100 +1,190 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Daisyworld Model</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { color: #f3d36b; }
-    h1 { color: #f3d36b; font-size: 16px; }
-    #stats { color: #76c7d5; font-size: 12px; margin-bottom: 10px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Daisyworld (Lovelock & Watson)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Spatial Daisyworld</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ascii_daisyworld.py | python3</code></p>
-  <div id="stats">Luminosity: <span id="lum">1.00</span> | Avg Temp: <span id="temp">22.5</span>°C</div>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    const EMPTY = 0, WHITE = 1, BLACK = 2;
-    const ALBEDO_EMPTY = 0.5, ALBEDO_WHITE = 0.75, ALBEDO_BLACK = 0.25;
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Daisyworld Model</strong><br><br>
+        Proposed by James Lovelock and Andrew Watson in 1983 to illustrate the Gaia hypothesis.<br>
+        The planet is seeded with Black Daisies (<span style="color:#52634b; font-weight:bold;">@</span>) and White Daisies (<span style="color:#e5eadb; font-weight:bold;">*</span>). Empty ground is (<span style="color:#2b2b1a;">.</span>).<br>
+        Black daisies absorb sunlight (low albedo), warming their local area. White daisies reflect sunlight (high albedo), cooling their local area. Daisies grow best at 22.5°C.<br>
+        As the Sun's luminosity (<span id="lum"></span>) slowly increases, watch how the planet's biosphere automatically regulates the global temperature (<span id="temp"></span>°C) through the shifting balance of black and white populations. Extreme temperatures turn the ground blue (<span style="color:#76c7d5;">freezing</span>) or red (<span style="color:#e77a61;">scorched</span>).
+    </div>
 
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => {
-      let r = Math.random();
-      if(r < 0.1) return WHITE;
-      if(r < 0.2) return BLACK;
-      return EMPTY;
-    }));
-    
-    let tempGrid = Array.from({length: H}, () => Array.from({length: W}, () => 22.5));
-    let luminosity = 0.6; // starts low, increases over time
-    
-    function step() {
-      luminosity += 0.005;
-      if(luminosity > 1.6) luminosity = 0.6; // loop
-
-      let nextGrid = grid.map(arr => [...arr]);
-      let totalTemp = 0;
-
-      for(let y=0; y<H; y++) {
-        for(let x=0; x<W; x++) {
-          let albedo = ALBEDO_EMPTY;
-          if(grid[y][x] === WHITE) albedo = ALBEDO_WHITE;
-          if(grid[y][x] === BLACK) albedo = ALBEDO_BLACK;
-
-          // Local temperature based on luminosity and albedo
-          let localInsolation = luminosity * (1 - albedo);
-          // Simplified temp calculation
-          let localTemp = (localInsolation * 72) - 10;
-          
-          // Diffusion from neighbors
-          let tSum = 0;
-          for(let dy=-1; dy<=1; dy++) {
-            for(let dx=-1; dx<=1; dx++) {
-              tSum += tempGrid[(y+dy+H)%H][(x+dx+W)%W];
-            }
-          }
-          tempGrid[y][x] = (localTemp + (tSum / 9)) / 2;
-          totalTemp += tempGrid[y][x];
-
-          // Growth and death
-          let growthRate = 1 - Math.pow(((tempGrid[y][x] - 22.5) / 17.5), 2);
-          
-          if(grid[y][x] === EMPTY) {
-            // Can a neighbor seed here?
-            if(growthRate > 0) {
-              let neighbors = {1:0, 2:0};
-              for(let dy=-1; dy<=1; dy++) {
-                for(let dx=-1; dx<=1; dx++) {
-                  if(dx===0 && dy===0) continue;
-                  let st = grid[(y+dy+H)%H][(x+dx+W)%W];
-                  if(st !== EMPTY) neighbors[st]++;
-                }
-              }
-              if(neighbors[WHITE] > 0 && Math.random() < growthRate * 0.1) nextGrid[y][x] = WHITE;
-              else if(neighbors[BLACK] > 0 && Math.random() < growthRate * 0.1) nextGrid[y][x] = BLACK;
-            }
-          } else {
-            // Does it die?
-            if(Math.random() > growthRate + 0.3) {
-              nextGrid[y][x] = EMPTY;
-            }
-          }
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        let localTemp = new Float32Array(COLS * ROWS);
+        
+        for (let i = 0; i < grid.length; i++) {
+            const r = Math.random();
+            if (r < 0.2) grid[i] = 1; // Black
+            else if (r < 0.4) grid[i] = 2; // White
+            else grid[i] = 0; // Empty
         }
-      }
-      grid = nextGrid;
 
-      document.getElementById('lum').textContent = luminosity.toFixed(2);
-      document.getElementById('temp').textContent = (totalTemp / (W*H)).toFixed(1);
+        const ALBEDO_BLACK = 0.25;
+        const ALBEDO_WHITE = 0.75;
+        const ALBEDO_GROUND = 0.5;
+        const IDEAL_TEMP = 22.5;
+        const DEATH_RATE = 0.3;
+        
+        let luminosity = 0.7; 
+        let lumDir = 1; 
 
-      document.getElementById('field').textContent = grid.map(row => row.map(c => {
-        if(c === WHITE) return 'W';
-        if(c === BLACK) return 'B';
-        return '.';
-      }).join('')).join('\n');
-    }
-    setInterval(step, 100);
-  </script>
+        function step() {
+            luminosity += lumDir * 0.005;
+            if (luminosity > 1.5) lumDir = -1;
+            if (luminosity < 0.6) lumDir = 1;
+
+            let globalTempSum = 0;
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    let albedo = ALBEDO_GROUND;
+                    if (grid[idx] === 1) albedo = ALBEDO_BLACK;
+                    else if (grid[idx] === 2) albedo = ALBEDO_WHITE;
+
+                    let T = (luminosity * 72) * (1.0 - albedo) - 4;
+                    localTemp[idx] = T;
+                }
+            }
+            
+            let nextTemp = new Float32Array(COLS * ROWS);
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    let sum = localTemp[idx];
+                    sum += localTemp[y * COLS + ((x + 1) % COLS)];
+                    sum += localTemp[y * COLS + ((x - 1 + COLS) % COLS)];
+                    sum += localTemp[((y + 1) % ROWS) * COLS + x];
+                    sum += localTemp[((y - 1 + ROWS) % ROWS) * COLS + x];
+                    nextTemp[idx] = sum / 5.0;
+                    globalTempSum += nextTemp[idx];
+                }
+            }
+            localTemp = nextTemp;
+            const globalTemp = globalTempSum / (COLS * ROWS);
+
+            let nextGrid = new Uint8Array(grid);
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    
+                    if (grid[idx] !== 0) {
+                        if (Math.random() < DEATH_RATE) {
+                            nextGrid[idx] = 0;
+                        }
+                    } else {
+                        const dirs = [[0,1], [1,0], [0,-1], [-1,0]];
+                        const [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+                        const nx = (x + dx + COLS) % COLS;
+                        const ny = (y + dy + ROWS) % ROWS;
+                        const nIdx = ny * COLS + nx;
+                        const neighbor = grid[nIdx];
+                        
+                        if (neighbor !== 0) {
+                            const T = localTemp[idx];
+                            let growthProb = 1.0 - Math.pow((IDEAL_TEMP - T) / 17.5, 2);
+                            if (growthProb > 0 && Math.random() < growthProb) {
+                                nextGrid[idx] = neighbor; 
+                            }
+                        }
+                    }
+                }
+            }
+            grid = nextGrid;
+
+            document.getElementById("lum").innerText = luminosity.toFixed(2);
+            document.getElementById("temp").innerText = globalTemp.toFixed(1);
+            
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const v = grid[y * COLS + x];
+                    if (v === 1) { 
+                        html += `<span style="color:#52634b; font-weight:bold;">@</span>`;
+                    } else if (v === 2) { 
+                        html += `<span style="color:#e5eadb; font-weight:bold;">*</span>`;
+                    } else {
+                        const T = localTemp[y * COLS + x];
+                        let groundChar = ".";
+                        let groundColor = "#2b2b1a";
+                        if (T < 5) { groundColor = "#76c7d5"; groundChar = "-"; } 
+                        else if (T > 40) { groundColor = "#e77a61"; groundChar = "~"; } 
+                        
+                        html += `<span style="color:${groundColor};">${groundChar}</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
+    </script>
 </body>
 </html>

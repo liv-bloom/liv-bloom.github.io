@@ -2,120 +2,157 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wolfram Elementary CA</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; image-rendering: pixelated; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button, select { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
-        button:hover, select:hover { background: #45a049; }
-        label { display: block; margin-top: 5px; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button, select {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover, select:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Wolfram Elementary CA</h2>
-        <p>A 1D cellular automaton that generates complex patterns from simple rules (e.g., Rule 30, Rule 90).</p>
-        <label>Rule: 
-            <select id="ruleSelect" onchange="init()">
-                <option value="30">Rule 30 (Chaos)</option>
-                <option value="90">Rule 90 (Sierpinski)</option>
-                <option value="110">Rule 110 (Turing Complete)</option>
-                <option value="184">Rule 184 (Traffic/Surface)</option>
-            </select>
-        </label>
-        <button onclick="init()">Restart</button>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Wolfram Elementary CA</strong><br><br>
+        A 1D cellular automaton that generates complex patterns from simple rules.<br>
+        This ASCII version scrolls upwards continuously, rendering alive cells as cyan asterisks (`*`).
+        <div class="controls">
+            <label>Rule: 
+                <select id="ruleSelect" onchange="init()">
+                    <option value="30">Rule 30 (Chaos)</option>
+                    <option value="90">Rule 90 (Sierpinski)</option>
+                    <option value="110">Rule 110 (Turing Complete)</option>
+                    <option value="184">Rule 184 (Traffic/Surface)</option>
+                    <option value="150">Rule 150</option>
+                    <option value="73">Rule 73</option>
+                </select>
+            </label>
+            <button onclick="init()">Restart</button>
+        </div>
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const ruleSelect = document.getElementById('ruleSelect');
-        
-        const cellSize = 2;
-        let cols, rows;
-        let cells = [];
-        let generation = 0;
-        let ruleset = [];
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            cols = Math.floor(canvas.width / cellSize);
-            rows = Math.floor(canvas.height / cellSize);
-            init();
-        }
+    <script>
+        const COLS = 120;
+        const ROWS = 60;
+        
+        let history = []; // Array of strings
+        let currentCells = new Uint8Array(COLS);
+        let ruleset = new Uint8Array(8);
 
         function setRule(ruleNum) {
-            ruleset = [];
             let binaryStr = ruleNum.toString(2).padStart(8, '0');
             for (let i = 0; i < 8; i++) {
-                ruleset.push(parseInt(binaryStr[7 - i]));
+                ruleset[i] = parseInt(binaryStr[7 - i]);
             }
         }
 
         function init() {
-            setRule(parseInt(ruleSelect.value));
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            setRule(parseInt(document.getElementById('ruleSelect').value));
             
-            cells = new Array(cols).fill(0);
-            cells[Math.floor(cols / 2)] = 1; // Single cell in the middle
-            generation = 0;
-            drawRow();
-        }
-
-        function generate() {
-            let nextgen = new Array(cols).fill(0);
-            for (let i = 0; i < cols; i++) {
-                let left = cells[(i - 1 + cols) % cols];
-                let middle = cells[i];
-                let right = cells[(i + 1) % cols];
-                nextgen[i] = applyRule(left, middle, right);
+            history = [];
+            currentCells.fill(0);
+            currentCells[Math.floor(COLS / 2)] = 1; // Center seed
+            
+            // Fill history with empty lines initially
+            for (let i = 0; i < ROWS; i++) {
+                history.push(" ".repeat(COLS));
             }
-            cells = nextgen;
-            generation++;
         }
 
-        function applyRule(a, b, c) {
-            let s = "" + a + b + c;
-            let index = parseInt(s, 2);
-            return ruleset[index];
-        }
-
-        function drawRow() {
-            if (generation >= rows) {
-                // Shift image up to scroll
-                let imgData = ctx.getImageData(0, cellSize, canvas.width, canvas.height - cellSize);
-                ctx.putImageData(imgData, 0, 0);
-                // Clear bottom row
-                ctx.fillStyle = '#111';
-                ctx.fillRect(0, canvas.height - cellSize, canvas.width, cellSize);
-                generation--; // Keep it at bottom
-            }
-
-            for (let i = 0; i < cols; i++) {
-                if (cells[i] === 1) {
-                    ctx.fillStyle = '#eee';
-                    ctx.fillRect(i * cellSize, generation * cellSize, cellSize, cellSize);
+        function step() {
+            // Create the HTML line for the current generation
+            let lineHtml = "";
+            for (let i = 0; i < COLS; i++) {
+                if (currentCells[i] === 1) {
+                    lineHtml += `<span style="color:#76c7d5; font-weight:bold;">*</span>`;
+                } else {
+                    lineHtml += " ";
                 }
             }
+            
+            // Add to history and remove oldest
+            history.shift();
+            history.push(lineHtml);
+            
+            // Generate next state
+            let nextgen = new Uint8Array(COLS);
+            for (let i = 0; i < COLS; i++) {
+                let left = currentCells[(i - 1 + COLS) % COLS];
+                let middle = currentCells[i];
+                let right = currentCells[(i + 1) % COLS];
+                
+                let idx = (left << 2) | (middle << 1) | right;
+                nextgen[i] = ruleset[idx];
+            }
+            currentCells = nextgen;
+            
+            // Render
+            document.getElementById("canvas").innerHTML = history.join("\n");
         }
 
-        function loop() {
-            generate();
-            drawRow();
-            requestAnimationFrame(loop);
-        }
+        init();
+        
 
-        window.addEventListener('resize', resize);
-        resize(); // Calls init
-        loop();
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
     </script>
 </body>
 </html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Physarum Polycephalum (Slime Mold)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Physarum Polycephalum (Slime Mold)</strong><br><br>
+        Inspired by Jeff Jones' 2010 model of the true slime mold.<br>
+        Thousands of simple agents (particles) move around a grid. As they move, they deposit a chemical trail (chemoattractant). They have a limited "sensor" field in front of them (Center, Left, Right) and will steer towards the strongest chemical concentration.<br>
+        The trail map constantly diffuses and decays. From these simple local rules, complex and highly efficient network structures (like the veins of a slime mold foraging for food) spontaneously emerge.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const NUM_AGENTS = 500;
+        
+        // Agent parameters
+        const SENSOR_ANGLE = Math.PI / 4;
+        const SENSOR_DIST = 3.0;
+        const ROT_ANGLE = Math.PI / 4;
+        const STEP_SIZE = 1.0;
+        const DEPOSIT = 1.0;
+        
+        // Trail parameters
+        const DECAY = 0.95;
+        const DIFFUSION = 0.3;
+
+        let trail = new Float32Array(COLS * ROWS);
+        let nextTrail = new Float32Array(COLS * ROWS);
+        
+        let agents = [];
+        for (let i = 0; i < NUM_AGENTS; i++) {
+            // Start in a circle in the center
+            const a = Math.random() * Math.PI * 2;
+            const r = Math.random() * 10;
+            agents.push({
+                x: COLS / 2 + Math.cos(a) * r,
+                y: ROWS / 2 + Math.sin(a) * r,
+                angle: Math.random() * Math.PI * 2
+            });
+        }
+
+        const chars = [" ", ".", "-", "+", "*", "o", "O", "@"];
+        const colors = ["#10120f", "#2b2a1a", "#4a4920", "#6d6c29", "#939133", "#bbb93f", "#e5e24d", "#fffb66"];
+
+        function getTrail(x, y) {
+            x = Math.round(x);
+            y = Math.round(y);
+            if (x < 0) x += COLS; if (x >= COLS) x -= COLS;
+            if (y < 0) y += ROWS; if (y >= ROWS) y -= ROWS;
+            return trail[y * COLS + x];
+        }
+
+        function step() {
+            // 1. Motor stage (Move agents and deposit trail)
+            for (let i = 0; i < agents.length; i++) {
+                let a = agents[i];
+                
+                // Sense
+                let fl = getTrail(a.x + Math.cos(a.angle - SENSOR_ANGLE) * SENSOR_DIST, 
+                                  a.y + Math.sin(a.angle - SENSOR_ANGLE) * SENSOR_DIST);
+                let fc = getTrail(a.x + Math.cos(a.angle) * SENSOR_DIST, 
+                                  a.y + Math.sin(a.angle) * SENSOR_DIST);
+                let fr = getTrail(a.x + Math.cos(a.angle + SENSOR_ANGLE) * SENSOR_DIST, 
+                                  a.y + Math.sin(a.angle + SENSOR_ANGLE) * SENSOR_DIST);
+                
+                // Steer
+                if (fc > fl && fc > fr) {
+                    // Keep going straight
+                } else if (fc < fl && fc < fr) {
+                    // Randomly turn left or right
+                    a.angle += (Math.random() > 0.5 ? ROT_ANGLE : -ROT_ANGLE);
+                } else if (fl < fr) {
+                    a.angle += ROT_ANGLE;
+                } else if (fr < fl) {
+                    a.angle -= ROT_ANGLE;
+                }
+                
+                // Move
+                a.x += Math.cos(a.angle) * STEP_SIZE;
+                a.y += Math.sin(a.angle) * STEP_SIZE;
+                
+                // Wrap around
+                if (a.x < 0) a.x += COLS; if (a.x >= COLS) a.x -= COLS;
+                if (a.y < 0) a.y += ROWS; if (a.y >= ROWS) a.y -= ROWS;
+                
+                // Deposit
+                let ix = Math.floor(a.x);
+                let iy = Math.floor(a.y);
+                if (ix >= 0 && ix < COLS && iy >= 0 && iy < ROWS) {
+                    trail[iy * COLS + ix] += DEPOSIT;
+                }
+            }
+
+            // 2. Diffuse and Decay stage
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    
+                    let sum = 0;
+                    // 3x3 mean filter for diffusion
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            let nx = (x + dx + COLS) % COLS;
+                            let ny = (y + dy + ROWS) % ROWS;
+                            sum += trail[ny * COLS + nx];
+                        }
+                    }
+                    let blurred = sum / 9.0;
+                    
+                    // Blend original with blurred, then decay
+                    let val = trail[idx] * (1 - DIFFUSION) + blurred * DIFFUSION;
+                    val *= DECAY;
+                    
+                    nextTrail[idx] = val;
+                }
+            }
+            
+            let temp = trail;
+            trail = nextTrail;
+            nextTrail = temp;
+
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const v = trail[y * COLS + x];
+                    let norm = Math.min(1.0, v / 5.0);
+                    const idx = Math.floor(norm * (chars.length - 1));
+                    let fw = idx > 4 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[idx]}; ${fw}">${chars[idx]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
+    </script>
+</body>
+</html>

@@ -2,50 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Genetic Algorithm: String Evolution</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: auto; }
-        a { color: #8fd46b; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-right: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #info {
+            max-width: 600px; 
+            margin-bottom: 20px; 
+            font-size: 12px; 
+            text-align: left;
+        }
         #display {
-            font-size: 24px;
+            font-size: 18px;
             white-space: pre;
             text-align: center;
             background: #181d18;
             padding: 20px;
             border: 1px solid #394034;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            width: 80%;
+            max-width: 800px;
         }
-        .stats { font-size: 14px; margin-top: 10px; color: #8fd46b; }
-        .best { color: #fff; font-weight: bold; }
+        .stats { margin-top: 10px; color: #76c7d5; font-size: 14px; }
+        .best { color: #8fd46b; font-weight: bold; }
+        .target { color: #f3d36b; font-weight: bold; }
+        .controls { margin-top: 15px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
+        .match { color: #8fd46b; font-weight: bold; }
+        .mismatch { color: #e77a61; }
     </style>
 </head>
 <body>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Genetic Algorithm</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A simple evolutionary algorithm where a population of random strings mutates and crosses over over generations to match a target sequence.</p>
-        <div class="controls">
-            <button onclick="reset()">Restart</button>
-        </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Genetic Algorithm: String Evolution</strong><br><br>
+        A classical evolutionary algorithm where a population of random gibberish mutates and crosses over each generation. The fitness function rewards strings that closely match the target sequence.<br>
+        This demonstrates the power of cumulative selection: random mutation alone would take longer than the age of the universe, but selective breeding finds the target in seconds.
     </div>
+
     <div id="display">
-        <div id="targetLabel">Target: <span class="best" id="targetStr"></span></div>
-        <div id="bestLabel" style="margin-top: 20px;">Best: <span class="best" id="bestStr"></span></div>
+        <div>Target: <span class="target" id="targetStr"></span></div>
+        <div style="margin-top: 20px;">Best:   <span id="bestStr"></span></div>
         <div class="stats" id="statsDiv">Generation: 0 | Fitness: 0%</div>
+        <div class="controls">
+            <button onclick="reset()">Restart Seed</button>
+        </div>
     </div>
+
     <script>
-        const target = "liv bloom 🌱 Digital Gardener";
+        const target = "liv bloom 🌱 Digital Gardener of the Common Language";
         const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789🌱-_.";
-        const POP_SIZE = 200;
-        const MUTATION_RATE = 0.01;
+        const POP_SIZE = 300;
+        const MUTATION_RATE = 0.015;
         
         let population = [];
         let generation = 0;
@@ -73,7 +101,8 @@
                     score++;
                 }
             }
-            return score / target.length;
+            // Exponential fitness rewards partial matches heavily
+            return Math.pow(score / target.length, 4);
         }
 
         function createIndividual(str) {
@@ -113,15 +142,28 @@
             return mutated;
         }
 
+        function renderBest(bestDNA) {
+            let html = "";
+            let matchCount = 0;
+            for (let i = 0; i < target.length; i++) {
+                if (bestDNA[i] === target[i]) {
+                    html += `<span class="match">${bestDNA[i]}</span>`;
+                    matchCount++;
+                } else {
+                    html += `<span class="mismatch">${bestDNA[i]}</span>`;
+                }
+            }
+            document.getElementById('bestStr').innerHTML = html;
+            return matchCount;
+        }
+
         function loop() {
             if (!running) return;
 
-            // Selection & Reproduction
-            let matingPool = [];
-            
-            // Map fitness to probability
             let maxFitness = 0;
             let bestDNA = "";
+            let bestScore = 0;
+            
             for (let i = 0; i < POP_SIZE; i++) {
                 if (population[i].fitness > maxFitness) {
                     maxFitness = population[i].fitness;
@@ -129,24 +171,30 @@
                 }
             }
             
+            let matchCount = renderBest(bestDNA);
+            let rawFitnessPct = Math.floor((matchCount / target.length) * 100);
+
             if (bestDNA === target) {
-                running = false; // Goal reached
+                running = false; 
             }
 
-            document.getElementById('bestStr').innerText = bestDNA;
-            document.getElementById('statsDiv').innerText = `Generation: ${generation} | Max Fitness: ${Math.floor(maxFitness * 100)}%`;
+            document.getElementById('statsDiv').innerText = `Generation: ${generation} | Highest Accuracy: ${rawFitnessPct}%`;
 
             if (!running) return;
 
+            let matingPool = [];
             for (let i = 0; i < POP_SIZE; i++) {
-                let fitnessNormal = population[i].fitness / maxFitness;
+                let fitnessNormal = maxFitness > 0 ? population[i].fitness / maxFitness : 0;
                 let n = Math.floor(fitnessNormal * 100); 
                 for (let j = 0; j < n; j++) {
                     matingPool.push(population[i]);
                 }
             }
 
-            // New generation
+            if (matingPool.length === 0) {
+                for (let i = 0; i < POP_SIZE; i++) matingPool.push(population[i]);
+            }
+
             let newPopulation = [];
             for (let i = 0; i < POP_SIZE; i++) {
                 let a = Math.floor(Math.random() * matingPool.length);
@@ -163,7 +211,6 @@
             population = newPopulation;
             generation++;
 
-            // Slow down the visual slightly so it can be seen
             setTimeout(() => {
                 animationId = requestAnimationFrame(loop);
             }, 30);

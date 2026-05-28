@@ -2,97 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fireflies Synchronization</title>
     <style>
-        body { margin: 0; background-color: #050510; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #aaffaa; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
-        button:hover { background: #45a049; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Fireflies Synchronization</h2>
-        <p>Kuramoto Model: Fireflies adjust their flashing phases based on nearby neighbors. Over time, random flashes spontaneously synchronize into unified waves.</p>
-        <button onclick="init()">Disrupt Sync</button>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Fireflies Synchronization (Kuramoto Model)</strong><br><br>
+        In some parts of the world, thousands of fireflies gather in trees and flash in perfect unison. They achieve this without a leader, using only local coupling.<br>
+        This implements the Kuramoto model. Each firefly (<span style="color:#f3d36b; font-weight:bold;">*</span>) has its own internal clock (phase). When it sees a neighbor flash, it nudges its own clock slightly to match.<br>
+        Over time, pure chaos spontaneously organizes into synchronized waves of light.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
+        const NUM_BUGS = 150;
         
-        let width, height;
-        const numFireflies = 400;
-        let fireflies = [];
-        
-        // Kuramoto model parameters
-        const coupling = 0.05; 
-        const interactionRadius = 80;
-
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-        }
-
         class Firefly {
             constructor() {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
+                this.x = Math.random() * COLS;
+                this.y = Math.random() * ROWS;
                 this.phase = Math.random() * Math.PI * 2;
                 // Natural frequency
-                this.freq = 0.03 + Math.random() * 0.02;
-                // Movement
-                this.dx = (Math.random() - 0.5) * 1.5;
-                this.dy = (Math.random() - 0.5) * 1.5;
+                this.freq = 0.05 + Math.random() * 0.02;
+                // Random wander
+                this.dx = (Math.random() - 0.5) * 0.5;
+                this.dy = (Math.random() - 0.5) * 0.5;
             }
-
-            move() {
-                this.x += this.dx;
-                this.y += this.dy;
-                if (this.x < 0) this.x += width;
-                if (this.x > width) this.x -= width;
-                if (this.y < 0) this.y += height;
-                if (this.y > height) this.y -= height;
-            }
-        }
-
-        function init() {
-            fireflies = [];
-            for (let i = 0; i < numFireflies; i++) {
-                fireflies.push(new Firefly());
-            }
-        }
-
-        function update() {
-            // Calculate phase shifts based on neighbors
-            let phaseShifts = new Array(numFireflies).fill(0);
             
-            for (let i = 0; i < numFireflies; i++) {
+            move() {
+                this.x = (this.x + this.dx + COLS) % COLS;
+                this.y = (this.y + this.dy + ROWS) % ROWS;
+            }
+        }
+
+        let fireflies = [];
+        for (let i = 0; i < NUM_BUGS; i++) {
+            fireflies.push(new Firefly());
+        }
+
+        const coupling = 0.08;
+        const radius = 10;
+
+        const chars = [".", ",", "+", "*"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#f3d36b"]; // Yellow flash
+
+        function step() {
+            let phaseShifts = new Array(NUM_BUGS).fill(0);
+            
+            for (let i = 0; i < NUM_BUGS; i++) {
                 let f1 = fireflies[i];
                 let neighbors = 0;
                 let shift = 0;
                 
-                for (let j = 0; j < numFireflies; j++) {
+                for (let j = 0; j < NUM_BUGS; j++) {
                     if (i === j) continue;
                     let f2 = fireflies[j];
-                    let dx = f1.x - f2.x;
-                    let dy = f1.y - f2.y;
                     
-                    // Simple wrap-around distance approximation
-                    if (Math.abs(dx) > width / 2) dx = width - Math.abs(dx);
-                    if (Math.abs(dy) > height / 2) dy = height - Math.abs(dy);
+                    let dx = Math.abs(f1.x - f2.x);
+                    let dy = Math.abs(f1.y - f2.y);
+                    if (dx > COLS / 2) dx = COLS - dx;
+                    if (dy > ROWS / 2) dy = ROWS - dy;
                     
-                    let distSq = dx*dx + dy*dy;
-                    
-                    if (distSq < interactionRadius * interactionRadius) {
+                    if (dx*dx + dy*dy < radius*radius) {
                         shift += Math.sin(f2.phase - f1.phase);
                         neighbors++;
                     }
@@ -103,58 +101,72 @@
                 }
             }
 
-            // Apply updates
-            for (let i = 0; i < numFireflies; i++) {
+            let grid = new Array(COLS * ROWS).fill(0);
+
+            for (let i = 0; i < NUM_BUGS; i++) {
                 let f = fireflies[i];
                 f.move();
                 f.phase += f.freq + phaseShifts[i];
-                if (f.phase > Math.PI * 2) {
-                    f.phase -= Math.PI * 2;
-                }
+                if (f.phase > Math.PI * 2) f.phase -= Math.PI * 2;
+                
+                // Brightness peaks at phase 0
+                let b = (Math.cos(f.phase) + 1) / 2;
+                b = Math.pow(b, 6); // Sharpen flash
+                
+                let val = 1; // Base visible
+                if (b > 0.3) val = 2; // Glowing
+                if (b > 0.8) val = 3; // Flashing!
+                
+                let ix = Math.floor(f.x);
+                let iy = Math.floor(f.y);
+                grid[iy * COLS + ix] = val;
             }
+
+            draw(grid);
         }
 
-        function draw() {
-            ctx.fillStyle = 'rgba(5, 5, 16, 0.3)'; // Trail effect
-            ctx.fillRect(0, 0, width, height);
-
-            for (let i = 0; i < numFireflies; i++) {
-                let f = fireflies[i];
-                
-                // Flash brightness peaks at phase = 0 (or 2PI)
-                let brightness = (Math.cos(f.phase) + 1) / 2; 
-                // Sharpen the flash
-                brightness = Math.pow(brightness, 8);
-                
-                let radius = 1 + brightness * 4;
-                
-                ctx.beginPath();
-                ctx.arc(f.x, f.y, radius, 0, Math.PI * 2);
-                
-                if (brightness > 0.1) {
-                    ctx.fillStyle = `rgba(170, 255, 100, ${brightness})`;
-                    ctx.shadowBlur = brightness * 15;
-                    ctx.shadowColor = '#aaff66';
-                } else {
-                    ctx.fillStyle = `rgba(100, 150, 50, 0.2)`;
-                    ctx.shadowBlur = 0;
+        function draw(grid) {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let val = grid[y * COLS + x];
+                    let fw = val > 1 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[val]}; ${fw}">${chars[val]}</span>`;
                 }
-                
-                ctx.fill();
+                html += "\n";
             }
-            ctx.shadowBlur = 0; // reset
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
-        }
+        
 
-        window.addEventListener('resize', resize);
-        resize();
-        init();
-        loop();
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
     </script>
 </body>
 </html>

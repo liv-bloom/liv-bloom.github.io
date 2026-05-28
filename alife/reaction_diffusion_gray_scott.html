@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gray-Scott Reaction-Diffusion</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 10px);
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    
+    <div style="max-width: 600px; margin-top: 20px; font-size: 12px; text-align: left;">
+        <strong>Gray-Scott Reaction-Diffusion Model</strong><br><br>
+        A classic reaction-diffusion system involving two chemicals, U and V. Chemical U is fed into the system and decays, while V turns U into more V. The equations are:<br>
+        ∂u/∂t = Du∇²u - uv² + F(1-u)<br>
+        ∂v/∂t = Dv∇²v + uv² - (F+k)v<br><br>
+        Depending on the feed rate (F) and kill rate (k), this model generates a variety of complex patterns including spots, stripes, and dividing cells (mitosis-like behavior), demonstrating how simple chemical interactions can lead to biological pattern formation.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        let gridU = new Float32Array(COLS * ROWS);
+        let gridV = new Float32Array(COLS * ROWS);
+
+        // Parameters for "Mitosis" pattern
+        const Da = 1.0;
+        const Db = 0.5;
+        const f = 0.0367;
+        const k = 0.0649;
+        const dt = 1.0;
+
+        // Initialize grid
+        for (let i = 0; i < gridU.length; i++) {
+            gridU[i] = 1.0;
+            gridV[i] = 0.0;
+        }
+
+        // Drop a seed block of V in the center
+        const seedSize = 4;
+        const cx = Math.floor(COLS / 2);
+        const cy = Math.floor(ROWS / 2);
+        for (let y = cy - seedSize; y <= cy + seedSize; y++) {
+            for (let x = cx - seedSize; x <= cx + seedSize; x++) {
+                if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
+                    gridU[y * COLS + x] = 0.5 + Math.random() * 0.1;
+                    gridV[y * COLS + x] = 0.25 + Math.random() * 0.1;
+                }
+            }
+        }
+
+        const chars = ["&nbsp;", ".", ":", "-", "=", "+", "*", "#", "%", "@"];
+        const colors = ["#10120f", "#2b3b28", "#3f5439", "#56704d", "#718f62", "#8eb079", "#8fd46b", "#a9e388", "#c8f2b3", "#e5eadb"];
+
+        function laplacian(grid, x, y) {
+            let sum = 0;
+            sum += grid[y * COLS + x] * -1.0;
+            sum += grid[y * COLS + ((x - 1 + COLS) % COLS)] * 0.2;
+            sum += grid[y * COLS + ((x + 1) % COLS)] * 0.2;
+            sum += grid[((y - 1 + ROWS) % ROWS) * COLS + x] * 0.2;
+            sum += grid[((y + 1) % ROWS) * COLS + x] * 0.2;
+            sum += grid[((y - 1 + ROWS) % ROWS) * COLS + ((x - 1 + COLS) % COLS)] * 0.05;
+            sum += grid[((y - 1 + ROWS) % ROWS) * COLS + ((x + 1) % COLS)] * 0.05;
+            sum += grid[((y + 1) % ROWS) * COLS + ((x - 1 + COLS) % COLS)] * 0.05;
+            sum += grid[((y + 1) % ROWS) * COLS + ((x + 1) % COLS)] * 0.05;
+            return sum;
+        }
+
+        function step() {
+            const nextU = new Float32Array(gridU.length);
+            const nextV = new Float32Array(gridV.length);
+
+            // Run 5 sub-steps per frame for speed
+            for (let s = 0; s < 5; s++) {
+                for (let y = 0; y < ROWS; y++) {
+                    for (let x = 0; x < COLS; x++) {
+                        const idx = y * COLS + x;
+                        const u = gridU[idx];
+                        const v = gridV[idx];
+                        const lapU = laplacian(gridU, x, y);
+                        const lapV = laplacian(gridV, x, y);
+                        const uvv = u * v * v;
+
+                        let newU = u + (Da * lapU - uvv + f * (1 - u)) * dt;
+                        let newV = v + (Db * lapV + uvv - (k + f) * v) * dt;
+
+                        nextU[idx] = Math.max(0, Math.min(1, newU));
+                        nextV[idx] = Math.max(0, Math.min(1, newV));
+                    }
+                }
+                gridU.set(nextU);
+                gridV.set(nextV);
+            }
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    // Visualize V concentration (the "activator")
+                    const v = gridV[y * COLS + x];
+                    // Scale V (typically ranges 0 to ~0.4)
+                    const normalizedV = Math.min(1.0, v * 2.5);
+                    const idx = Math.min(9, Math.floor(normalizedV * 10));
+                    html += `<span style="color:${colors[idx]};">${chars[idx]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
+    </script>
+</body>
+</html>

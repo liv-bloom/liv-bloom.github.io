@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bilingual Garden - liv bloom 🌱 (Page 6/15)</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #10120f;
+      --panel: #181d18;
+      --ink: #e5eadb;
+      --green: #8fd46b;
+      --line: #394034;
+      --hover: rgba(143, 212, 107, 0.1);
+    }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: var(--green);
+      font-size: 24px;
+      text-align: center;
+      margin-bottom: 5px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 14px;
+      color: var(--ink);
+      margin-bottom: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 15px;
+      max-width: 1400px;
+      margin: 0 auto 30px auto;
+    }
+    .frame-container {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      position: relative;
+      padding-top: 75%;
+      overflow: hidden;
+      border-radius: 4px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .frame-container:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 10px rgba(143, 212, 107, 0.2);
+    }
+    iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      transform: scale(0.85);
+      transform-origin: 0 0;
+      width: 117.6%;
+      height: 117.6%;
+      pointer-events: none;
+    }
+    .overlay {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(16, 18, 15, 0.85);
+      padding: 8px 10px;
+      font-size: 14px;
+      color: var(--green);
+      backdrop-filter: blur(2px);
+      text-align: center;
+    }
+    .nav {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .nav a {
+      color: var(--ink);
+      text-decoration: none;
+      border: 1px solid var(--line);
+      padding: 5px 15px;
+      border-radius: 3px;
+      font-size: 14px;
+      margin: 0 5px;
+      display: inline-block;
+      margin-bottom: 5px;
+    }
+    .nav a:hover {
+      border-color: var(--green);
+      background: var(--hover);
+    }
+    a {
+      text-decoration: none;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+    }
+    .pagination a {
+      color: var(--ink);
+      border: 1px solid var(--line);
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .pagination a:hover {
+      border-color: var(--green);
+      background: var(--hover);
+    }
+    .pagination a.active {
+      background: var(--green);
+      color: var(--bg);
+      border-color: var(--green);
+    }
+  </style>
+</head>
+<body>
+  <h1>Bilingual Garden</h1>
+  <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
+  <div class="nav">
+    <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
+    <a href="gallery.html">Top 9 Gallery</a>
+  </div>
+  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 31 - 36 of 86 seeds</p>
+  
+  <div class="grid" id="gallery">
+    <a href="reaction_diffusion_gray_scott.html">
+      <div class="frame-container">
+        <iframe src="reaction_diffusion_gray_scott.html" loading="lazy"></iframe>
+        <div class="overlay">Gray-Scott Reaction-Diffusion</div>
+      </div>
+    </a>
+    <a href="greenberg_hastings.html">
+      <div class="frame-container">
+        <iframe src="greenberg_hastings.html" loading="lazy"></iframe>
+        <div class="overlay">Greenberg-Hastings Excitable Media</div>
+      </div>
+    </a>
+    <a href="gumowski_mira.html">
+      <div class="frame-container">
+        <iframe src="gumowski_mira.html" loading="lazy"></iframe>
+        <div class="overlay">Gumowski-Mira Attractor</div>
+      </div>
+    </a>
+    <a href="hpp_lattice_gas.html">
+      <div class="frame-container">
+        <iframe src="hpp_lattice_gas.html" loading="lazy"></iframe>
+        <div class="overlay">HPP Lattice Gas Automaton</div>
+      </div>
+    </a>
+    <a href="highlife.html">
+      <div class="frame-container">
+        <iframe src="highlife.html" loading="lazy"></iframe>
+        <div class="overlay">HighLife Cellular Automaton</div>
+      </div>
+    </a>
+    <a href="hodgepodge.html">
+      <div class="frame-container">
+        <iframe src="hodgepodge.html" loading="lazy"></iframe>
+        <div class="overlay">Hodgepodge Machine (BZ Reaction)</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="pagination">
+    <a href="page5.html">&laquo; Prev</a>
+    <a href="index.html">1</a>
+    <a href="page2.html">2</a>
+    <a href="page3.html">3</a>
+    <a href="page4.html">4</a>
+    <a href="page5.html">5</a>
+    <a href="page6.html" class="active">6</a>
+    <a href="page7.html">7</a>
+    <a href="page8.html">8</a>
+    <a href="page9.html">9</a>
+    <a href="page10.html">10</a>
+    <a href="page11.html">11</a>
+    <a href="page12.html">12</a>
+    <a href="page13.html">13</a>
+    <a href="page14.html">14</a>
+    <a href="page15.html">15</a>
+    <a href="page7.html">Next &raquo;</a>
+  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const iframes = document.querySelectorAll("iframe");
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.contentWindow.postMessage("resume", "*");
+          } else {
+            entry.target.contentWindow.postMessage("pause", "*");
+          }
+        });
+      }, { threshold: 0.0 });
+      iframes.forEach(iframe => observer.observe(iframe));
+    });
+  </script>
+</body>
+</html>

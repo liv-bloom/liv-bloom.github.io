@@ -2,161 +2,181 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Falling Sand Physics</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); image-rendering: pixelated; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">Falling Sand</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A cellular automaton where each pixel simulates granular physics. Click and drag to pour sand. It creates emergent dunes and slopes.</p>
-        <div class="controls">
-            <button onclick="clearGrid()">Clear</button>
-            <button onclick="changeColor()">Change Color</button>
-        </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Falling Sand Physics</strong><br><br>
+        A cellular automaton simulating granular physics. Every step, sand particles (<span style="color:#f3d36b; font-weight:bold;">*</span>) try to fall straight down.<br>
+        If the space directly below is occupied, they attempt to slide diagonally down-left or down-right. This simple local rule set perfectly captures the macroscopic behavior of forming dunes, avalanches, and the natural angle of repose.<br>
+        Two spouts at the top continuously drop sand into the environment.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
         
-        const scale = 4;
-        let cols, rows;
-        let grid;
-        let hueValue = 40; // Sand color
+        let grid = new Uint8Array(COLS * ROWS);
+        
+        // Add some initial solid ground
+        for (let x = 0; x < COLS; x++) {
+            grid[(ROWS - 1) * COLS + x] = 3; // 3 is solid ground
+            grid[(ROWS - 2) * COLS + x] = 3; 
+        }
 
-        function make2DArray(cols, rows) {
-            let arr = new Array(cols);
-            for (let i = 0; i < arr.length; i++) {
-                arr[i] = new Array(rows).fill(0);
+        const chars = [".", "*", "*", "#"];
+        const colors = ["#2b2b1a", "#e77a61", "#f3d36b", "#394034"];
+
+        let time = 0;
+
+        function step() {
+            // Spawn sand
+            if (time % 2 === 0) {
+                // Moving spouts
+                let spout1 = Math.floor(COLS/4 + Math.sin(time/20) * 10);
+                let spout2 = Math.floor(COLS*3/4 + Math.cos(time/15) * 10);
+                
+                if (grid[spout1] === 0) grid[spout1] = (Math.random() < 0.5) ? 1 : 2;
+                if (grid[spout2] === 0) grid[spout2] = (Math.random() < 0.5) ? 1 : 2;
             }
-            return arr;
-        }
+            time++;
 
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            cols = Math.floor(minDim / scale);
-            rows = Math.floor(minDim / scale);
-            canvas.width = cols * scale;
-            canvas.height = rows * scale;
-            grid = make2DArray(cols, rows);
-        }
+            // Process from bottom to top so sand falls properly in one frame
+            for (let y = ROWS - 2; y >= 0; y--) {
+                // Randomize horizontal processing order to avoid left/right bias
+                let xOrder = [];
+                for (let x = 0; x < COLS; x++) xOrder.push(x);
+                for (let i = COLS - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [xOrder[i], xOrder[j]] = [xOrder[j], xOrder[i]];
+                }
 
-        function clearGrid() {
-            grid = make2DArray(cols, rows);
-        }
+                for (let x of xOrder) {
+                    let idx = y * COLS + x;
+                    let state = grid[idx];
+                    
+                    if (state === 1 || state === 2) { // Sand
+                        let belowIdx = (y + 1) * COLS + x;
+                        
+                        // Try straight down
+                        if (grid[belowIdx] === 0) {
+                            grid[belowIdx] = state;
+                            grid[idx] = 0;
+                        } else {
+                            // Try diagonals
+                            let dir = Math.random() < 0.5 ? 1 : -1;
+                            let dx1 = x + dir;
+                            let dx2 = x - dir;
+                            
+                            let moved = false;
+                            
+                            if (dx1 >= 0 && dx1 < COLS) {
+                                let b1Idx = (y + 1) * COLS + dx1;
+                                if (grid[b1Idx] === 0) {
+                                    grid[b1Idx] = state;
+                                    grid[idx] = 0;
+                                    moved = true;
+                                }
+                            }
+                            
+                            if (!moved && dx2 >= 0 && dx2 < COLS) {
+                                let b2Idx = (y + 1) * COLS + dx2;
+                                if (grid[b2Idx] === 0) {
+                                    grid[b2Idx] = state;
+                                    grid[idx] = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-        function changeColor() {
-            hueValue = (hueValue + 60) % 360;
+            // Slowly clear ground if it piles too high (to run forever)
+            let sandCount = 0;
+            for (let i = 0; i < grid.length; i++) if (grid[i] === 1 || grid[i] === 2) sandCount++;
+            
+            if (sandCount > (COLS * ROWS) * 0.4) {
+                // remove bottom layer of sand, shift everything down
+                for (let y = ROWS - 3; y >= 0; y--) {
+                    for (let x = 0; x < COLS; x++) {
+                        grid[(y + 1) * COLS + x] = grid[y * COLS + x];
+                    }
+                }
+                for (let x = 0; x < COLS; x++) grid[x] = 0; // clear top
+            }
+
+            draw();
         }
 
         function draw() {
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            let nextGrid = make2DArray(cols, rows);
-
-            for (let i = 0; i < cols; i++) {
-                for (let j = 0; j < rows; j++) {
-                    let state = grid[i][j];
-                    if (state > 0) {
-                        ctx.fillStyle = `hsl(${state}, 80%, 60%)`;
-                        ctx.fillRect(i * scale, j * scale, scale, scale);
-
-                        if (j < rows - 1) {
-                            let below = grid[i][j + 1];
-                            let belowA = i > 0 ? grid[i - 1][j + 1] : -1;
-                            let belowB = i < cols - 1 ? grid[i + 1][j + 1] : -1;
-                            
-                            // Randomize direction of sliding
-                            let dir = Math.random() < 0.5 ? 1 : -1;
-
-                            if (below === 0) {
-                                nextGrid[i][j + 1] = state;
-                            } else if (dir === -1 && belowA === 0) {
-                                nextGrid[i - 1][j + 1] = state;
-                            } else if (dir === 1 && belowB === 0) {
-                                nextGrid[i + 1][j + 1] = state;
-                            } else if (dir === 1 && belowA === 0) {
-                                nextGrid[i - 1][j + 1] = state;
-                            } else if (dir === -1 && belowB === 0) {
-                                nextGrid[i + 1][j + 1] = state;
-                            } else {
-                                nextGrid[i][j] = state;
-                            }
-                        } else {
-                            nextGrid[i][j] = state; // Bottom row
-                        }
-                    }
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = (state === 1 || state === 2) ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
                 }
+                html += "\n";
             }
-
-            grid = nextGrid;
-            requestAnimationFrame(draw);
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        let isDragging = false;
         
-        function addSand(e) {
-            let rect = canvas.getBoundingClientRect();
-            let mouseX, mouseY;
-            
-            if(e.touches) {
-                mouseX = e.touches[0].clientX - rect.left;
-                mouseY = e.touches[0].clientY - rect.top;
-            } else {
-                mouseX = e.clientX - rect.left;
-                mouseY = e.clientY - rect.top;
-            }
-            
-            let gridCol = Math.floor(mouseX / scale);
-            let gridRow = Math.floor(mouseY / scale);
-            
-            let matrix = 5;
-            let extent = Math.floor(matrix / 2);
-            for (let i = -extent; i <= extent; i++) {
-                for (let j = -extent; j <= extent; j++) {
-                    if (Math.random() > 0.5) {
-                        let col = gridCol + i;
-                        let row = gridRow + j;
-                        if (col >= 0 && col <= cols - 1 && row >= 0 && row <= rows - 1) {
-                            // slight variation in hue
-                            grid[col][row] = hueValue + (Math.random() * 10 - 5);
-                        }
-                    }
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
                 }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
             }
-        }
+        }, 40);
 
-        canvas.addEventListener('mousedown', (e) => { isDragging = true; addSand(e); });
-        canvas.addEventListener('mousemove', (e) => { if (isDragging) addSand(e); });
-        canvas.addEventListener('mouseup', () => { isDragging = false; });
-        canvas.addEventListener('mouseleave', () => { isDragging = false; });
-        
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); isDragging = true; addSand(e); }, {passive: false});
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); if (isDragging) addSand(e); }, {passive: false});
-        canvas.addEventListener('touchend', () => { isDragging = false; });
-
-        window.addEventListener('resize', resize);
-        resize();
-        
-        // Add initial sand
-        for (let i = Math.floor(cols/2) - 10; i < Math.floor(cols/2) + 10; i++) {
-            grid[i][0] = hueValue;
-        }
-
-        draw();
     </script>
 </body>
 </html>

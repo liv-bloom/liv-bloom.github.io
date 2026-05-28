@@ -68,7 +68,46 @@
       }
       document.getElementById('field').innerHTML = out;
     }
-    setInterval(step, 150);
+    
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 150);
+
   </script>
+
+    <div style="max-width: 600px; margin: 15px auto; padding: 15px; border: 1px solid #394034; background: #181d18; color: #9ea88f; font-size: 13px; line-height: 1.5; text-align: left; font-family: 'SFMono-Regular', Consolas, monospace;">
+        <strong style="color: #8fd46b;">📖 About the Predator-Prey Model (Lotka-Volterra spatial)</strong><br>
+        This cellular automaton models population dynamics and ecological balance in a spatial grid, inspired by the classic Lotka-Volterra differential equations.<br><br>
+        <strong>The Rules:</strong><br>
+        The grid consists of three states: <em>Empty (Black)</em>, <em>Prey (Green)</em>, and <em>Predators (Red)</em>.<br>
+        1. <strong>Prey</strong> reproduce randomly into adjacent empty spaces.<br>
+        2. <strong>Predators</strong> hunt prey (turning a prey cell into a predator). If they don't eat, they slowly starve and die (turning into an empty cell).<br><br>
+        Instead of settling into a static state, the system usually forms dynamic, self-sustaining spirals and waves. When prey is abundant, predators multiply rapidly and consume them. The resulting prey shortage causes the predator population to collapse, allowing prey to recover, and the cycle continues indefinitely. It beautifully visualizes the fragile, oscillating balance of natural ecosystems.
+    </div>
+
 </body>
 </html>

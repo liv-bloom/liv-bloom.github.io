@@ -2,88 +2,153 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Recursive Fractal Tree</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        input[type=range] { vertical-align: middle; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Recursive Fractal Tree</h2>
-        <p>A simple algorithm generating complex natural-looking structures via recursion.</p>
-        <label>Angle: <input type="range" id="angleSlider" min="0" max="180" value="25"></label>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Recursive Fractal Tree</strong><br><br>
+        A pure ASCII recursive fractal rendering.<br>
+        This does not use a typical `<canvas>` context line stroke. Instead, it plots coordinates into a 2D text grid by mathematically tracing the lines. As the animation progresses, the tree breathes, expanding and contracting its branches through a pure algorithmic cycle.
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const slider = document.getElementById('angleSlider');
-        
-        let angle = slider.value * Math.PI / 180;
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            draw();
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        const chars = ["&nbsp;", ".", "+", "*", "O", "#"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#76c7d5", "#e77a61"];
+
+        let grid = new Array(COLS * ROWS).fill(0);
+        let animateVal = 0;
+
+        function clearGrid() {
+            grid.fill(0);
         }
 
-        function branch(len) {
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            ctx.lineTo(0, -len);
-            ctx.stroke();
-            ctx.translate(0, -len);
+        function plotLine(x0, y0, x1, y1, depth) {
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
 
-            if (len > 4) {
-                ctx.save();
-                ctx.rotate(angle);
-                branch(len * 0.67);
-                ctx.restore();
+            while(true) {
+                if (x0 >= 0 && x0 < COLS && y0 >= 0 && y0 < ROWS) {
+                    let idx = Math.floor(y0) * COLS + Math.floor(x0);
+                    // Higher depth = thicker/brighter branch
+                    let val = Math.min(5, depth + 1);
+                    if (val > grid[idx]) {
+                        grid[idx] = val;
+                    }
+                }
 
-                ctx.save();
-                ctx.rotate(-angle);
-                branch(len * 0.67);
-                ctx.restore();
+                if (Math.round(x0) === Math.round(x1) && Math.round(y0) === Math.round(y1)) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
             }
         }
 
-        function draw() {
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            angle = slider.value * Math.PI / 180;
+        function branch(x, y, len, angle, depth) {
+            let xEnd = x + len * Math.sin(angle);
+            let yEnd = y - len * Math.cos(angle);
 
-            ctx.strokeStyle = '#4CAF50';
-            ctx.lineWidth = 1;
-            
-            ctx.save();
-            ctx.translate(canvas.width / 2, canvas.height);
-            branch(canvas.height / 3.5);
-            ctx.restore();
+            // Aspect ratio correction (x * 2 roughly for text cells)
+            plotLine(x * 2, y, xEnd * 2, yEnd, depth);
+
+            if (len > 3 && depth > 0) {
+                let newLen = len * 0.7;
+                // Swing angle smoothly
+                let branchAngle = (20 + Math.sin(animateVal) * 15) * Math.PI / 180;
+                branch(xEnd, yEnd, newLen, angle + branchAngle, depth - 1);
+                branch(xEnd, yEnd, newLen, angle - branchAngle, depth - 1);
+            }
         }
 
-        slider.addEventListener('input', draw);
-        window.addEventListener('resize', resize);
-        
-        // Auto animation
-        let animateVal = 0;
-        function animate() {
-            animateVal += 0.01;
-            slider.value = 25 + Math.sin(animateVal) * 20;
+        function step() {
+            clearGrid();
+            animateVal += 0.02;
+            
+            // Start from bottom middle
+            branch(COLS / 4, ROWS - 1, 14, 0, 5);
             draw();
-            requestAnimationFrame(animate);
         }
 
-        resize();
-        animate();
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                let currentVal = -1;
+                for (let x = 0; x < COLS; x++) {
+                    let val = grid[y * COLS + x];
+                    if (val !== currentVal) {
+                        if (currentVal !== -1) html += "</span>";
+                        let fw = val > 2 ? "font-weight:bold;" : "";
+                        html += `<span style="color:${colors[val]}; ${fw}">`;
+                        currentVal = val;
+                    }
+                    html += chars[val];
+                }
+                if (currentVal !== -1) html += "</span>";
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 50);
+
     </script>
 </body>
 </html>

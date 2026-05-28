@@ -2,81 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>L-System Fractal Plant</title>
+    <title>L-System Plant</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; display: flex; gap: 5px; flex-wrap: wrap; max-width: 300px;}
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; margin-bottom: 5px; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap;}
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">L-System Plant</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A formal grammar system (Lindenmayer system) that models the growth processes of plant development using recursive rewriting rules.</p>
+        <strong>L-System Plant</strong><br><br>
+        A formal grammar system (Lindenmayer system) that models the growth processes of plant development using recursive rewriting rules.<br>
+        In this ASCII translation, we draw the fractal branches using characters on a text grid, adjusting color to match the garden's unified palette.
         <div class="controls">
             <button onclick="generatePlant('weed')">Weed</button>
             <button onclick="generatePlant('tree')">Tree</button>
             <button onclick="generatePlant('bush')">Bush</button>
         </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 120;
+        const ROWS = 60;
         
-        let width, height;
+        let grid = new Array(COLS * ROWS).fill(null);
         
         const systems = {
             weed: {
                 axiom: "X",
-                rules: {
-                    "X": "F+[[X]-X]-F[-FX]+X",
-                    "F": "FF"
-                },
+                rules: { "X": "F+[[X]-X]-F[-FX]+X", "F": "FF" },
                 angle: 25 * Math.PI / 180,
-                iterations: 6,
-                len: 3,
-                color: 'hsl(140, 60%, 50%)'
+                iterations: 5,
+                len: 2,
+                color: '#76c7d5', // cyan
+                char: '#'
             },
             tree: {
                 axiom: "FX",
-                rules: {
-                    "X": ">[-FX]+FX"
-                },
+                rules: { "X": ">[-FX]+FX" },
                 angle: 40 * Math.PI / 180,
-                iterations: 8,
-                len: 40,
-                color: 'hsl(30, 40%, 40%)'
+                iterations: 7,
+                len: 15,
+                color: '#f3d36b', // yellow
+                char: '*'
             },
             bush: {
                 axiom: "Y",
-                rules: {
-                    "X": "X[-FFF][+FFF]FX",
-                    "Y": "YFX[+Y][-Y]"
-                },
+                rules: { "X": "X[-FFF][+FFF]FX", "Y": "YFX[+Y][-Y]" },
                 angle: 25.7 * Math.PI / 180,
-                iterations: 5,
-                len: 4,
-                color: 'hsl(90, 60%, 45%)'
+                iterations: 4,
+                len: 2.5,
+                color: '#8fd46b', // bright green
+                char: '%'
             }
         };
-
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            generatePlant('weed');
-        }
 
         function getSentence(sys) {
             let sentence = sys.axiom;
@@ -95,50 +109,86 @@
             return sentence;
         }
 
+        function drawLine(x0, y0, x1, y1, color, char) {
+            x0 = Math.floor(x0); y0 = Math.floor(y0);
+            x1 = Math.floor(x1); y1 = Math.floor(y1);
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
+            
+            while(true) {
+                if (x0 >= 0 && x0 < COLS && y0 >= 0 && y0 < ROWS) {
+                    grid[y0 * COLS + x0] = { color: color, char: char };
+                }
+                if (x0 === x1 && y0 === y1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+            }
+        }
+
         function generatePlant(type) {
+            grid.fill(null);
             const sys = systems[type];
             const sentence = getSentence(sys);
             
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, width, height);
-            
-            ctx.strokeStyle = sys.color;
-            ctx.lineWidth = 1;
-            
-            // Start at bottom center
-            ctx.save();
-            ctx.translate(width / 2, height - 20);
-            
             let len = sys.len;
-            if (type === 'tree') ctx.strokeStyle = 'hsl(140, 60%, 50%)'; // Leaves
+            let x = COLS / 2;
+            let y = ROWS - 1;
+            let dir = -Math.PI / 2;
+            
+            let stateStack = [];
             
             for (let i = 0; i < sentence.length; i++) {
                 let c = sentence.charAt(i);
                 
                 if (c === "F") {
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(0, -len);
-                    ctx.stroke();
-                    ctx.translate(0, -len);
+                    let nextX = x + Math.cos(dir) * len;
+                    let nextY = y + Math.sin(dir) * len * 0.6; // adjust aspect ratio
+                    
+                    drawLine(x, y, nextX, nextY, sys.color, sys.char);
+                    
+                    x = nextX;
+                    y = nextY;
                 } else if (c === "+") {
-                    ctx.rotate(sys.angle);
+                    dir += sys.angle;
                 } else if (c === "-") {
-                    ctx.rotate(-sys.angle);
+                    dir -= sys.angle;
                 } else if (c === "[") {
-                    ctx.save();
+                    stateStack.push({ x: x, y: y, dir: dir, len: len });
                 } else if (c === "]") {
-                    ctx.restore();
+                    let state = stateStack.pop();
+                    x = state.x;
+                    y = state.y;
+                    dir = state.dir;
+                    len = state.len;
                 } else if (c === ">") {
                     len *= 0.7; // shrink branch
                 }
             }
             
-            ctx.restore();
+            renderGrid();
         }
 
-        window.addEventListener('resize', resize);
-        resize();
+        function renderGrid() {
+            let html = "";
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    let cell = grid[r * COLS + c];
+                    if (cell) {
+                        html += `<span style="color:${cell.color}; font-weight:bold;">${cell.char}</span>`;
+                    } else {
+                        html += " ";
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        generatePlant('weed');
     </script>
 </body>
 </html>

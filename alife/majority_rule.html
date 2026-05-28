@@ -1,55 +1,129 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Majority Rule</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { line-height: 1.1; letter-spacing: 2px; }
-    h1 { color: #f3d36b; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Majority Rule Cellular Automaton</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Majority Rule Cellular Automaton</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/majority.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    // 0 or 1 state
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.random() < 0.5 ? 0 : 1));
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Majority Rule Cellular Automaton</strong><br><br>
+        A simple model of consensus dynamics or social conformity.<br>
+        Rule: Every cell looks at its immediate neighbors (the Moore neighborhood, 9 cells including itself). The cell adopts the state that represents the majority.<br>
+        Starting from a completely random noise configuration, the system rapidly self-organizes. Small islands of minority opinions are swallowed up by peer pressure, leading to large, stable, and continuous domains of consensus.
+    </div>
 
-    function step() {
-      let next = Array.from({length: H}, () => Array.from({length: W}, () => 0));
-      for(let y=0; y<H; y++) {
-        for(let x=0; x<W; x++) {
-          let sum = 0;
-          for(let dy=-1; dy<=1; dy++) {
-            for(let dx=-1; dx<=1; dx++) {
-              sum += grid[(y+dy+H)%H][(x+dx+W)%W];
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let grid = new Uint8Array(COLS * ROWS);
+        let next = new Uint8Array(COLS * ROWS);
+
+        for (let i = 0; i < grid.length; i++) {
+            grid[i] = Math.random() < 0.5 ? 0 : 1;
+        }
+
+        const chars = [".", "#"];
+        const colors = ["#1a1d1a", "#76c7d5"];
+
+        function step() {
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let sum = 0;
+                    
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            let nx = (x + dx + COLS) % COLS;
+                            let ny = (y + dy + ROWS) % ROWS;
+                            sum += grid[ny * COLS + nx];
+                        }
+                    }
+                    
+                    // 9 cells total. Majority wins (>4).
+                    next[y * COLS + x] = sum > 4 ? 1 : 0;
+                    
+                    // Add a tiny amount of noise to prevent complete freezing
+                    if(Math.random() < 0.005) {
+                         next[y * COLS + x] = 1 - next[y * COLS + x];
+                    }
+                }
             }
-          }
-          // Include self, so 9 cells total. Majority wins.
-          next[y][x] = sum > 4 ? 1 : 0;
-          
-          // Add a small amount of noise to prevent freezing completely
-          if(Math.random() < 0.01) {
-             next[y][x] = 1 - next[y][x];
-          }
-        }
-      }
-      grid = next;
+            
+            let temp = grid;
+            grid = next;
+            next = temp;
 
-      let out = "";
-      for(let y=0; y<H; y++) {
-        let row = "";
-        for(let x=0; x<W; x++) {
-          row += grid[y][x] ? '<span style="color:#76c7d5;">■</span>' : '<span style="color:#394034;">.</span>';
+            draw();
         }
-        out += row + "\n";
-      }
-      document.getElementById('field').innerHTML = out;
-    }
-    setInterval(step, 150);
-  </script>
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state === 1 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
+    </script>
 </body>
 </html>

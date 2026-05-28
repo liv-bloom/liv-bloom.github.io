@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Belousov-Zhabotinsky Reaction</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 10px);
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    
+    <div style="max-width: 600px; margin-top: 20px; font-size: 12px; text-align: left;">
+        <strong>Belousov-Zhabotinsky (BZ) Reaction Model</strong><br><br>
+        A cellular automaton simulation of the famous non-equilibrium chemical oscillator. In the real world, this chemical reaction creates pulsating concentric rings and spirals in a petri dish.<br>
+        The model uses three continuous chemical states (A, B, C) that consume each other cyclically (A eats B, B eats C, C eats A) while diffusing spatially.<br>
+        This demonstrates how complex macroscopic order and temporal oscillation can spontaneously emerge from simple, local chemical kinetics.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        
+        let gridA = new Float32Array(COLS * ROWS);
+        let gridB = new Float32Array(COLS * ROWS);
+        let gridC = new Float32Array(COLS * ROWS);
+        
+        // Random initialization
+        for (let i = 0; i < gridA.length; i++) {
+            gridA[i] = Math.random();
+            gridB[i] = Math.random();
+            gridC[i] = Math.random();
+        }
+
+        // BZ parameters
+        const alpha = 1.0;
+        const beta = 1.0;
+        const gamma = 1.0;
+
+        const chars = ["&nbsp;", ".", "-", "+", "x", "#", "%", "@"];
+        const colors = ["#10120f", "#2b3b28", "#3f5439", "#56704d", "#718f62", "#8eb079", "#a9e388", "#c8f2b3"];
+
+        function step() {
+            const nextA = new Float32Array(COLS * ROWS);
+            const nextB = new Float32Array(COLS * ROWS);
+            const nextC = new Float32Array(COLS * ROWS);
+
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    
+                    let sumA = 0, sumB = 0, sumC = 0;
+                    // Moore neighborhood average
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            const nx = (x + dx + COLS) % COLS;
+                            const ny = (y + dy + ROWS) % ROWS;
+                            const nIdx = ny * COLS + nx;
+                            sumA += gridA[nIdx];
+                            sumB += gridB[nIdx];
+                            sumC += gridC[nIdx];
+                        }
+                    }
+                    sumA /= 9.0;
+                    sumB /= 9.0;
+                    sumC /= 9.0;
+
+                    // A eats B, B eats C, C eats A
+                    const a = sumA + sumA * (alpha * sumB - gamma * sumC);
+                    const b = sumB + sumB * (beta * sumC - alpha * sumA);
+                    const c = sumC + sumC * (gamma * sumA - beta * sumB);
+
+                    nextA[idx] = Math.max(0, Math.min(1, a));
+                    nextB[idx] = Math.max(0, Math.min(1, b));
+                    nextC[idx] = Math.max(0, Math.min(1, c));
+                }
+            }
+            gridA = nextA;
+            gridB = nextB;
+            gridC = nextC;
+            
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    // Visualize component A
+                    const val = gridA[idx];
+                    const charIdx = Math.min(chars.length - 1, Math.floor(val * chars.length));
+                    html += `<span style="color:${colors[charIdx]};">${chars[charIdx]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 80);
+
+    </script>
+</body>
+</html>

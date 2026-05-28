@@ -2,66 +2,99 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logistic Map (Bifurcation Diagram)</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Logistic Map (Bifurcation Diagram)</h2>
-        <p>The transition from simple population dynamics to deterministic chaos.</p>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Logistic Map (Bifurcation Diagram)</strong><br><br>
+        A classic demographic model that shows how complex, chaotic behavior can arise from very simple non-linear dynamical equations.<br>
+        <code>x(n+1) = r * x(n) * (1 - x(n))</code><br>
+        The horizontal axis is the growth rate `r` (from 2.5 to 4.0). The vertical axis is the long-term stable population `x`. As `r` increases, the population splits (bifurcates) from a single stable state into 2, then 4, 8, and eventually pure chaos, interspersed with islands of stability.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
         
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            draw();
-        }
-        
-        function draw() {
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        let grid = new Uint8Array(COLS * ROWS);
+        const chars = [" ", ".", ",", "+", "*", "O", "@"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#76c7d5", "#f3d36b", "#e77a61"];
+
+        function compute() {
+            grid.fill(0);
             
             const rMin = 2.5;
             const rMax = 4.0;
-            const steps = canvas.width;
-            const settle = 100;
-            const drawSteps = 50;
             
-            ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
+            // To get a nice dense plot in a low-res text grid, we sample many r values per column
+            const samplesPerCol = 10; 
             
-            for (let i = 0; i < steps; i++) {
-                const r = rMin + (rMax - rMin) * (i / steps);
-                let x = 0.5;
-                
-                // Settle
-                for (let j = 0; j < settle; j++) {
-                    x = r * x * (1 - x);
-                }
-                
-                // Draw
-                for (let j = 0; j < drawSteps; j++) {
-                    x = r * x * (1 - x);
-                    const px = i;
-                    const py = canvas.height - (x * canvas.height);
-                    ctx.fillRect(px, py, 1, 1);
+            for (let c = 0; c < COLS; c++) {
+                for(let s = 0; s < samplesPerCol; s++) {
+                    let r = rMin + (rMax - rMin) * ((c + s / samplesPerCol) / COLS);
+                    let x = 0.5;
+                    
+                    // Settle down to the attractor
+                    for (let j = 0; j < 200; j++) {
+                        x = r * x * (1 - x);
+                    }
+                    
+                    // Draw the stable/chaotic orbit points
+                    for (let j = 0; j < 100; j++) {
+                        x = r * x * (1 - x);
+                        let row = ROWS - 1 - Math.floor(x * ROWS);
+                        if (row >= 0 && row < ROWS) {
+                            let idx = row * COLS + c;
+                            if (grid[idx] < 6) grid[idx]++;
+                        }
+                    }
                 }
             }
         }
-        
-        window.addEventListener('resize', resize);
-        resize();
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 3 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        // Compute once and draw, as it's static
+        compute();
+        draw();
     </script>
 </body>
 </html>

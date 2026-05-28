@@ -2,54 +2,72 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>L-System Tree (Fractal Botany)</title>
     <style>
-        body { margin: 0; background-color: #10120f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; font-family: monospace; color: #e5eadb; }
-        canvas { display: block; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(16,18,15,0.8); padding: 10px; border: 1px solid #394034; border-radius: 4px; pointer-events: none; }
-        a { color: #8fd46b; text-decoration: none; pointer-events: auto; }
-        a:hover { text-decoration: underline; }
-        .controls { margin-top: 5px; font-size: 12px; pointer-events: auto; }
-        button { background: #394034; color: #e5eadb; border: 1px solid #8fd46b; padding: 2px 5px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #8fd46b; color: #10120f; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2 style="margin: 0 0 5px 0; color: #8fd46b;">L-System Tree</h2>
-        <p style="margin: 0 0 10px 0; font-size: 12px; max-width: 300px;">A Lindenmayer system (L-system) is a parallel rewriting system and a type of formal grammar. Originally developed to model the growth processes of plant development. Click to grow a new tree species.</p>
+        <strong>L-System Tree</strong><br><br>
+        A Lindenmayer system (L-system) is a parallel rewriting system and a type of formal grammar. Originally developed to model the growth processes of plant development.<br>
+        In this ASCII translation, the fractal tree is drawn recursively on a text grid using Bresenham's line algorithm. We map the branches to bright green characters (`*`) over a dark background. Click to grow a new tree species.
         <div class="controls">
             <button onclick="growNewTree()">Grow New Seed</button>
         </div>
-        <br>
-        <a href="index.html">← Back to Gallery</a>
     </div>
-    <canvas id="canvas"></canvas>
-    <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let width, height;
 
-        // Tree presets (Axiom, Rules, Angle, Iterations, Length Multiplier)
+    <script>
+        const COLS = 120;
+        const ROWS = 60;
+        
+        // Tree presets
         const presets = [
             { axiom: "F", rules: { "F": "FF+[+F-F-F]-[-F+F+F]" }, angle: 22.5, iterations: 4, lenMult: 0.5 },
-            { axiom: "X", rules: { "X": "F+[[X]-X]-F[-FX]+X", "F": "FF" }, angle: 25, iterations: 6, lenMult: 0.5 },
-            { axiom: "F", rules: { "F": "F[+F]F[-F]F" }, angle: 25.7, iterations: 5, lenMult: 0.33 },
+            { axiom: "X", rules: { "X": "F+[[X]-X]-F[-FX]+X", "F": "FF" }, angle: 25, iterations: 5, lenMult: 0.5 },
+            { axiom: "F", rules: { "F": "F[+F]F[-F]F" }, angle: 25.7, iterations: 4, lenMult: 0.33 },
             { axiom: "X", rules: { "X": "F-[[[X]+X]+F[+FX]-X]", "F": "FF" }, angle: 22.5, iterations: 5, lenMult: 0.5 }
         ];
 
         let currentTree = 0;
-
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            width = minDim;
-            height = minDim;
-            canvas.width = width;
-            canvas.height = height;
-            drawTree();
-        }
+        let grid = new Array(COLS * ROWS).fill(0);
 
         function generateLSystem(axiom, rules, iterations) {
             let current = axiom;
@@ -63,50 +81,82 @@
             return current;
         }
 
-        function drawTree() {
-            ctx.clearRect(0, 0, width, height);
-            ctx.fillStyle = '#10120f';
-            ctx.fillRect(0, 0, width, height);
+        function drawLine(x0, y0, x1, y1) {
+            x0 = Math.floor(x0); y0 = Math.floor(y0);
+            x1 = Math.floor(x1); y1 = Math.floor(y1);
+            let dx = Math.abs(x1 - x0);
+            let dy = Math.abs(y1 - y0);
+            let sx = (x0 < x1) ? 1 : -1;
+            let sy = (y0 < y1) ? 1 : -1;
+            let err = dx - dy;
+            
+            while(true) {
+                if (x0 >= 0 && x0 < COLS && y0 >= 0 && y0 < ROWS) {
+                    grid[y0 * COLS + x0] = 1;
+                }
+                if (x0 === x1 && y0 === y1) break;
+                let e2 = 2 * err;
+                if (e2 > -dy) { err -= dy; x0 += sx; }
+                if (e2 < dx) { err += dx; y0 += sy; }
+            }
+        }
 
+        function drawTree() {
+            grid.fill(0);
             let preset = presets[currentTree];
             let sentence = generateLSystem(preset.axiom, preset.rules, preset.iterations);
             
-            let len = (height / 3) * Math.pow(preset.lenMult, preset.iterations - 3);
+            let len = (ROWS / 3) * Math.pow(preset.lenMult, preset.iterations - 3);
             let angle = preset.angle * (Math.PI / 180);
             
-            ctx.translate(width / 2, height);
-            ctx.strokeStyle = '#8fd46b';
-            ctx.lineWidth = 2;
+            // Initial turtle state
+            let x = COLS / 2;
+            let y = ROWS - 1;
+            let dir = -Math.PI / 2; // pointing up
             
             let stateStack = [];
             
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-
             for (let char of sentence) {
                 if (char === "F") {
-                    ctx.lineTo(0, -len);
-                    ctx.translate(0, -len);
+                    let nextX = x + Math.cos(dir) * len;
+                    // Because terminal chars are taller, multiply Y by 0.5 effectively 
+                    // (we just use normal length but scale the drawing step)
+                    let nextY = y + Math.sin(dir) * len * 0.6;
+                    
+                    drawLine(x, y, nextX, nextY);
+                    
+                    x = nextX;
+                    y = nextY;
                 } else if (char === "+") {
-                    ctx.rotate(angle);
+                    dir += angle;
                 } else if (char === "-") {
-                    ctx.rotate(-angle);
+                    dir -= angle;
                 } else if (char === "[") {
-                    stateStack.push({
-                        transform: ctx.getTransform(),
-                        lineWidth: ctx.lineWidth
-                    });
+                    stateStack.push({ x: x, y: y, dir: dir });
                 } else if (char === "]") {
                     let state = stateStack.pop();
-                    ctx.stroke(); // Draw current branch
-                    ctx.setTransform(state.transform);
-                    ctx.lineWidth = state.lineWidth;
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
+                    x = state.x;
+                    y = state.y;
+                    dir = state.dir;
                 }
             }
-            ctx.stroke();
-            ctx.resetTransform(); // Reset for next draw
+
+            renderGrid();
+        }
+
+        function renderGrid() {
+            let html = "";
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r * COLS + c] === 1) {
+                        html += `<span style="color:#8fd46b; font-weight:bold;">*</span>`;
+                    } else {
+                        html += " ";
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
         }
 
         function growNewTree() {
@@ -114,8 +164,7 @@
             drawTree();
         }
 
-        window.addEventListener('resize', resize);
-        resize(); // Initial draw
+        drawTree();
     </script>
 </body>
 </html>

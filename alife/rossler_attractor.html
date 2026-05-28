@@ -2,51 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rössler Attractor</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Rössler Attractor</h2>
-        <p>A system of three non-linear ordinary differential equations exhibiting chaotic continuous-time dynamics.</p>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Rössler Attractor</strong><br><br>
+        A system of three non-linear ordinary differential equations exhibiting chaotic continuous-time dynamics. It's famous for having a simpler shape than the Lorenz attractor, featuring a flat disk-like orbit that occasionally loops upwards in a chaotic "fold".<br>
+        In this ASCII translation, the 3D trajectory is projected onto a 2D text grid and slowly rotates. Older path segments evaporate, leaving a glowing trail rendered with the garden's color palette.
+        <div class="controls">
+            <button onclick="reset()">Reset Chaos</button>
+        </div>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Uint8Array(COLS * ROWS);
         
-        let x = 0.1;
-        let y = 0;
-        let z = 0;
-        
-        const a = 0.2;
-        const b = 0.2;
-        const c = 5.7;
+        let x = 0.1, y = 0, z = 0;
+        const a = 0.2, b = 0.2, c = 5.7;
         const dt = 0.05;
-        
-        let points = [];
         let angle = 0;
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const chars = [" ", ".", ",", "-", "+", "*", "O", "@", "#"];
+        const colors = [
+            "#2b2b1a", "#394034", "#485341", "#59684f", 
+            "#718465", "#8fd46b", "#76c7d5", "#f3d36b", "#e77a61"
+        ];
+
+        function reset() {
+            x = 0.1 + (Math.random() - 0.5);
+            y = (Math.random() - 0.5);
+            z = (Math.random() - 0.5);
+            grid.fill(0);
         }
 
-        function draw() {
-            ctx.fillStyle = 'rgba(17, 17, 17, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        function step() {
+            // Evaporate trails
+            for (let i = 0; i < grid.length; i++) {
+                if (grid[i] > 0 && Math.random() < 0.15) {
+                    grid[i]--;
+                }
+            }
 
-            for(let i=0; i<3; i++) {
+            // Calculate multiple physics steps per frame for a longer trail
+            angle += 0.005;
+            const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
+
+            for (let i = 0; i < 30; i++) {
                 let dx = (-y - z) * dt;
                 let dy = (x + a * y) * dt;
                 let dz = (b + z * (x - c)) * dt;
@@ -55,44 +99,74 @@
                 y += dy;
                 z += dz;
                 
-                points.push({x: x, y: y, z: z});
-                if (points.length > 800) {
-                    points.shift();
+                // Rotate and project to 2D
+                let rotX = x * cosA - y * sinA;
+                // let rotY = x * sinA + y * cosA;
+                
+                // Scale and map to ASCII grid
+                let scale = 1.8;
+                let px = Math.floor(COLS / 2 + rotX * scale);
+                // Center Z (the attractor usually loops upwards on Z)
+                let py = Math.floor(ROWS / 2 + (z - 5) * -scale + 15);
+
+                if (px >= 0 && px < COLS && py >= 0 && py < ROWS) {
+                    let idx = py * COLS + px;
+                    grid[idx] = chars.length - 1; // max brightness
                 }
             }
 
-            angle += 0.01;
-            const cosA = Math.cos(angle);
-            const sinA = Math.sin(angle);
-
-            ctx.beginPath();
-            for (let i = 0; i < points.length; i++) {
-                let pt = points[i];
-                
-                let rotX = pt.x * cosA - pt.y * sinA;
-                let rotY = pt.x * sinA + pt.y * cosA;
-                
-                let scale = 15;
-                let px = canvas.width / 2 + rotX * scale;
-                let py = canvas.height / 2 - pt.z * scale + 100;
-
-                if (i === 0) {
-                    ctx.moveTo(px, py);
-                } else {
-                    ctx.lineTo(px, py);
-                }
-            }
-            
-            ctx.strokeStyle = `hsl(${(angle * 40) % 360}, 80%, 60%)`;
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-
-            requestAnimationFrame(draw);
+            draw();
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        draw();
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                let currentVal = -1;
+                for (let x = 0; x < COLS; x++) {
+                    let val = grid[y * COLS + x];
+                    if (val !== currentVal) {
+                        if (currentVal !== -1) html += "</span>";
+                        let fw = val > 5 ? "font-weight:bold;" : "";
+                        html += `<span style="color:${colors[val]}; ${fw}">`;
+                        currentVal = val;
+                    }
+                    html += chars[val];
+                }
+                if (currentVal !== -1) html += "</span>";
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

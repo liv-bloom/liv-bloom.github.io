@@ -1,46 +1,131 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>ASCII Ising Model</title>
-  <style>
-    body { background: #10120f; color: #e5eadb; font-family: monospace; margin: 20px; }
-    pre { line-height: 1.1; letter-spacing: 2px; }
-    h1 { color: #e77a61; font-size: 16px; }
-  </style>
+    <meta charset="UTF-8">
+    <title>Ising Model (Ferromagnetism)</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+    </style>
 </head>
 <body>
-  <h1>ASCII Ising Model (Ferromagnetism)</h1>
-  <p>Share script: <code>curl https://example.invalid/alife/ising.py | python3</code></p>
-  <pre id="field"></pre>
-  <script>
-    const W = 60, H = 30;
-    let grid = Array.from({length: H}, () => Array.from({length: W}, () => Math.random() > 0.5 ? 1 : -1));
-    const T = 2.0; // Temperature below critical point (~2.269) for domain formation
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Ising Model (Ferromagnetism)</strong><br><br>
+        A mathematical model of ferromagnetism in statistical mechanics.<br>
+        The grid consists of magnetic dipole moments (atomic "spins") that can be in one of two states: +1 (Up) or -1 (Down).<br>
+        Spins want to align with their neighbors to minimize energy. At high temperatures, thermal noise disrupts this alignment. At low temperatures, macroscopic magnetic domains spontaneously self-organize.<br>
+        This simulation uses the Metropolis algorithm, cooling the system just below the critical temperature to form emergent, fluctuating domain boundaries.
+    </div>
 
-    function step() {
-      for(let i=0; i<W*H; i++) {
-        let x = Math.floor(Math.random()*W), y = Math.floor(Math.random()*H);
-        let s = grid[y][x];
-        let sum = grid[(y-1+H)%H][x] + grid[(y+1)%H][x] + grid[y][(x-1+W)%W] + grid[y][(x+1)%W];
-        let dE = 2 * s * sum;
-        if(dE <= 0 || Math.random() < Math.exp(-dE / T)) {
-          grid[y][x] = -s;
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Int8Array(COLS * ROWS);
+        
+        // Initialize with random spins
+        for (let i = 0; i < grid.length; i++) {
+            grid[i] = Math.random() < 0.5 ? 1 : -1;
         }
-      }
-      
-      let out = "";
-      for(let y=0; y<H; y++) {
-        let row = "";
-        for(let x=0; x<W; x++) {
-          row += grid[y][x] === 1 ? '<span style="color:#e77a61;">■</span>' : '<span style="color:#718465;">●</span>';
+
+        let temperature = 2.0; // Slightly below critical temp ~2.269
+
+        const chars = { 1: "+", "-1": "-" };
+        const colors = { 1: "#c8f2b3", "-1": "#3f5439" };
+
+        function step() {
+            // Do many flips per frame to speed up visual evolution
+            for (let i = 0; i < COLS * ROWS * 2; i++) {
+                const x = Math.floor(Math.random() * COLS);
+                const y = Math.floor(Math.random() * ROWS);
+                const idx = y * COLS + x;
+                const spin = grid[idx];
+
+                // Calculate energy with 4 nearest neighbors (periodic boundary)
+                const n1 = grid[((y - 1 + ROWS) % ROWS) * COLS + x];
+                const n2 = grid[((y + 1) % ROWS) * COLS + x];
+                const n3 = grid[y * COLS + ((x - 1 + COLS) % COLS)];
+                const n4 = grid[y * COLS + ((x + 1) % COLS)];
+                
+                const sumNeighbors = n1 + n2 + n3 + n4;
+                const dE = 2 * spin * sumNeighbors; // Change in energy if we flip
+
+                if (dE <= 0) {
+                    // Energy decreases or stays same -> flip
+                    grid[idx] = -spin;
+                } else {
+                    // Energy increases -> flip with Boltzmann probability
+                    if (Math.random() < Math.exp(-dE / temperature)) {
+                        grid[idx] = -spin;
+                    }
+                }
+            }
+            draw();
         }
-        out += row + "\n";
-      }
-      document.getElementById('field').innerHTML = out;
-    }
-    
-    setInterval(step, 50);
-  </script>
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const spin = grid[y * COLS + x];
+                    let fw = spin === 1 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[spin]}; ${fw}">${chars[spin]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
+    </script>
 </body>
 </html>

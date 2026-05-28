@@ -2,43 +2,79 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ikeda Map Attractor</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #111; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        canvas { border: 1px solid #333; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        .controls { margin-top: 10px; display: flex; gap: 15px; }
-        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #444; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
-    <div id="info">Ikeda Map Attractor (Chaos Theory)</div>
-    <canvas id="canvas" width="600" height="600"></canvas>
-    <div class="controls">
-        <button onclick="reset()">Reset</button>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Ikeda Map Attractor</strong><br><br>
+        Originally proposed by Kensuke Ikeda as a model of light going around across a nonlinear optical resonator (laser pulse dynamics).<br>
+        <code>t_n = 0.4 - 6.0 / (1 + x_n² + y_n²)</code><br>
+        <code>x_{n+1} = 1 + u (x_n cos(t_n) - y_n sin(t_n))</code><br>
+        When parameter `u = 0.9`, it forms a beautiful strange attractor. As the simulation runs, the density map builds up an ASCII nebula of intersecting light paths.
+        <div class="controls">
+            <button onclick="reset()">Clear & Restart</button>
+        </div>
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Uint8Array(COLS * ROWS);
+        
         let x = 0.0;
         let y = 0.0;
         let u = 0.9;
-        let iter = 0;
+
+        const chars = [".", ",", "+", "*", "O", "@"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#76c7d5", "#f3d36b", "#e77a61"];
 
         function reset() {
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, width, height);
-            x = Math.random();
-            y = Math.random();
-            iter = 0;
+            grid.fill(0);
+            x = (Math.random() - 0.5) * 5;
+            y = (Math.random() - 0.5) * 5;
         }
 
-        function draw() {
+        function step() {
             for (let i = 0; i < 500; i++) {
                 let t = 0.4 - 6.0 / (1.0 + x * x + y * y);
                 let nextX = 1.0 + u * (x * Math.cos(t) - y * Math.sin(t));
@@ -46,18 +82,65 @@
                 x = nextX;
                 y = nextY;
 
-                let drawX = (x + 0.5) * (width / 2.5) + width * 0.1;
-                let drawY = (y + 1.5) * (height / 3) + height * 0.1;
+                // Typical x bounds [ -1.5, 3 ], y bounds [ -3, 1.5 ]
+                let scaleX = COLS / 4.5;
+                let scaleY = ROWS / 4.5;
+                
+                // +0.5 and +1.5 center the attractor
+                let drawX = Math.floor((x + 0.5) * scaleX * 1.5 + COLS * 0.1); 
+                let drawY = ROWS - Math.floor((y + 1.5) * scaleY + ROWS * 0.3);
 
-                ctx.fillStyle = `hsla(${iter % 360}, 80%, 60%, 0.5)`;
-                ctx.fillRect(drawX, height - drawY, 1, 1);
-                iter += 0.05;
+                if (drawX >= 0 && drawX < COLS && drawY >= 0 && drawY < ROWS) {
+                    let idx = drawY * COLS + drawX;
+                    if (grid[idx] < 5) grid[idx]++;
+                }
             }
-            requestAnimationFrame(draw);
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 2 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
         }
 
         reset();
-        draw();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

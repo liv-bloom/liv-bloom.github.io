@@ -2,60 +2,84 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lorenz Attractor</title>
     <style>
-        body { margin: 0; background-color: #050505; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
-        button:hover { background: #45a049; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Lorenz Attractor (Chaos)</h2>
-        <p>A system of ordinary differential equations noted for having chaotic solutions. Demonstrates the "butterfly effect" where tiny differences in initial conditions yield diverging outcomes.</p>
-        <button onclick="addParticle()">Add Tracer</button>
-        <button onclick="init()">Reset</button>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Lorenz Attractor (Chaos Theory)</strong><br><br>
+        A system of ordinary differential equations noted for having chaotic solutions. It famously demonstrates the "butterfly effect" where tiny differences in initial conditions yield diverging outcomes.<br>
+        <code>dx/dt = σ(y - x)</code><br>
+        <code>dy/dt = x(ρ - z) - y</code><br>
+        <code>dz/dt = xy - βz</code><br>
+        This ASCII version projects the 3D trajectory onto a 2D text grid. Add a tracer to inject a new particle with a microscopic difference in its starting position, and watch its path eventually diverge completely from the original.
+        <div class="controls">
+            <button onclick="addTracer()">Add Tracer (Perturb +0.01)</button>
+            <button onclick="reset()">Reset</button>
+            <span id="tracerCount" style="margin-left: 10px; color: #76c7d5;"></span>
+        </div>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Uint8Array(COLS * ROWS);
         
-        let width, height;
-        
-        // Lorenz parameters
         const sigma = 10;
         const rho = 28;
         const beta = 8 / 3;
         const dt = 0.005;
-        
-        let particles = [];
-        let colorHue = 0;
 
-        function resize() {
-            width = window.innerWidth;
-            height = window.innerHeight;
-            canvas.width = width;
-            canvas.height = height;
-            ctx.fillStyle = '#050505';
-            ctx.fillRect(0, 0, width, height);
-        }
+        let particles = [];
+
+        const chars = [".", ",", "+", "*", "O", "@"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#76c7d5", "#f3d36b", "#e77a61"];
 
         class Particle {
-            constructor(x, y, z, hue) {
+            constructor(x, y, z) {
                 this.x = x;
                 this.y = y;
                 this.z = z;
-                this.hue = hue;
             }
-
             update() {
                 let dx = (sigma * (this.y - this.x)) * dt;
                 let dy = (this.x * (rho - this.z) - this.y) * dt;
@@ -65,55 +89,97 @@
                 this.y += dy;
                 this.z += dz;
             }
-
-            draw() {
-                // Projection from 3D to 2D
-                let scale = Math.min(width, height) / 80;
-                let px = width / 2 + this.x * scale;
-                let py = height / 2 + (this.y - 20) * scale; // Offset y to center the butterfly
-                
-                ctx.fillStyle = `hsla(${this.hue}, 100%, 60%, 0.8)`;
-                ctx.fillRect(px, py, 1.5, 1.5);
-            }
         }
 
-        function addParticle() {
-            // Add a particle with slightly randomized initial conditions to show divergence
-            let p = new Particle(0.1 + Math.random()*0.1, 0, 0, colorHue);
-            particles.push(p);
-            colorHue = (colorHue + 30) % 360;
+        function reset() {
+            particles = [new Particle(0.1, 0, 0)];
+            grid.fill(0);
+            updateUI();
         }
 
-        function init() {
-            particles = [];
-            colorHue = 200; // Start with a blueish hue
-            ctx.fillStyle = '#050505';
-            ctx.fillRect(0, 0, width, height);
-            
-            // Start with one tracer
-            addParticle();
+        function addTracer() {
+            if (particles.length === 0) return;
+            // Perturb the last particle slightly
+            let last = particles[particles.length - 1];
+            particles.push(new Particle(last.x + 0.01, last.y, last.z));
+            updateUI();
         }
 
-        function draw() {
-            // Fade out slightly to create trails
-            ctx.fillStyle = 'rgba(5, 5, 5, 0.01)';
-            ctx.fillRect(0, 0, width, height);
-            
-            // Run multiple steps per frame to speed up the drawing
+        function updateUI() {
+            document.getElementById("tracerCount").innerText = `Tracers: ${particles.length}`;
+        }
+
+        function step() {
             for (let s = 0; s < 5; s++) {
                 for (let p of particles) {
                     p.update();
-                    p.draw();
+                    
+                    // Projection to 2D
+                    // Typical x bounds roughly [-20, 20], z bounds roughly [0, 50]
+                    let drawX = Math.floor(COLS / 2 + p.x * (COLS / 40) * 1.5);
+                    let drawY = Math.floor(ROWS - (p.z * (ROWS / 50)));
+
+                    if (drawX >= 0 && drawX < COLS && drawY >= 0 && drawY < ROWS) {
+                        let idx = drawY * COLS + drawX;
+                        // Cap density to max color index
+                        if (grid[idx] < 5) grid[idx]++;
+                    }
                 }
             }
             
-            requestAnimationFrame(draw);
+            // Fading out slightly (evaporation)
+            for (let i = 0; i < grid.length; i++) {
+                if (grid[i] > 0 && Math.random() < 0.01) {
+                    grid[i]--;
+                }
+            }
+
+            draw();
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        init();
-        draw();
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 2 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        reset();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

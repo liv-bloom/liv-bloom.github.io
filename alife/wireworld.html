@@ -2,145 +2,175 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wireworld</title>
+    <title>Wireworld Cellular Automaton</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        canvas { display: block; image-rendering: pixelated; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
-        button:hover { background: #45a049; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Wireworld</h2>
-        <p>A cellular automaton first proposed by Brian Silverman, capable of simulating universal Turing machines and electronic logic gates. States: Empty (Black), Conductor (Yellow), Electron Head (Blue), Electron Tail (Red).</p>
-        <button onclick="init()">Restart Circuit</button>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Wireworld Cellular Automaton (1987)</strong><br><br>
+        Proposed by Brian Silverman, Wireworld is Turing-complete, meaning it can compute anything a computer can. It has only 4 states:<br>
+        1. Empty Background (<span style="color:#2b2b1a;">.</span>)<br>
+        2. Electron Head (<span style="color:#76c7d5; font-weight:bold;">H</span>)<br>
+        3. Electron Tail (<span style="color:#e77a61; font-weight:bold;">T</span>)<br>
+        4. Conductor (<span style="color:#f3d36b; font-weight:bold;">+</span>)<br>
+        Rules: A head becomes a tail. A tail becomes a conductor. A conductor becomes a head if 1 or 2 of its neighbors are heads.<br>
+        This simulation shows a clock generator feeding into two diodes and a simple delay loop.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        let cols = 150;
-        let rows = 150;
-        let cellSize;
-        let grid = [];
-        let next = [];
-        
-        // 0: Empty, 1: Conductor, 2: Electron Head, 3: Electron Tail
-        
-        function resize() {
-            const minDim = Math.min(window.innerWidth, window.innerHeight) - 40;
-            cellSize = Math.floor(minDim / cols);
-            canvas.width = cols * cellSize;
-            canvas.height = rows * cellSize;
-            init();
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Uint8Array(COLS * ROWS);
+
+        const circuitLayout = [
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                                                                                ",
+            "                      + +                                                       ",
+            "                    +     +                                                     ",
+            "                   +       +                                                    ",
+            "                   +   H   + + + + + + + + + + + + + + + + + + + +              ",
+            "                   + T     +                   +                                ",
+            "                    +     +                   + +                               ",
+            "                      + +                    +   +                              ",
+            "                                              + +                               ",
+            "                                               +                                ",
+            "                                                                                ",
+            "                                                                                ",
+        ];
+
+        const startY = 18;
+        for (let y = 0; y < circuitLayout.length; y++) {
+            const row = circuitLayout[y];
+            for (let x = 0; x < row.length && x < COLS; x++) {
+                const char = row[x];
+                const idx = (y + startY) * COLS + x;
+                if (char === '+') grid[idx] = 3; 
+                else if (char === 'H') grid[idx] = 1; 
+                else if (char === 'T') grid[idx] = 2; 
+            }
         }
 
-        function init() {
-            grid = new Array(cols * rows).fill(0);
-            next = new Array(cols * rows).fill(0);
+        const chars = [".", "H", "T", "+"];
+        const colors = ["#2b2b1a", "#76c7d5", "#e77a61", "#f3d36b"];
+
+        function step() {
+            const next = new Uint8Array(grid);
             
-            // Build a simple circuit (a loop with a diode-like structure)
-            const cx = Math.floor(cols / 2);
-            const cy = Math.floor(rows / 2);
-            const r = 20;
-
-            for (let i = 0; i < 360; i++) {
-                let rad = i * Math.PI / 180;
-                let x = cx + Math.floor(r * Math.cos(rad));
-                let y = cy + Math.floor(r * Math.sin(rad));
-                grid[x + y * cols] = 1; // Conductor
-            }
-
-            // A cross-wire
-            for (let i = -r - 10; i < r + 10; i++) {
-                let x = cx + i;
-                let y = cy;
-                grid[x + y * cols] = 1;
-            }
-
-            // Seed electron heads and tails
-            grid[(cx - r) + cy * cols] = 2; // Head
-            grid[(cx - r - 1) + cy * cols] = 3; // Tail
-            grid[(cx + r) + cy * cols] = 2; // Head
-            grid[(cx + r + 1) + cy * cols] = 3; // Tail
-        }
-
-        function update() {
-            for (let y = 0; y < rows; y++) {
-                for (let x = 0; x < cols; x++) {
-                    let idx = x + y * cols;
-                    let state = grid[idx];
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const idx = y * COLS + x;
+                    const state = grid[idx];
                     
                     if (state === 0) {
                         next[idx] = 0;
-                    } else if (state === 2) {
-                        next[idx] = 3; // Head becomes Tail
-                    } else if (state === 3) {
-                        next[idx] = 1; // Tail becomes Conductor
-                    } else if (state === 1) {
-                        // Conductor becomes Head if 1 or 2 neighbors are Heads
+                    } else if (state === 1) { 
+                        next[idx] = 2;
+                    } else if (state === 2) { 
+                        next[idx] = 3;
+                    } else if (state === 3) { 
                         let headCount = 0;
-                        for (let oy = -1; oy <= 1; oy++) {
-                            for (let ox = -1; ox <= 1; ox++) {
-                                if (ox === 0 && oy === 0) continue;
-                                let nx = x + ox;
-                                let ny = y + oy;
-                                if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
-                                    if (grid[nx + ny * cols] === 2) {
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                const nx = x + dx;
+                                const ny = y + dy;
+                                if (nx >= 0 && nx < COLS && ny >= 0 && ny < ROWS) {
+                                    if (grid[ny * COLS + nx] === 1) {
                                         headCount++;
                                     }
                                 }
                             }
                         }
                         if (headCount === 1 || headCount === 2) {
-                            next[idx] = 2;
-                        } else {
                             next[idx] = 1;
+                        } else {
+                            next[idx] = 3;
                         }
                     }
                 }
             }
-            
-            // Swap
-            let temp = grid;
             grid = next;
-            next = temp;
+            draw();
         }
 
         function draw() {
-            update();
-            
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            for (let y = 0; y < rows; y++) {
-                for (let x = 0; x < cols; x++) {
-                    let state = grid[x + y * cols];
-                    if (state !== 0) {
-                        if (state === 1) ctx.fillStyle = '#FFB300'; // Conductor
-                        else if (state === 2) ctx.fillStyle = '#00B0FF'; // Head
-                        else if (state === 3) ctx.fillStyle = '#FF3D00'; // Tail
-                        
-                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
-                    }
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const state = grid[y * COLS + x];
+                    let fw = state !== 0 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
                 }
+                html += "\n";
             }
-            
-            // Delay slightly for visual clarity
-            setTimeout(() => requestAnimationFrame(draw), 50);
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        window.addEventListener('resize', resize);
-        resize(); // calls init
         draw();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
     </script>
 </body>
 </html>

@@ -2,100 +2,149 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vector Flow Field</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>Vector Flow Field</h2>
-        <p>Particles navigating a procedural noise field, visualizing emergent fluid-like motion.</p>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>Vector Flow Field</strong><br><br>
+        Particles navigating a procedural noise field, visualizing emergent fluid-like motion.<br>
+        Instead of a complex math-based canvas drawing, this simulation runs completely within a 2D text grid. Each particle updates its velocity by reading the "wind" (angle) at its current coordinate, generating mesmerizing, flowing ASCII currents.
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
+        const NUM_PARTICLES = 300;
         
-        let particles = [];
-        const numParticles = 2000;
-        let zOff = 0;
-
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
-
         class Particle {
             constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.vx = 0;
-                this.vy = 0;
-                this.speed = 2;
-                this.color = `hsla(${Math.random() * 60 + 180}, 100%, 50%, 0.1)`;
+                this.x = Math.random() * COLS;
+                this.y = Math.random() * ROWS;
+                this.speed = 0.5 + Math.random() * 0.5;
             }
 
             update(angle) {
-                this.vx = Math.cos(angle) * this.speed;
-                this.vy = Math.sin(angle) * this.speed;
-                this.x += this.vx;
-                this.y += this.vy;
+                this.x += Math.cos(angle) * this.speed;
+                this.y += Math.sin(angle) * this.speed;
 
-                // Wrap around edges
-                if (this.x < 0) this.x = canvas.width;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.y > canvas.height) this.y = 0;
-            }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.fillRect(this.x, this.y, 1.5, 1.5);
+                if (this.x < 0) this.x = COLS - 1;
+                if (this.x >= COLS) this.x = 0;
+                if (this.y < 0) this.y = ROWS - 1;
+                if (this.y >= ROWS) this.y = 0;
             }
         }
 
-        function init() {
-            particles = [];
-            for (let i = 0; i < numParticles; i++) {
-                particles.push(new Particle());
-            }
+        let particles = [];
+        for (let i = 0; i < NUM_PARTICLES; i++) {
+            particles.push(new Particle());
         }
 
-        function draw() {
-            // Fade out effect
-            ctx.fillStyle = 'rgba(17, 17, 17, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        let zOff = 0;
+        const bgChar = ".";
+        const bgColor = "#2b2b1a";
 
-            zOff += 0.005;
+        // Mapped to angles
+        const dirChars = ["-", "\\", "|", "/"];
+        const colorPalette = ["#8fd46b", "#76c7d5", "#f3d36b", "#e77a61"];
 
-            for (let i = 0; i < numParticles; i++) {
+        function step() {
+            zOff += 0.05;
+            let grid = new Array(COLS * ROWS).fill(-1);
+
+            for (let i = 0; i < NUM_PARTICLES; i++) {
                 let p = particles[i];
                 
-                // Pseudo-noise generation using trig functions for the flow field
-                let noiseX = p.x * 0.005;
-                let noiseY = p.y * 0.005;
-                let angle = (Math.sin(noiseX + zOff) * Math.cos(noiseY + zOff)) * Math.PI * 4;
+                let noiseX = p.x * 0.1;
+                let noiseY = p.y * 0.1;
+                let angle = (Math.sin(noiseX + zOff) * Math.cos(noiseY + zOff)) * Math.PI * 2;
                 
                 p.update(angle);
-                p.draw();
+
+                let ix = Math.floor(p.x);
+                let iy = Math.floor(p.y);
+                
+                // Map angle to 0-3 for chars
+                let normalizedAngle = angle + Math.PI*2; // keep positive
+                let dirIdx = Math.floor((normalizedAngle / (Math.PI / 4))) % 4;
+
+                grid[iy * COLS + ix] = dirIdx;
             }
 
-            requestAnimationFrame(draw);
+            draw(grid);
         }
 
-        window.addEventListener('resize', resize);
-        resize();
-        init();
-        draw();
+        function draw(grid) {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let val = grid[y * COLS + x];
+                    if (val === -1) {
+                        html += `<span style="color:${bgColor};">${bgChar}</span>`;
+                    } else {
+                        html += `<span style="color:${colorPalette[val]}; font-weight:bold;">${dirChars[val]}</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>

@@ -2,43 +2,54 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buddhabrot</title>
     <style>
-        body { margin: 0; padding: 0; background-color: #000; color: #eee; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        canvas { border: 1px solid #222; background-color: #000; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
-        .controls { margin-top: 10px; display: flex; gap: 15px; }
-        button { background: #333; color: #eee; border: 1px solid #555; padding: 5px 10px; cursor: pointer; font-family: monospace; }
-        button:hover { background: #444; }
-        #info { margin-bottom: 10px; font-size: 1.1em; color: #aaa; text-align: center; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
     </style>
 </head>
 <body>
-    <div id="info">Buddhabrot (Rendering...)</div>
-    <canvas id="canvas" width="600" height="600"></canvas>
-    <div class="controls">
-        <button onclick="reset()">Reset Render</button>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Buddhabrot (ASCII Rendering)</strong><br><br>
+        A special rendering technique for the Mandelbrot set.<br>
+        Instead of plotting the escape speed of a single point, we track the *entire trajectory* of escaping points and accumulate their density on a grid. Over time, these intersecting paths build up a glowing, spectral image that famously resembles the meditating Buddha.<br>
+        This purely deterministic equation creates something profoundly organic.
     </div>
 
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
+        const COLS = 80;
+        const ROWS = 60;
         
-        let imgData;
-        let density = new Uint32Array(width * height);
+        let density = new Uint32Array(COLS * ROWS);
         let maxDensity = 1;
-        let maxIter = 500;
-        let renderId;
+        let maxIter = 100;
 
-        function reset() {
-            density.fill(0);
-            maxDensity = 1;
-            ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, width, height);
-            imgData = ctx.getImageData(0, 0, width, height);
-        }
+        // Garden color palette mapped to density
+        const chars = [".", ",", "+", "*", "O", "@"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#76c7d5", "#e77a61"];
 
         function iterate(cx, cy) {
             let x = 0;
@@ -59,11 +70,13 @@
             // Only plot paths that escape
             if (iter < maxIter) {
                 for (let i = 0; i < iter; i++) {
-                    let px = Math.floor((pathX[i] + 2) * width / 4);
-                    let py = Math.floor((pathY[i] + 2) * height / 4);
+                    // map to grid
+                    // adjust scale slightly to center the figure
+                    let px = Math.floor((pathX[i] + 1.5) * COLS / 3);
+                    let py = Math.floor((pathY[i] + 1.5) * ROWS / 3);
                     
-                    if (px >= 0 && px < width && py >= 0 && py < height) {
-                        let idx = py * width + px;
+                    if (px >= 0 && px < COLS && py >= 0 && py < ROWS) {
+                        let idx = py * COLS + px;
                         density[idx]++;
                         if (density[idx] > maxDensity) {
                             maxDensity = density[idx];
@@ -73,32 +86,66 @@
             }
         }
 
-        function renderBatch() {
-            for (let b = 0; b < 10000; b++) {
-                let cx = (Math.random() * 4) - 2;
-                let cy = (Math.random() * 4) - 2;
+        function step() {
+            // Render a batch of random points
+            for (let b = 0; b < 2000; b++) {
+                let cx = (Math.random() * 3) - 2;
+                let cy = (Math.random() * 3) - 1.5;
                 iterate(cx, cy);
             }
-
-            for (let i = 0; i < density.length; i++) {
-                if (density[i] > 0) {
-                    let val = Math.floor((density[i] / maxDensity) * 255 * 3); // brighten
-                    val = Math.min(val, 255);
-                    let pxIdx = i * 4;
-                    // grayscale/blueish tint
-                    imgData.data[pxIdx] = val * 0.7;     // R
-                    imgData.data[pxIdx + 1] = val * 0.8; // G
-                    imgData.data[pxIdx + 2] = val;       // B
-                    imgData.data[pxIdx + 3] = 255;       // A
-                }
-            }
-            
-            ctx.putImageData(imgData, 0, 0);
-            renderId = requestAnimationFrame(renderBatch);
+            draw();
         }
 
-        reset();
-        renderBatch();
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let d = density[y * COLS + x];
+                    let val = 0;
+                    if (d > 0) {
+                        // Logarithmic mapping helps visualize large density differences
+                        let norm = Math.log(d + 1) / Math.log(maxDensity + 1);
+                        val = Math.floor(norm * 5) + 1;
+                        if (val > 5) val = 5;
+                    }
+                    let fw = val > 3 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[val]}; ${fw}">${chars[val]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        // Start slowly building the density
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
     </script>
 </body>
 </html>

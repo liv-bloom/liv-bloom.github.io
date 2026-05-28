@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HPP Lattice Gas Automaton</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    
+    <div style="max-width: 600px; margin-top: 20px; font-size: 12px; text-align: left;">
+        <strong>HPP Lattice Gas Automaton</strong><br><br>
+        Proposed by Hardy, Pomeau, and de Pazzis in 1973, the HPP model is a cellular automaton used to simulate fluid dynamics. 
+        Particles move on a square grid in four discrete directions. When two particles collide head-on, they scatter perpendicularly, conserving both particle number and momentum.<br>
+        This simple deterministic rule gives rise to emergent macroscopic fluid-like behaviors such as wave propagation and pressure waves.
+    </div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 50;
+        // 4 bits per cell: Up(1), Right(2), Down(4), Left(8)
+        let grid = new Uint8Array(COLS * ROWS);
+
+        // Initialize with random particles
+        for (let y = 0; y < ROWS; y++) {
+            for (let x = 0; x < COLS; x++) {
+                // Block in the center with high density
+                if (x > COLS/2 - 10 && x < COLS/2 + 10 && y > ROWS/2 - 10 && y < ROWS/2 + 10) {
+                    grid[y * COLS + x] = Math.floor(Math.random() * 16);
+                } else {
+                    // Low density elsewhere
+                    grid[y * COLS + x] = Math.random() < 0.1 ? Math.floor(Math.random() * 16) : 0;
+                }
+            }
+        }
+
+        const chars = ["&nbsp;", "↑", "→", "↗", "↓", "↕", "↘", "┣", "←", "↖", "↔", "┳", "↙", "┫", "┻", "╋"];
+        // Actually let's just use density for color mapping to make it look like fluid
+        const densityColors = ["#10120f", "#2b3b28", "#56704d", "#8fd46b", "#c8f2b3"];
+
+        function step() {
+            const next = new Uint8Array(COLS * ROWS);
+
+            // Collision Phase
+            const collided = new Uint8Array(COLS * ROWS);
+            for (let i = 0; i < grid.length; i++) {
+                let state = grid[i];
+                // Head-on horizontal collision (Left 8 + Right 2 = 10) -> (Up 1 + Down 4 = 5)
+                if (state === 10) state = 5;
+                // Head-on vertical collision (Up 1 + Down 4 = 5) -> (Left 8 + Right 2 = 10)
+                else if (state === 5) state = 10;
+                collided[i] = state;
+            }
+
+            // Streaming Phase
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const state = collided[y * COLS + x];
+                    // Up (1) moves y-1
+                    if (state & 1) next[((y - 1 + ROWS) % ROWS) * COLS + x] |= 1;
+                    // Right (2) moves x+1
+                    if (state & 2) next[y * COLS + ((x + 1) % COLS)] |= 2;
+                    // Down (4) moves y+1
+                    if (state & 4) next[((y + 1) % ROWS) * COLS + x] |= 4;
+                    // Left (8) moves x-1
+                    if (state & 8) next[y * COLS + ((x - 1 + COLS) % COLS)] |= 8;
+                }
+            }
+            
+            grid = next;
+            draw();
+        }
+
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    const state = grid[y * COLS + x];
+                    // Count bits for density
+                    let density = 0;
+                    if (state & 1) density++;
+                    if (state & 2) density++;
+                    if (state & 4) density++;
+                    if (state & 8) density++;
+                    
+                    if (density === 0) {
+                        html += `<span style="color:#10120f;">&nbsp;</span>`;
+                    } else {
+                        html += `<span style="color:${densityColors[density]};">#</span>`;
+                    }
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 100);
+
+    </script>
+</body>
+</html>

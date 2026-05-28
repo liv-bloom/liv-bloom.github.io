@@ -2,95 +2,111 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>N-Body Gravity Simulation</title>
+    <title>N-Body Gravity</title>
     <style>
-        body { margin: 0; background-color: #111; color: #eee; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        #info { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; }
-        a { color: #4CAF50; text-decoration: none; }
-        a:hover { text-decoration: underline; }
-        button { background: #4CAF50; color: white; border: none; padding: 5px 10px; cursor: pointer; font-family: monospace; margin-top: 5px; }
-        button:hover { background: #45a049; }
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            user-select: none;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+        }
+        .controls { margin-top: 10px; }
+        button {
+            background-color: #181d18;
+            color: #e5eadb;
+            border: 1px solid #394034;
+            padding: 4px 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            border-color: #8fd46b;
+            color: #8fd46b;
+        }
     </style>
 </head>
 <body>
+    <pre id="canvas"></pre>
     <div id="info">
-        <h2>N-Body Gravity</h2>
-        <p>A simulation of gravitational attraction between multiple bodies in a closed system.</p>
-        <button onclick="init()">Reset System</button>
-        <br><br>
-        <a href="index.html">← Back to Gallery</a>
+        <strong>N-Body Gravity Simulation</strong><br><br>
+        A classical simulation of Newtonian gravitational attraction between multiple bodies in a closed system.<br>
+        <code>F = G * (m1 * m2) / r²</code><br>
+        In this ASCII translation, celestial bodies orbit a central supermassive entity. As bodies cluster or get ejected, their paths leave fading trails represented by diminishing ASCII characters and dimming colors from the garden palette.
+        <div class="controls">
+            <button onclick="init()">Restart Cosmos</button>
+        </div>
     </div>
-    <canvas id="canvas"></canvas>
+
     <script>
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Uint8Array(COLS * ROWS);
         
         let bodies = [];
-        const numBodies = 150;
-        const G = 0.5; // Gravitational constant
-        const maxVelocity = 5;
+        const numBodies = 40; // Reduced for ASCII clarity
+        const G = 0.5;
 
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-        }
+        const chars = [" ", ".", ",", "+", "*", "O", "@"];
+        const colors = ["#2b2b1a", "#394034", "#718465", "#76c7d5", "#f3d36b", "#e77a61"];
 
         class Body {
-            constructor() {
-                this.x = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.5;
-                this.y = canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 0.5;
-                
-                // Initial orbital velocity approximation
-                let dx = this.x - canvas.width / 2;
-                let dy = this.y - canvas.height / 2;
-                let dist = Math.sqrt(dx * dx + dy * dy);
-                
-                this.vx = (dy / dist) * (Math.random() * 2 + 1);
-                this.vy = -(dx / dist) * (Math.random() * 2 + 1);
-                
-                this.mass = Math.random() * 3 + 1;
-                this.color = `hsl(${Math.random() * 60 + 200}, 80%, 60%)`;
-                
-                // Add a massive central body occasionally
-                if (bodies.length === 0) {
-                    this.x = canvas.width / 2;
-                    this.y = canvas.height / 2;
+            constructor(isCenter = false) {
+                if (isCenter) {
+                    this.x = COLS / 2;
+                    this.y = ROWS / 2;
                     this.vx = 0;
                     this.vy = 0;
                     this.mass = 300;
-                    this.color = '#ffcc00';
+                } else {
+                    this.x = COLS / 2 + (Math.random() - 0.5) * COLS * 0.6;
+                    this.y = ROWS / 2 + (Math.random() - 0.5) * ROWS * 0.6;
+                    
+                    let dx = this.x - COLS / 2;
+                    let dy = this.y - ROWS / 2;
+                    let dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // Approximate orbital velocity (scaled for terminal aspect ratio)
+                    this.vx = (dy / dist) * (Math.random() * 1 + 0.5);
+                    this.vy = -(dx / dist) * (Math.random() * 1 + 0.5) * 0.5; 
+                    
+                    this.mass = Math.random() * 3 + 1;
                 }
             }
-
             update() {
                 this.x += this.vx;
                 this.y += this.vy;
-            }
-
-            draw() {
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, Math.max(1, Math.sqrt(this.mass)), 0, Math.PI * 2);
-                ctx.fill();
             }
         }
 
         function init() {
             bodies = [];
+            bodies.push(new Body(true)); // Central massive body
             for (let i = 0; i < numBodies; i++) {
-                bodies.push(new Body());
+                bodies.push(new Body(false));
             }
+            grid.fill(0);
         }
 
-        function draw() {
-            ctx.fillStyle = 'rgba(17, 17, 17, 0.2)'; // trailing effect
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Calculate gravity interactions
+        function step() {
+            // Calculate forces
             for (let i = 0; i < bodies.length; i++) {
                 for (let j = i + 1; j < bodies.length; j++) {
                     let b1 = bodies[i];
@@ -100,42 +116,84 @@
                     let dy = b2.y - b1.y;
                     let distSq = dx * dx + dy * dy;
                     
-                    // Softening parameter to avoid extreme forces at close range
-                    let dist = Math.sqrt(distSq) + 5; 
-                    
-                    let force = (G * b1.mass * b2.mass) / (distSq + 25);
+                    let dist = Math.sqrt(distSq) + 3; // Softening
+                    let force = (G * b1.mass * b2.mass) / (distSq + 10);
                     
                     let fx = (force * dx) / dist;
                     let fy = (force * dy) / dist;
                     
                     b1.vx += fx / b1.mass;
                     b1.vy += fy / b1.mass;
-                    
                     b2.vx -= fx / b2.mass;
                     b2.vy -= fy / b2.mass;
                 }
             }
 
-            // Update and draw
-            for (let i = 0; i < bodies.length; i++) {
-                let b = bodies[i];
-                
-                // Optional: boundary conditions or wrap
-                if (b.x < -100 || b.x > canvas.width + 100 || b.y < -100 || b.y > canvas.height + 100) {
-                    b.mass = 0; // kill off escaped particles effectively
-                }
-                
+            // Move bodies and draw them to grid
+            for (let b of bodies) {
                 b.update();
-                if (b.mass > 0) b.draw();
+                let drawX = Math.floor(b.x);
+                let drawY = Math.floor(b.y);
+                if (drawX >= 0 && drawX < COLS && drawY >= 0 && drawY < ROWS) {
+                    let idx = drawY * COLS + drawX;
+                    grid[idx] = b.mass > 100 ? 5 : 4; // Center is 5, others are 4
+                }
             }
 
-            requestAnimationFrame(draw);
+            // Evaporate trails
+            for (let i = 0; i < grid.length; i++) {
+                if (grid[i] > 0) {
+                    // Slower evaporation for trails
+                    if (Math.random() < 0.2) grid[i]--;
+                }
+            }
+            
+            draw();
         }
 
-        window.addEventListener('resize', resize);
-        resize();
+        function draw() {
+            let html = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let state = grid[y * COLS + x];
+                    let fw = state > 3 ? "font-weight:bold;" : "";
+                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                }
+                html += "\n";
+            }
+            document.getElementById("canvas").innerHTML = html;
+        }
+
         init();
-        draw();
+        
+
+        // --- ECO MODE: Intersection Observer ---
+        let isVisible = true;
+        
+        // Listen for messages from the parent window to pause/resume
+        window.addEventListener("message", (event) => {
+            if (event.data === "pause") isVisible = false;
+            if (event.data === "resume") isVisible = true;
+        });
+        
+        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
+        let ecoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If it's loaded directly, pause if not visible
+                if (window === window.top) {
+                    isVisible = entry.isIntersecting;
+                }
+            });
+        }, { threshold: 0.0 });
+        ecoObserver.observe(document.body);
+
+
+        setInterval(() => {
+            if (isVisible) {
+                step();
+            }
+        }, 40);
+
     </script>
 </body>
 </html>
