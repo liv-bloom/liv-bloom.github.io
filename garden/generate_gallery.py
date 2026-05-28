@@ -172,7 +172,6 @@ def main():
   <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
   <div class="nav">
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
-    <a href="gallery.html">Top 9 Gallery</a>
   </div>
   <p style="text-align:center; font-size:12px; color:var(--green);">Showing {start_idx + 1} - {min(end_idx, total_items)} of {total_items} seeds</p>
   
