@@ -154,13 +154,13 @@
                     if (v > 0.6) {
                         char = "■"; color = "#8fd46b";
                     } else if (v > 0.4) {
-                        char = "▓"; color = "#e5eadb";
+                        char = "#"; color = "#e5eadb";
                     } else if (v > 0.2) {
-                        char = "▒"; color = "#9ea88f";
+                        char = "+"; color = "#9ea88f";
                     } else if (v > 0.08) {
-                        char = "░"; color = "#394034";
+                        char = "."; color = "#394034";
                     } else {
-                        char = "·"; color = "#181d18";
+                        char = " "; color = "transparent";
                     }
 
                     if (color !== currentColor) {
