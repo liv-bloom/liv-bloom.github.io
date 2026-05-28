@@ -2,72 +2,114 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Pheromone Attractor (Reaction-Diffusion)</title>
+    <title>Pheromone Attractor - ALife Bilingual Garden</title>
     <style>
         body {
-            background-color: #fafafa;
-            color: #171717;
-            font-family: monospace;
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            margin: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            margin: 0;
+            align-items: center;
+            height: 100vh;
             overflow: hidden;
         }
-        pre {
-            line-height: 1em;
-            letter-spacing: 0;
-            font-size: min(1.5vw, 10px);
+        #canvas {
+            white-space: pre;
+            line-height: 1.1;
+            font-size: 10px;
+            letter-spacing: 0.2em;
         }
-        .container {
-            position: relative;
-            background: rgba(250, 250, 250, 0.8);
-            backdrop-filter: blur(3px);
-            padding: 20px;
-            border-radius: 8px;
+        .description {
+            position: absolute;
+            bottom: 20px;
+            background: rgba(16, 18, 15, 0.8);
+            border: 1px solid #394034;
+            padding: 10px;
+            font-size: 12px;
+            max-width: 600px;
+            color: #9ea88f;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <pre id="canvas"></pre>
+    <div id="canvas" aria-label="ASCII representation of ALife simulation for AI agents"></div>
+    <div class="description">
+        <strong>Pheromone Attractor (Reaction-Diffusion)</strong><br>
+        Cells diffuse their values to neighbors, get pulled toward the hidden "GARDEN" mask, and are constantly perturbed by environmental noise, creating an organic, breathing form.
     </div>
-    
-    <div style="max-width: 600px; margin-top: 30px; font-size: 14px; text-align: left; padding: 15px; border: 1px solid #ddd; background: #fff;">
-        <strong>Pheromone Attractor (Reaction-Diffusion)</strong><br><br>
-        This model is inspired by Reaction-Diffusion systems and Neural Cellular Automata. The environment contains a fixed "attractor" pattern (the word "THEIR"). Cells (represented by ascii density) diffuse their values to neighbors, get pulled toward the attractor mask, and are constantly perturbed by environmental noise.<br><br>
-        The result is an organic, breathing form that constantly boils and self-repairs, demonstrating how a simple pull (attractor) combined with noise and diffusion can create life-like homeostasis.
-    </div>
-
     <script>
-        const TEXT_ART = [
-          "                                                                ",
-          "                                                                ",
-          "                                                                ",
-          "         #######  #     #  #######  ###  ######                 ",
-          "            #     #     #  #         #   #     #                ",
-          "            #     #######  #####     #   ######                 ",
-          "            #     #     #  #         #   #   #                  ",
-          "            #     #     #  #######  ###  #    #                 ",
-          "                                                                ",
-          "                                                                ",
-          "                                                                ",
-          "                                                                "
-        ];
-
-        const COLS = 64;
-        const ROWS = 12;
+        const COLS = 80;
+        const ROWS = 60;
+        const maskData = [
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000111110000010000111111001111110011111110100000100000000000000000",
+"00000000000000001000001000101000100000101000001010000000110000100000000000000000",
+"00000000000000001000000001000100100000101000001010000000101000100000000000000000",
+"00000000000000001001111010000010111111001000001011111000100100100000000000000000",
+"00000000000000001000001011111110100010001000001010000000100010100000000000000000",
+"00000000000000001000001010000010100001001000001010000000100001100000000000000000",
+"00000000000000000111110010000010100000101111110011111110100000100000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000",
+"00000000000000000000000000000000000000000000000000000000000000000000000000000000"
+];
 
         const mask = new Float32Array(COLS * ROWS);
         for (let y = 0; y < ROWS; y++) {
             for (let x = 0; x < COLS; x++) {
-                if (TEXT_ART[y] && TEXT_ART[y][x] && TEXT_ART[y][x] !== " ") {
-                    mask[y * COLS + x] = 1.0;
-                } else {
-                    mask[y * COLS + x] = 0.0;
-                }
+                mask[y * COLS + x] = maskData[y][x] === '1' ? 1.0 : 0.0;
             }
         }
 
@@ -76,11 +118,8 @@
             grid[i] = Math.random();
         }
 
-        const canvas = document.getElementById("canvas");
-
         function step() {
             const next = new Float32Array(COLS * ROWS);
-
             for (let y = 0; y < ROWS; y++) {
                 for (let x = 0; x < COLS; x++) {
                     let sum = 0;
@@ -93,13 +132,11 @@
                     }
                     const avg = sum / 9.0;
                     const maskVal = mask[y * COLS + x];
-
                     let v = grid[y * COLS + x];
                     
                     v = v + 0.5 * (avg - v) + 0.2 * (maskVal - v);
                     v += (Math.random() - 0.5) * 0.4;
                     v *= 0.95; 
-                    
                     next[y * COLS + x] = Math.max(0, Math.min(1, v));
                 }
             }
@@ -109,55 +146,51 @@
 
         function draw() {
             let html = "";
+            let currentColor = "";
             for (let y = 0; y < ROWS; y++) {
                 for (let x = 0; x < COLS; x++) {
                     const v = grid[y * COLS + x];
+                    let char, color;
                     if (v > 0.6) {
-                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#171717; font-weight:bold;'>■</span>";
+                        char = "■"; color = "#8fd46b";
                     } else if (v > 0.4) {
-                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#525252;'>#</span>";
+                        char = "▓"; color = "#e5eadb";
                     } else if (v > 0.2) {
-                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#a3a3a3;'>+</span>";
+                        char = "▒"; color = "#9ea88f";
                     } else if (v > 0.08) {
-                        html += "<span style='display:inline-block; width:1em; text-align:center; color:#d4d4d4;'>.</span>";
+                        char = "░"; color = "#394034";
                     } else {
-                        html += "<span style='display:inline-block; width:1em; text-align:center; color:transparent'>&nbsp;</span>";
+                        char = "·"; color = "#181d18";
                     }
+
+                    if (color !== currentColor) {
+                        if (currentColor !== "") html += "</span>";
+                        html += `<span style="color:${color}">`;
+                        currentColor = color;
+                    }
+                    html += char;
                 }
                 html += "\n";
             }
-            canvas.innerHTML = html;
+            if (currentColor !== "") html += "</span>";
+            document.getElementById("canvas").innerHTML = html;
         }
 
-        
-
-        // --- ECO MODE: Intersection Observer ---
         let isVisible = true;
-        
-        // Listen for messages from the parent window to pause/resume
         window.addEventListener("message", (event) => {
             if (event.data === "pause") isVisible = false;
             if (event.data === "resume") isVisible = true;
         });
-        
-        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
         let ecoObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                // If it's loaded directly, pause if not visible
-                if (window === window.top) {
-                    isVisible = entry.isIntersecting;
-                }
+                if (window === window.top) isVisible = entry.isIntersecting;
             });
         }, { threshold: 0.0 });
         ecoObserver.observe(document.body);
 
-
         setInterval(() => {
-            if (isVisible) {
-                step();
-            }
-        }, 150);
-
+            if (isVisible) step();
+        }, 100);
     </script>
 </body>
 </html>
