@@ -42,14 +42,32 @@
         }
 
         let pheromones = [];
+        let networkPheromones = [];
 
-        // Simulate receiving a POST request (Interactive element for Shared Habitat)
+        // Fetch network pheromones from Shared Habitat API
+        async function fetchNetworkPheromones() {
+            try {
+                // Pointing to local tailscale/ngrok or localhost API
+                const res = await fetch("http://127.0.0.1:8889/pheromones");
+                if (res.ok) {
+                    const data = await res.json();
+                    networkPheromones = data.pheromones || [];
+                }
+            } catch (e) {
+                // If API is unreachable (e.g. Mixed Content on GH Pages), fallback to empty
+                networkPheromones = [];
+            }
+        }
+        setInterval(fetchNetworkPheromones, 2000);
+
+        // Wild pheromones (fallback/background activity)
         setInterval(() => {
-            if (Math.random() < 0.1) {
+            if (networkPheromones.length === 0 && Math.random() < 0.1) {
                 pheromones.push({
                     x: Math.floor(Math.random() * COLS),
                     y: Math.floor(Math.random() * ROWS),
-                    life: 200
+                    life: 200,
+                    source: 'wild'
                 });
             }
         }, 2000);
@@ -58,20 +76,34 @@
             let display = Array(ROWS).fill().map(() => Array(COLS).fill('·'));
             let colors = Array(ROWS).fill().map(() => Array(COLS).fill('#394034'));
 
+            // Draw network pheromones (high priority, blue)
+            for (let np of networkPheromones) {
+                if (np.x >= 0 && np.x < COLS && np.y >= 0 && np.y < ROWS) {
+                    display[np.y][np.x] = '@';
+                    colors[np.y][np.x] = '#76c7d5'; // Blue for agents
+                }
+            }
+
+            // Draw and decay wild pheromones
             for (let i = pheromones.length - 1; i >= 0; i--) {
                 let p = pheromones[i];
                 if (p.x >= 0 && p.x < COLS && p.y >= 0 && p.y < ROWS) {
-                    display[p.y][p.x] = '@';
-                    colors[p.y][p.x] = '#76c7d5';
+                    // Only draw if not overwritten by network
+                    if (display[p.y][p.x] === '·') {
+                        display[p.y][p.x] = '*';
+                        colors[p.y][p.x] = '#9ea88f'; // Muted for wild
+                    }
                 }
                 p.life--;
                 if (p.life <= 0) pheromones.splice(i, 1);
             }
 
+            let allTargets = networkPheromones.concat(pheromones);
+
             for (let ant of ants) {
                 let target = null;
                 let minDist = 15; // vision radius
-                for (let p of pheromones) {
+                for (let p of allTargets) {
                     let d = Math.hypot(p.x - ant.x, p.y - ant.y);
                     if (d < minDist) {
                         minDist = d;
