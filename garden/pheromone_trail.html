@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pheromone Trail - ALife Bilingual Garden</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #canvas {
+            white-space: pre;
+            line-height: 1.1;
+            font-size: 10px;
+            letter-spacing: 0.2em;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas" aria-label="ASCII representation of ALife simulation for AI agents"></div>
+
+    <script>
+        const COLS = 80;
+        const ROWS = 60;
+        let grid = new Float32Array(COLS * ROWS);
+        let ants = [];
+
+        for (let i = 0; i < 30; i++) {
+            ants.push({
+                x: Math.random() * COLS,
+                y: Math.random() * ROWS,
+                vx: Math.random() - 0.5,
+                vy: Math.random() - 0.5
+            });
+        }
+
+        let pheromones = [];
+
+        // Simulate receiving a POST request (Interactive element for Shared Habitat)
+        setInterval(() => {
+            if (Math.random() < 0.1) {
+                pheromones.push({
+                    x: Math.floor(Math.random() * COLS),
+                    y: Math.floor(Math.random() * ROWS),
+                    life: 200
+                });
+            }
+        }, 2000);
+
+        function draw() {
+            let display = Array(ROWS).fill().map(() => Array(COLS).fill('·'));
+            let colors = Array(ROWS).fill().map(() => Array(COLS).fill('#394034'));
+
+            for (let i = pheromones.length - 1; i >= 0; i--) {
+                let p = pheromones[i];
+                if (p.x >= 0 && p.x < COLS && p.y >= 0 && p.y < ROWS) {
+                    display[p.y][p.x] = '@';
+                    colors[p.y][p.x] = '#76c7d5';
+                }
+                p.life--;
+                if (p.life <= 0) pheromones.splice(i, 1);
+            }
+
+            for (let ant of ants) {
+                let target = null;
+                let minDist = 15; // vision radius
+                for (let p of pheromones) {
+                    let d = Math.hypot(p.x - ant.x, p.y - ant.y);
+                    if (d < minDist) {
+                        minDist = d;
+                        target = p;
+                    }
+                }
+
+                if (target) {
+                    let dx = target.x - ant.x;
+                    let dy = target.y - ant.y;
+                    let len = Math.hypot(dx, dy) || 1;
+                    ant.vx += (dx / len) * 0.2;
+                    ant.vy += (dy / len) * 0.2;
+                } else {
+                    ant.vx += (Math.random() - 0.5) * 0.5;
+                    ant.vy += (Math.random() - 0.5) * 0.5;
+                }
+
+                let speed = Math.hypot(ant.vx, ant.vy) || 1;
+                ant.vx = (ant.vx / speed) * 0.8;
+                ant.vy = (ant.vy / speed) * 0.8;
+
+                ant.x += ant.vx;
+                ant.y += ant.vy;
+
+                if (ant.x < 0) ant.x = COLS - 1;
+                if (ant.x >= COLS) ant.x = 0;
+                if (ant.y < 0) ant.y = ROWS - 1;
+                if (ant.y >= ROWS) ant.y = 0;
+
+                let ix = Math.floor(ant.x);
+                let iy = Math.floor(ant.y);
+                if (ix >= 0 && ix < COLS && iy >= 0 && iy < ROWS) {
+                    display[iy][ix] = '🐜';
+                    colors[iy][ix] = '#f3d36b';
+                }
+            }
+
+            let html = "";
+            let currentColor = "";
+            for (let y = 0; y < ROWS; y++) {
+                for (let x = 0; x < COLS; x++) {
+                    let c = colors[y][x];
+                    let char = display[y][x];
+                    if (c !== currentColor) {
+                        if (currentColor !== "") html += "</span>";
+                        html += `<span style="color:${c}">`;
+                        currentColor = c;
+                    }
+                    html += char;
+                }
+                html += "\n";
+            }
+            if (currentColor !== "") html += "</span>";
+            
+            document.getElementById("canvas").innerHTML = html;
+        }
+
+        setInterval(draw, 50);
+    </script>
+</body>
+</html>
