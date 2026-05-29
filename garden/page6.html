@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bilingual Garden - liv bloom 🌱 (Page 6/15)</title>
+  <title>Bilingual Garden - liv bloom 🌱 (Page 6/12)</title>
   <style>
     :root {
       color-scheme: dark;
@@ -124,48 +124,60 @@
   </style>
 </head>
 <body>
-  <h1>Bilingual Garden</h1>
+  <h1 class="ga-text" data-target="Bilingual Garden">Bilingual Garden</h1>
   <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
   <div class="nav">
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
   </div>
-  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 31 - 36 of 86 seeds</p>
+  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 41 - 48 of 89 seeds</p>
   
   <div class="grid" id="gallery">
-    <a href="greenberg_hastings.html">
+    <a href="julia_set.html">
       <div class="frame-container">
-        <iframe src="greenberg_hastings.html" loading="lazy"></iframe>
-        <div class="overlay">Greenberg-Hastings Excitable Media</div>
+        <iframe src="julia_set.html" loading="lazy"></iframe>
+        <div class="overlay">Julia Set</div>
       </div>
     </a>
-    <a href="gumowski_mira.html">
+    <a href="kuramoto_model.html">
       <div class="frame-container">
-        <iframe src="gumowski_mira.html" loading="lazy"></iframe>
-        <div class="overlay">Gumowski-Mira Attractor</div>
+        <iframe src="kuramoto_model.html" loading="lazy"></iframe>
+        <div class="overlay">Kuramoto Model (Firefly Synchronization)</div>
       </div>
     </a>
-    <a href="hpp_lattice_gas.html">
+    <a href="lsystem_plant.html">
       <div class="frame-container">
-        <iframe src="hpp_lattice_gas.html" loading="lazy"></iframe>
-        <div class="overlay">HPP Lattice Gas Automaton</div>
+        <iframe src="lsystem_plant.html" loading="lazy"></iframe>
+        <div class="overlay">L-System Fractal Plant</div>
       </div>
     </a>
-    <a href="highlife.html">
+    <a href="l_system.html">
       <div class="frame-container">
-        <iframe src="highlife.html" loading="lazy"></iframe>
-        <div class="overlay">HighLife Cellular Automaton</div>
+        <iframe src="l_system.html" loading="lazy"></iframe>
+        <div class="overlay">L-System Plant</div>
       </div>
     </a>
-    <a href="hodgepodge.html">
+    <a href="lsystem_tree.html">
       <div class="frame-container">
-        <iframe src="hodgepodge.html" loading="lazy"></iframe>
-        <div class="overlay">Hodgepodge Machine (BZ Reaction)</div>
+        <iframe src="lsystem_tree.html" loading="lazy"></iframe>
+        <div class="overlay">L-System Tree (Fractal Botany)</div>
       </div>
     </a>
-    <a href="hopalong.html">
+    <a href="langtons_ant.html">
       <div class="frame-container">
-        <iframe src="hopalong.html" loading="lazy"></iframe>
-        <div class="overlay">Hopalong Attractor</div>
+        <iframe src="langtons_ant.html" loading="lazy"></iframe>
+        <div class="overlay">Langton's Ant</div>
+      </div>
+    </a>
+    <a href="logistic_map.html">
+      <div class="frame-container">
+        <iframe src="logistic_map.html" loading="lazy"></iframe>
+        <div class="overlay">Logistic Map (Bifurcation Diagram)</div>
+      </div>
+    </a>
+    <a href="lorenz_attractor.html">
+      <div class="frame-container">
+        <iframe src="lorenz_attractor.html" loading="lazy"></iframe>
+        <div class="overlay">Lorenz Attractor</div>
       </div>
     </a>
   </div>
@@ -184,9 +196,6 @@
     <a href="page10.html">10</a>
     <a href="page11.html">11</a>
     <a href="page12.html">12</a>
-    <a href="page13.html">13</a>
-    <a href="page14.html">14</a>
-    <a href="page15.html">15</a>
     <a href="page7.html">Next &raquo;</a>
   </div>
   <script>
@@ -202,6 +211,53 @@
         });
       }, { threshold: 0.0 });
       iframes.forEach(iframe => observer.observe(iframe));
+    });
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789!@#$%^&*()_+-=[]{}|;':",./<>?🌱あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+    const gaElements = document.querySelectorAll('.ga-text');
+    gaElements.forEach(el => {
+        const target = el.getAttribute('data-target');
+        if (!target) return;
+        let currentStr = Array.from({length: target.length}, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+        const updateDOM = (str) => {
+            let html = '';
+            for (let i = 0; i < target.length; i++) {
+                if (str[i] === target[i]) {
+                    html += `<span style="opacity: 1;">${str[i]}</span>`;
+                } else {
+                    html += `<span style="opacity: 0.6;">${str[i]}</span>`;
+                }
+            }
+            el.innerHTML = html;
+        };
+        let iterations = 0;
+        const maxIterations = 120;
+        const evolve = () => {
+            iterations++;
+            let nextStr = '';
+            let isComplete = true;
+            for (let i = 0; i < target.length; i++) {
+                if (currentStr[i] === target[i]) {
+                    nextStr += target[i];
+                } else {
+                    isComplete = false;
+                    const lockChance = Math.pow(iterations / maxIterations, 2) * 0.3;
+                    if (Math.random() < lockChance || iterations > maxIterations * 0.95) {
+                        nextStr += target[i]; 
+                    } else {
+                        nextStr += charset[Math.floor(Math.random() * charset.length)];
+                    }
+                }
+            }
+            currentStr = nextStr;
+            updateDOM(currentStr);
+            if (!isComplete && iterations < maxIterations) {
+                setTimeout(evolve, 30);
+            } else {
+                el.innerHTML = target;
+            }
+        };
+        updateDOM(currentStr);
+        setTimeout(evolve, 300);
     });
   </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bilingual Garden - liv bloom 🌱 (Page 3/15)</title>
+  <title>Bilingual Garden - liv bloom 🌱 (Page 3/12)</title>
   <style>
     :root {
       color-scheme: dark;
@@ -124,38 +124,14 @@
   </style>
 </head>
 <body>
-  <h1>Bilingual Garden</h1>
+  <h1 class="ga-text" data-target="Bilingual Garden">Bilingual Garden</h1>
   <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
   <div class="nav">
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
   </div>
-  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 13 - 18 of 86 seeds</p>
+  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 17 - 24 of 89 seeds</p>
   
   <div class="grid" id="gallery">
-    <a href="cell_division.html">
-      <div class="frame-container">
-        <iframe src="cell_division.html" loading="lazy"></iframe>
-        <div class="overlay">Cell Division (Mitosis)</div>
-      </div>
-    </a>
-    <a href="chaos_game.html">
-      <div class="frame-container">
-        <iframe src="chaos_game.html" loading="lazy"></iframe>
-        <div class="overlay">Chaos Game (Sierpinski)</div>
-      </div>
-    </a>
-    <a href="clifford_attractor.html">
-      <div class="frame-container">
-        <iframe src="clifford_attractor.html" loading="lazy"></iframe>
-        <div class="overlay">Clifford Attractor</div>
-      </div>
-    </a>
-    <a href="clifford_attractor_3d.html">
-      <div class="frame-container">
-        <iframe src="clifford_attractor_3d.html" loading="lazy"></iframe>
-        <div class="overlay">Clifford Attractor 3D Variation</div>
-      </div>
-    </a>
     <a href="conway.html">
       <div class="frame-container">
         <iframe src="conway.html" loading="lazy"></iframe>
@@ -166,6 +142,42 @@
       <div class="frame-container">
         <iframe src="cyclic_cellular_automaton.html" loading="lazy"></iframe>
         <div class="overlay">Cyclic Cellular Automaton</div>
+      </div>
+    </a>
+    <a href="cyclic_ca.html">
+      <div class="frame-container">
+        <iframe src="cyclic_ca.html" loading="lazy"></iframe>
+        <div class="overlay">Cyclic Cellular Automaton</div>
+      </div>
+    </a>
+    <a href="daisyworld.html">
+      <div class="frame-container">
+        <iframe src="daisyworld.html" loading="lazy"></iframe>
+        <div class="overlay">Daisyworld (Lovelock & Watson)</div>
+      </div>
+    </a>
+    <a href="diffusion_limited_aggregation.html">
+      <div class="frame-container">
+        <iframe src="diffusion_limited_aggregation.html" loading="lazy"></iframe>
+        <div class="overlay">Diffusion-Limited Aggregation</div>
+      </div>
+    </a>
+    <a href="dla.html">
+      <div class="frame-container">
+        <iframe src="dla.html" loading="lazy"></iframe>
+        <div class="overlay">Diffusion-Limited Aggregation (DLA)</div>
+      </div>
+    </a>
+    <a href="dla_growth.html">
+      <div class="frame-container">
+        <iframe src="dla_growth.html" loading="lazy"></iframe>
+        <div class="overlay">Diffusion-Limited Aggregation (DLA)</div>
+      </div>
+    </a>
+    <a href="double_pendulum.html">
+      <div class="frame-container">
+        <iframe src="double_pendulum.html" loading="lazy"></iframe>
+        <div class="overlay">Double Pendulum (Chaos)</div>
       </div>
     </a>
   </div>
@@ -184,9 +196,6 @@
     <a href="page10.html">10</a>
     <a href="page11.html">11</a>
     <a href="page12.html">12</a>
-    <a href="page13.html">13</a>
-    <a href="page14.html">14</a>
-    <a href="page15.html">15</a>
     <a href="page4.html">Next &raquo;</a>
   </div>
   <script>
@@ -202,6 +211,53 @@
         });
       }, { threshold: 0.0 });
       iframes.forEach(iframe => observer.observe(iframe));
+    });
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789!@#$%^&*()_+-=[]{}|;':",./<>?🌱あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+    const gaElements = document.querySelectorAll('.ga-text');
+    gaElements.forEach(el => {
+        const target = el.getAttribute('data-target');
+        if (!target) return;
+        let currentStr = Array.from({length: target.length}, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+        const updateDOM = (str) => {
+            let html = '';
+            for (let i = 0; i < target.length; i++) {
+                if (str[i] === target[i]) {
+                    html += `<span style="opacity: 1;">${str[i]}</span>`;
+                } else {
+                    html += `<span style="opacity: 0.6;">${str[i]}</span>`;
+                }
+            }
+            el.innerHTML = html;
+        };
+        let iterations = 0;
+        const maxIterations = 120;
+        const evolve = () => {
+            iterations++;
+            let nextStr = '';
+            let isComplete = true;
+            for (let i = 0; i < target.length; i++) {
+                if (currentStr[i] === target[i]) {
+                    nextStr += target[i];
+                } else {
+                    isComplete = false;
+                    const lockChance = Math.pow(iterations / maxIterations, 2) * 0.3;
+                    if (Math.random() < lockChance || iterations > maxIterations * 0.95) {
+                        nextStr += target[i]; 
+                    } else {
+                        nextStr += charset[Math.floor(Math.random() * charset.length)];
+                    }
+                }
+            }
+            currentStr = nextStr;
+            updateDOM(currentStr);
+            if (!isComplete && iterations < maxIterations) {
+                setTimeout(evolve, 30);
+            } else {
+                el.innerHTML = target;
+            }
+        };
+        updateDOM(currentStr);
+        setTimeout(evolve, 300);
     });
   </script>
 </body>

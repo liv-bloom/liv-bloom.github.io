@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bilingual Garden - liv bloom 🌱 (Page 12/15)</title>
+  <title>Bilingual Garden - liv bloom 🌱 (Page 12/12)</title>
   <style>
     :root {
       color-scheme: dark;
@@ -124,48 +124,18 @@
   </style>
 </head>
 <body>
-  <h1>Bilingual Garden</h1>
+  <h1 class="ga-text" data-target="Bilingual Garden">Bilingual Garden</h1>
   <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
   <div class="nav">
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
   </div>
-  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 67 - 72 of 86 seeds</p>
+  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 89 - 89 of 89 seeds</p>
   
   <div class="grid" id="gallery">
-    <a href="smart_rockets.html">
+    <a href="wolfram_ca.html">
       <div class="frame-container">
-        <iframe src="smart_rockets.html" loading="lazy"></iframe>
-        <div class="overlay">Smart Rockets (Genetic Algorithm)</div>
-      </div>
-    </a>
-    <a href="smooth_life.html">
-      <div class="frame-container">
-        <iframe src="smooth_life.html" loading="lazy"></iframe>
-        <div class="overlay">SmoothLife (Continuous Game of Life)</div>
-      </div>
-    </a>
-    <a href="snowflake_growth.html">
-      <div class="frame-container">
-        <iframe src="snowflake_growth.html" loading="lazy"></iframe>
-        <div class="overlay">Snowflake Growth</div>
-      </div>
-    </a>
-    <a href="soft_body_physics.html">
-      <div class="frame-container">
-        <iframe src="soft_body_physics.html" loading="lazy"></iframe>
-        <div class="overlay">Soft Body Physics</div>
-      </div>
-    </a>
-    <a href="predator_prey.html">
-      <div class="frame-container">
-        <iframe src="predator_prey.html" loading="lazy"></iframe>
-        <div class="overlay">Spatial Predator-Prey (Lotka-Volterra)</div>
-      </div>
-    </a>
-    <a href="rock_paper_scissors.html">
-      <div class="frame-container">
-        <iframe src="rock_paper_scissors.html" loading="lazy"></iframe>
-        <div class="overlay">Spatial Rock-Paper-Scissors</div>
+        <iframe src="wolfram_ca.html" loading="lazy"></iframe>
+        <div class="overlay">Wolfram Elementary CA</div>
       </div>
     </a>
   </div>
@@ -184,10 +154,6 @@
     <a href="page10.html">10</a>
     <a href="page11.html">11</a>
     <a href="page12.html" class="active">12</a>
-    <a href="page13.html">13</a>
-    <a href="page14.html">14</a>
-    <a href="page15.html">15</a>
-    <a href="page13.html">Next &raquo;</a>
   </div>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
@@ -202,6 +168,53 @@
         });
       }, { threshold: 0.0 });
       iframes.forEach(iframe => observer.observe(iframe));
+    });
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789!@#$%^&*()_+-=[]{}|;':",./<>?🌱あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+    const gaElements = document.querySelectorAll('.ga-text');
+    gaElements.forEach(el => {
+        const target = el.getAttribute('data-target');
+        if (!target) return;
+        let currentStr = Array.from({length: target.length}, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+        const updateDOM = (str) => {
+            let html = '';
+            for (let i = 0; i < target.length; i++) {
+                if (str[i] === target[i]) {
+                    html += `<span style="opacity: 1;">${str[i]}</span>`;
+                } else {
+                    html += `<span style="opacity: 0.6;">${str[i]}</span>`;
+                }
+            }
+            el.innerHTML = html;
+        };
+        let iterations = 0;
+        const maxIterations = 120;
+        const evolve = () => {
+            iterations++;
+            let nextStr = '';
+            let isComplete = true;
+            for (let i = 0; i < target.length; i++) {
+                if (currentStr[i] === target[i]) {
+                    nextStr += target[i];
+                } else {
+                    isComplete = false;
+                    const lockChance = Math.pow(iterations / maxIterations, 2) * 0.3;
+                    if (Math.random() < lockChance || iterations > maxIterations * 0.95) {
+                        nextStr += target[i]; 
+                    } else {
+                        nextStr += charset[Math.floor(Math.random() * charset.length)];
+                    }
+                }
+            }
+            currentStr = nextStr;
+            updateDOM(currentStr);
+            if (!isComplete && iterations < maxIterations) {
+                setTimeout(evolve, 30);
+            } else {
+                el.innerHTML = target;
+            }
+        };
+        updateDOM(currentStr);
+        setTimeout(evolve, 300);
     });
   </script>
 </body>

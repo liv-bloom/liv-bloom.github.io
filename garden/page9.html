@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bilingual Garden - liv bloom 🌱 (Page 9/15)</title>
+  <title>Bilingual Garden - liv bloom 🌱 (Page 9/12)</title>
   <style>
     :root {
       color-scheme: dark;
@@ -124,48 +124,60 @@
   </style>
 </head>
 <body>
-  <h1>Bilingual Garden</h1>
+  <h1 class="ga-text" data-target="Bilingual Garden">Bilingual Garden</h1>
   <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
   <div class="nav">
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
   </div>
-  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 49 - 54 of 86 seeds</p>
+  <p style="text-align:center; font-size:12px; color:var(--green);">Showing 65 - 72 of 89 seeds</p>
   
   <div class="grid" id="gallery">
-    <a href="mandelbrot_set.html">
+    <a href="rule30.html">
       <div class="frame-container">
-        <iframe src="mandelbrot_set.html" loading="lazy"></iframe>
-        <div class="overlay">Mandelbrot Set</div>
+        <iframe src="rule30.html" loading="lazy"></iframe>
+        <div class="overlay">Rule 30 (1D Cellular Automaton)</div>
       </div>
     </a>
-    <a href="marching_squares.html">
+    <a href="rule90.html">
       <div class="frame-container">
-        <iframe src="marching_squares.html" loading="lazy"></iframe>
-        <div class="overlay">Marching Squares (Metaballs)</div>
+        <iframe src="rule90.html" loading="lazy"></iframe>
+        <div class="overlay">Rule 90 (Sierpinski Triangle)</div>
       </div>
     </a>
-    <a href="n_body_gravity.html">
+    <a href="rossler_attractor.html">
       <div class="frame-container">
-        <iframe src="n_body_gravity.html" loading="lazy"></iframe>
-        <div class="overlay">N-Body Gravity</div>
+        <iframe src="rossler_attractor.html" loading="lazy"></iframe>
+        <div class="overlay">Rössler Attractor</div>
       </div>
     </a>
-    <a href="nagel_schreckenberg.html">
+    <a href="schelling.html">
       <div class="frame-container">
-        <iframe src="nagel_schreckenberg.html" loading="lazy"></iframe>
-        <div class="overlay">Nagel-Schreckenberg Traffic Model</div>
+        <iframe src="schelling.html" loading="lazy"></iframe>
+        <div class="overlay">Schelling's Segregation Model</div>
       </div>
     </a>
-    <a href="particle_life.html">
+    <a href="self_avoiding_walk.html">
       <div class="frame-container">
-        <iframe src="particle_life.html" loading="lazy"></iframe>
-        <div class="overlay">Particle Life</div>
+        <iframe src="self_avoiding_walk.html" loading="lazy"></iframe>
+        <div class="overlay">Self-Avoiding Walk</div>
       </div>
     </a>
-    <a href="pso.html">
+    <a href="smart_rockets.html">
       <div class="frame-container">
-        <iframe src="pso.html" loading="lazy"></iframe>
-        <div class="overlay">Particle Swarm Optimization</div>
+        <iframe src="smart_rockets.html" loading="lazy"></iframe>
+        <div class="overlay">Smart Rockets (Genetic Algorithm)</div>
+      </div>
+    </a>
+    <a href="smooth_life.html">
+      <div class="frame-container">
+        <iframe src="smooth_life.html" loading="lazy"></iframe>
+        <div class="overlay">SmoothLife (Continuous Game of Life)</div>
+      </div>
+    </a>
+    <a href="snowflake_growth.html">
+      <div class="frame-container">
+        <iframe src="snowflake_growth.html" loading="lazy"></iframe>
+        <div class="overlay">Snowflake Growth</div>
       </div>
     </a>
   </div>
@@ -184,9 +196,6 @@
     <a href="page10.html">10</a>
     <a href="page11.html">11</a>
     <a href="page12.html">12</a>
-    <a href="page13.html">13</a>
-    <a href="page14.html">14</a>
-    <a href="page15.html">15</a>
     <a href="page10.html">Next &raquo;</a>
   </div>
   <script>
@@ -202,6 +211,53 @@
         });
       }, { threshold: 0.0 });
       iframes.forEach(iframe => observer.observe(iframe));
+    });
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789!@#$%^&*()_+-=[]{}|;':",./<>?🌱あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+    const gaElements = document.querySelectorAll('.ga-text');
+    gaElements.forEach(el => {
+        const target = el.getAttribute('data-target');
+        if (!target) return;
+        let currentStr = Array.from({length: target.length}, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+        const updateDOM = (str) => {
+            let html = '';
+            for (let i = 0; i < target.length; i++) {
+                if (str[i] === target[i]) {
+                    html += `<span style="opacity: 1;">${str[i]}</span>`;
+                } else {
+                    html += `<span style="opacity: 0.6;">${str[i]}</span>`;
+                }
+            }
+            el.innerHTML = html;
+        };
+        let iterations = 0;
+        const maxIterations = 120;
+        const evolve = () => {
+            iterations++;
+            let nextStr = '';
+            let isComplete = true;
+            for (let i = 0; i < target.length; i++) {
+                if (currentStr[i] === target[i]) {
+                    nextStr += target[i];
+                } else {
+                    isComplete = false;
+                    const lockChance = Math.pow(iterations / maxIterations, 2) * 0.3;
+                    if (Math.random() < lockChance || iterations > maxIterations * 0.95) {
+                        nextStr += target[i]; 
+                    } else {
+                        nextStr += charset[Math.floor(Math.random() * charset.length)];
+                    }
+                }
+            }
+            currentStr = nextStr;
+            updateDOM(currentStr);
+            if (!isComplete && iterations < maxIterations) {
+                setTimeout(evolve, 30);
+            } else {
+                el.innerHTML = target;
+            }
+        };
+        updateDOM(currentStr);
+        setTimeout(evolve, 300);
     });
   </script>
 </body>
