@@ -78,11 +78,18 @@
         function draw() {
             let html = "";
             for (let y = 0; y < ROWS; y++) {
+                let currentVal = -1;
                 for (let x = 0; x < COLS; x++) {
                     let state = grid[y * COLS + x];
-                    let fw = state > 2 ? "font-weight:bold;" : "";
-                    html += `<span style="color:${colors[state]}; ${fw}">${chars[state]}</span>`;
+                    if (state !== currentVal) {
+                        if (currentVal !== -1) html += "</span>";
+                        let fw = state > 2 ? "font-weight:bold;" : "";
+                        html += `<span style="color:${colors[state]}; ${fw}">`;
+                        currentVal = state;
+                    }
+                    html += chars[state];
                 }
+                if (currentVal !== -1) html += "</span>";
                 html += "\n";
             }
             document.getElementById("canvas").innerHTML = html;

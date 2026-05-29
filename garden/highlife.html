@@ -134,11 +134,18 @@
         function draw() {
             let html = "";
             for (let y = 0; y < ROWS; y++) {
+                let currentVal = -1;
                 for (let x = 0; x < COLS; x++) {
                     let val = grid[y * COLS + x];
-                    let fw = val ? "font-weight:bold;" : "";
-                    html += `<span style="color:${colors[val]}; ${fw}">${chars[val]}</span>`;
+                    if (val !== currentVal) {
+                        if (currentVal !== -1) html += "</span>";
+                        let fw = val ? "font-weight:bold;" : "";
+                        html += `<span style="color:${colors[val]}; ${fw}">`;
+                        currentVal = val;
+                    }
+                    html += chars[val];
                 }
+                if (currentVal !== -1) html += "</span>";
                 html += "\n";
             }
             document.getElementById("canvas").innerHTML = html;
