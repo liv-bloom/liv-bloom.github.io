@@ -123,13 +123,7 @@
                 if (e2 < dx) { err += dx; y0 += sy; }
             }
         }
-                if (Math.abs(x0 - x1) < 0.5 && Math.abs(y0 - y1) < 0.5) break;
-                let e2 = 2 * err;
-                if (e2 > -dy) { err -= dy; x0 += sx; }
-                if (e2 < dx) { err += dx; y0 += sy; }
-            }
-        }
-
+        
         function draw(px1, py1, px2, py2) {
             grid.fill(0);
 
