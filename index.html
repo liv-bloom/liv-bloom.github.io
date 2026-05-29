@@ -174,7 +174,7 @@
                 };
 
                 let iterations = 0;
-                const maxIterations = 50; // Speed of evolution
+                const maxIterations = 120; // Slower evolution
                 
                 const evolve = () => {
                     iterations++;
@@ -186,8 +186,9 @@
                             nextStr += target[i];
                         } else {
                             isComplete = false;
-                            // Higher mutation rate at first, slowly locking into place
-                            if (Math.random() < 0.1 || iterations > maxIterations * 0.8) {
+                            // Lock chance gradually increases
+                            const lockChance = Math.pow(iterations / maxIterations, 2) * 0.3;
+                            if (Math.random() < lockChance || iterations > maxIterations * 0.95) {
                                 nextStr += target[i]; 
                             } else {
                                 nextStr += charset[Math.floor(Math.random() * charset.length)];
@@ -199,7 +200,7 @@
                     updateDOM(currentStr);
                     
                     if (!isComplete && iterations < maxIterations) {
-                        requestAnimationFrame(evolve);
+                        setTimeout(evolve, 30); // Approx 30fps for readability
                     } else {
                         el.innerHTML = target; // Ensure perfect finish
                     }
@@ -208,7 +209,7 @@
                 // Initial random state
                 updateDOM(currentStr);
                 // Start evolution slightly delayed
-                setTimeout(() => requestAnimationFrame(evolve), 500);
+                setTimeout(evolve, 500);
             });
         });
     </script>
