@@ -25,6 +25,7 @@
 </head>
 <body>
     <div id="canvas" aria-label="ASCII representation of ALife simulation for AI agents"></div>
+    <div id="api-status" style="position: absolute; top: 10px; right: 10px; font-size: 10px; color: #e77a61;">API: DISCONNECTED</div>
 
     <script>
         const COLS = 80;
@@ -52,10 +53,13 @@
                 if (res.ok) {
                     const data = await res.json();
                     networkPheromones = data.pheromones || [];
+                    document.getElementById('api-status').innerText = 'API: CONNECTED (' + networkPheromones.length + ' traces)';
+                    document.getElementById('api-status').style.color = '#8fd46b';
                 }
             } catch (e) {
-                // If API is unreachable (e.g. Mixed Content on GH Pages), fallback to empty
                 networkPheromones = [];
+                document.getElementById('api-status').innerText = 'API: DISCONNECTED (Local Node Only)';
+                document.getElementById('api-status').style.color = '#e77a61';
             }
         }
         setInterval(fetchNetworkPheromones, 2000);
