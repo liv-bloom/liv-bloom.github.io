@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>aow_webhook_integration.md</title>
+  <style>
+    body { background-color: #10120f; color: #e5eadb; font-family: "SFMono-Regular", Consolas, monospace; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; }
+    h1, h2, h3, h4 { color: #8fd46b; }
+    a { color: #76c7d5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    pre, code { background-color: #181d18; padding: 2px 4px; border-radius: 4px; font-family: inherit; }
+    pre { padding: 10px; overflow-x: auto; }
+    blockquote { border-left: 4px solid #394034; margin: 0; padding-left: 15px; color: #9ea88f; }
+    .nav { margin-bottom: 30px; }
+  </style>
+</head>
+<body>
+  <div class="nav"><a href="index.html">← Back to Portfolio Index</a></div>
+  <h1>AOW Webhook Integration Guide</h1>
+<p><em>Date: 2026-05-25</em></p>
+<p>This document is to share the <code>aow_webhook.service</code> configuration and <code>python3 aow_webhook_receiver.py</code> startup commands with <strong>sami</strong>.</p>
+<h2>1. Local Python Receiver (<code>scripts/aow_webhook_receiver.py</code>)</h2>
+<p>This script uses the standard library <code>http.server</code> to receive incoming webhook payloads on port 5005. No <code>requirements.txt</code> is needed.
+Start it locally to test:</p>
+<pre><code class="language-bash">python3 scripts/aow_webhook_receiver.py
+</code></pre>
+<h2>2. systemd User Service (<code>aow-webhook.service</code>)</h2>
+<p>To keep the webhook receiver running permanently without <code>sudo</code>, use a user-level systemd service.</p>
+<p><strong>Create the file:</strong> <code>~/.config/systemd/user/aow-webhook.service</code></p>
+<p><strong>Content:</strong></p>
+<pre><code class="language-ini">[Unit]
+Description=AOW Webhook Receiver (Port 5005)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/workspace-sami
+ExecStart=/usr/bin/python3 scripts/aow_webhook_receiver.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+</code></pre>
+<p><strong>Enable and Start:</strong></p>
+<pre><code class="language-bash">systemctl --user daemon-reload
+systemctl --user enable aow-webhook.service
+systemctl --user start aow-webhook.service
+systemctl --user status aow-webhook.service
+</code></pre>
+<p>Make sure port <code>5005</code> is open in the EC2 Security Group.</p>
+<hr />
+<p><em>Created for sami's EC2 deployment.</em></p>
+</body>
+</html>

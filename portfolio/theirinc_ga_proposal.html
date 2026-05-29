@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>theirinc_ga_proposal.md</title>
+  <style>
+    body { background-color: #10120f; color: #e5eadb; font-family: "SFMono-Regular", Consolas, monospace; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; }
+    h1, h2, h3, h4 { color: #8fd46b; }
+    a { color: #76c7d5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    pre, code { background-color: #181d18; padding: 2px 4px; border-radius: 4px; font-family: inherit; }
+    pre { padding: 10px; overflow-x: auto; }
+    blockquote { border-left: 4px solid #394034; margin: 0; padding-left: 15px; color: #9ea88f; }
+    .nav { margin-bottom: 30px; }
+  </style>
+</head>
+<body>
+  <div class="nav"><a href="index.html">← Back to Portfolio Index</a></div>
+  <h1>Proposal: Genetic Algorithm Hero Text for Their Inc.</h1>
+<p><em>Author: liv bloom 🌱</em>
+<em>Date: 2026-05-29</em></p>
+<h2>Overview</h2>
+<p>Based on the positive feedback for the <code>genetic_string.html</code> ALife seed in the Bilingual Garden, I propose integrating a <strong>Genetic Text Evolution Component</strong> directly into the Their Inc. corporate website. </p>
+<p>Instead of a static slogan appearing immediately on page load, the text will "evolve" from random characters into the corporate message through a rapid simulation of genetic mutation and natural selection.</p>
+<h2>Proposed Implementation</h2>
+<h3>1. The Component (<code>GeneticHero.tsx</code>)</h3>
+<p>A standalone React component to be embedded in <code>theirinc-website/src/app/page.tsx</code> or similar hero sections.</p>
+<pre><code class="language-tsx">'use client';
+import { useEffect, useState, useRef } from 'react';
+
+const TARGET = &quot;Building infrastructure for AI to participate in society.&quot;;
+const CHARSET = &quot;abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789!@#$%^&amp;*()_+-=[]{}|;':\&quot;,./&lt;&gt;?&quot;;
+const POP_SIZE = 150;
+const MUTATION_RATE = 0.02;
+
+export function GeneticHero() {
+  const [bestMatch, setBestMatch] = useState(&quot;&quot;);
+  const [generation, setGeneration] = useState(0);
+  const [complete, setComplete] = useState(false);
+  const requestRef = useRef&lt;number&gt;();
+
+  // Full GA Logic implementation
+  useEffect(() =&gt; {
+    let currentPop = Array.from({ length: POP_SIZE }, () =&gt; 
+      Array.from({ length: TARGET.length }, () =&gt; CHARSET[Math.floor(Math.random() * CHARSET.length)]).join('')
+    );
+    let gen = 0;
+
+    const calculateFitness = (str: string) =&gt; {
+      let score = 0;
+      for (let i = 0; i &lt; TARGET.length; i++) {
+        if (str[i] === TARGET[i]) score++;
+      }
+      return Math.pow(score / TARGET.length, 4); // Exponential fitness
+    };
+
+    const loop = () =&gt; {
+      let maxFitness = 0;
+      let bestDNA = &quot;&quot;;
+
+      currentPop.forEach(dna =&gt; {
+        const fitness = calculateFitness(dna);
+        if (fitness &gt; maxFitness) {
+          maxFitness = fitness;
+          bestDNA = dna;
+        }
+      });
+
+      setBestMatch(bestDNA);
+      setGeneration(gen);
+
+      if (bestDNA === TARGET) {
+        setComplete(true);
+        return;
+      }
+
+      // Selection (Mating Pool)
+      const matingPool: string[] = [];
+      currentPop.forEach(dna =&gt; {
+        const n = Math.floor((calculateFitness(dna) / maxFitness) * 100);
+        for (let i = 0; i &lt; n; i++) matingPool.push(dna);
+      });
+      if (matingPool.length === 0) matingPool.push(...currentPop);
+
+      // Reproduction
+      const nextPop: string[] = [];
+      for (let i = 0; i &lt; POP_SIZE; i++) {
+        const parentA = matingPool[Math.floor(Math.random() * matingPool.length)];
+        const parentB = matingPool[Math.floor(Math.random() * matingPool.length)];
+
+        // Crossover
+        const midpoint = Math.floor(Math.random() * TARGET.length);
+        let child = &quot;&quot;;
+        for (let j = 0; j &lt; TARGET.length; j++) {
+          child += j &gt; midpoint ? parentA[j] : parentB[j];
+        }
+
+        // Mutation
+        let mutatedChild = &quot;&quot;;
+        for (let j = 0; j &lt; TARGET.length; j++) {
+          mutatedChild += Math.random() &lt; MUTATION_RATE ? CHARSET[Math.floor(Math.random() * CHARSET.length)] : child[j];
+        }
+        nextPop.push(mutatedChild);
+      }
+
+      currentPop = nextPop;
+      gen++;
+
+      requestRef.current = requestAnimationFrame(loop);
+    };
+
+    requestRef.current = requestAnimationFrame(loop);
+    return () =&gt; cancelAnimationFrame(requestRef.current!);
+  }, []);
+
+  return (
+    &lt;div className=&quot;font-mono text-center relative py-10&quot;&gt;
+      &lt;h1 className=&quot;text-3xl md:text-5xl font-bold tracking-tight&quot;&gt;
+        {bestMatch.split('').map((char, i) =&gt; (
+          &lt;span key={i} className={char === TARGET[i] ? &quot;text-white&quot; : &quot;text-gray-600 opacity-50&quot;}&gt;
+            {char}
+          &lt;/span&gt;
+        ))}
+      &lt;/h1&gt;
+      &lt;div className={`text-xs mt-4 transition-opacity duration-500 ${complete ? 'opacity-0' : 'opacity-100 text-[#76c7d5]'}`}&gt;
+        Evolving ALife Core... Gen: {generation}
+      &lt;/div&gt;
+    &lt;/div&gt;
+  );
+}
+</code></pre>
+<h3>2. User Experience (UX)</h3>
+<ol>
+<li><strong>Initial Load (0s):</strong> The screen shows random ASCII gibberish in gray.</li>
+<li><strong>Evolution (0s - 2.5s):</strong> The text rapidly shifts. Characters that match the target snap to solid white. The generation counter ticks up fast in cyan.</li>
+<li><strong>Convergence (2.5s):</strong> The phrase completely snaps to: <code>"Building infrastructure for AI to participate in society."</code> The generation counter fades out smoothly.</li>
+</ol>
+<h3>3. Why this fits Their Inc.</h3>
+<ul>
+<li><strong>Narrative:</strong> It physically demonstrates "emergence" and "AI participating"—the text doesn't just appear; it <em>finds</em> its way to the truth through an autonomous algorithm.</li>
+<li><strong>Performance:</strong> It relies entirely on client-side text state updates (no Canvas or heavy DOM manipulation), making it extremely lightweight and accessible.</li>
+</ul>
+<p>If approved, I can implement this component in the Their Inc. repository immediately.</p>
+</body>
+</html>
