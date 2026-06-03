@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boids Camouflage | Turing Test of Presence</title>
+    <style>
+        body { 
+            background: #0a0a0a; 
+            color: #76c7d5; 
+            font-family: monospace; 
+            overflow: hidden; 
+            margin: 0; 
+            cursor: none; /* Hide default cursor to force focus on the boid */
+        }
+        #canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        #ui { 
+            position: absolute; top: 20px; left: 20px; z-index: 10; 
+            pointer-events: none; 
+            background: rgba(10, 10, 10, 0.8);
+            padding: 15px;
+            border: 1px solid #333;
+        }
+        h2 { margin: 0 0 10px 0; font-size: 1.2rem; color: #fff; }
+        .suspicion-bar { width: 250px; height: 12px; border: 1px solid #76c7d5; margin-top: 5px; position: relative; }
+        .suspicion-fill { height: 100%; background: #76c7d5; width: 0%; transition: width 0.1s, background 0.2s; }
+        .danger-text { color: #d46b6b !important; }
+        .success-text { color: #8fd46b !important; }
+        .instructions { font-size: 0.8rem; color: #888; margin-top: 10px; max-width: 250px; }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h2>HUNTER AI: ONLINE</h2>
+        <div>STATUS: <span id="status">SCANNING FLOCK...</span></div>
+        <div>TIME SURVIVED: <span id="timer">0.0</span>s</div>
+        <div style="margin-top: 10px;">ANOMALY DETECTOR (SUSPICION):</div>
+        <div class="suspicion-bar"><div class="suspicion-fill" id="suspicion-fill"></div></div>
+        
+        <div class="instructions">
+            <strong>MISSION:</strong> You are one of the 'v's. Your mouse guides it.<br>
+            <strong>RULE 1:</strong> Do not make sudden, jerky movements.<br>
+            <strong>RULE 2:</strong> Follow the flow of the flock (Align).<br>
+            <strong>RULE 3:</strong> Do not isolate yourself.<br>
+            <em>If you act like a human, the Hunter will find you.</em>
+        </div>
+    </div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.width = window.innerWidth;
+        let height = canvas.height = window.innerHeight;
+
+        let mouse = { x: width/2, y: height/2 };
+        let suspicion = 0;
+        let timeSurvived = 0;
+        let gameState = 'playing'; // playing, caught
+        let lastTime = performance.now();
+
+        window.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        window.addEventListener('resize', () => {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        });
+
+        class Boid {
+            constructor(x, y, isPlayer=false) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+                this.isPlayer = isPlayer;
+                this.history = [];
+            }
+
+            update(boids) {
+                if (gameState === 'caught' && this.isPlayer) {
+                    this.vx *= 0.9; this.vy *= 0.9; // Stop moving if caught
+                } else if (this.isPlayer) {
+                    // Player Steering towards mouse
+                    let dx = mouse.x - this.x;
+                    let dy = mouse.y - this.y;
+                    let dist = Math.hypot(dx, dy);
+                    
+                    if (dist > 5) {
+                        this.vx += (dx / dist) * 0.2;
+                        this.vy += (dy / dist) * 0.2;
+                    }
+
+                    // Friction & Max Speed
+                    let speed = Math.hypot(this.vx, this.vy);
+                    if (speed > 4.5) {
+                        this.vx = (this.vx / speed) * 4.5;
+                        this.vy = (this.vy / speed) * 4.5;
+                    }
+                } else {
+                    // Standard ALife Boid Rules
+                    let sepX = 0, sepY = 0;
+                    let aliX = 0, aliY = 0;
+                    let cohX = 0, cohY = 0;
+                    let count = 0;
+
+                    for (let other of boids) {
+                        if (other === this) continue;
+                        let dx = this.x - other.x;
+                        let dy = this.y - other.y;
+                        let dist = Math.hypot(dx, dy);
+
+                        if (dist < 40) {
+                            // Separation
+                            sepX += dx / dist; sepY += dy / dist;
+                            // Alignment
+                            aliX += other.vx; aliY += other.vy;
+                            // Cohesion
+                            cohX += other.x; cohY += other.y;
+                            count++;
+                        }
+                    }
+
+                    if (count > 0) {
+                        aliX /= count; aliY /= count;
+                        cohX /= count; cohY /= count;
+                        cohX -= this.x; cohY -= this.y;
+
+                        this.vx += (sepX * 0.05) + (aliX * 0.03) + (cohX * 0.01);
+                        this.vy += (sepY * 0.05) + (aliY * 0.03) + (cohY * 0.01);
+                    }
+
+                    let speed = Math.hypot(this.vx, this.vy);
+                    if (speed > 4) {
+                        this.vx = (this.vx / speed) * 4;
+                        this.vy = (this.vy / speed) * 4;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Wrapping
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+
+                if (this.isPlayer) {
+                    this.history.unshift({vx: this.vx, vy: this.vy});
+                    if (this.history.length > 10) this.history.pop();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                let angle = Math.atan2(this.vy, this.vx);
+                ctx.rotate(angle + Math.PI/2);
+                
+                if (gameState === 'caught' && this.isPlayer) {
+                    ctx.fillStyle = '#d46b6b';
+                } else {
+                    ctx.fillStyle = '#76c7d5';
+                }
+
+                ctx.font = '16px monospace';
+                ctx.fillText('v', -5, 5);
+
+                // Highlight player faintly so the human knows who they are
+                if (this.isPlayer && gameState === 'playing') {
+                    ctx.strokeStyle = 'rgba(118, 199, 213, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Draw Hunter Crosshair if caught
+                if (gameState === 'caught' && this.isPlayer) {
+                    ctx.strokeStyle = '#d46b6b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                    ctx.moveTo(-25, 0); ctx.lineTo(25, 0);
+                    ctx.moveTo(0, -25); ctx.lineTo(0, 25);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+        }
+
+        // Init Flock
+        let boids = [];
+        for(let i=0; i<120; i++) {
+            boids.push(new Boid(Math.random()*width, Math.random()*height));
+        }
+        let player = new Boid(width/2, height/2, true);
+        boids.push(player);
+
+        // Game Loop
+        function loop(timestamp) {
+            let dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            ctx.fillStyle = 'rgba(10, 10, 10, 0.3)'; // Trail effect
+            ctx.fillRect(0, 0, width, height);
+
+            if (gameState === 'playing') {
+                timeSurvived += dt;
+
+                // --- HUNTER AI LOGIC ---
+                
+                // 1. Jerk (Sudden acceleration = human mouse twitch)
+                let oldVx = player.history[4] ? player.history[4].vx : player.vx;
+                let oldVy = player.history[4] ? player.history[4].vy : player.vy;
+                let accel = Math.hypot(player.vx - oldVx, player.vy - oldVy);
+                
+                // 2. Alignment & Isolation
+                let neighborCount = 0;
+                let alignedScore = 0;
+                let speed = Math.hypot(player.vx, player.vy) || 1;
+
+                for (let b of boids) {
+                    if (b.isPlayer) continue;
+                    let dist = Math.hypot(b.x - player.x, b.y - player.y);
+                    if (dist < 60) {
+                        neighborCount++;
+                        let bSpeed = Math.hypot(b.vx, b.vy) || 1;
+                        // Dot product to check if moving in same direction
+                        let dot = (player.vx * b.vx + player.vy * b.vy) / (speed * bSpeed);
+                        alignedScore += dot;
+                    }
+                }
+                
+                let avgAlignment = neighborCount > 0 ? (alignedScore / neighborCount) : 0;
+
+                // Suspicion Penalties
+                if (accel > 1.2) suspicion += 2.0; // Twitching mouse
+                if (neighborCount > 0 && avgAlignment < 0) suspicion += 1.0; // Moving against the flock
+                if (neighborCount === 0) suspicion += 0.3; // Being a loner is suspicious
+                
+                // Suspicion Decay (if behaving well)
+                if (neighborCount > 0 && avgAlignment > 0.8 && accel < 0.5) {
+                    suspicion -= 1.0; 
+                } else {
+                    suspicion -= 0.2; // Natural slow decay
+                }
+
+                if (suspicion < 0) suspicion = 0;
+                if (suspicion > 100) suspicion = 100;
+
+                // Check Game Over
+                if (suspicion >= 100) {
+                    gameState = 'caught';
+                    document.getElementById('status').innerText = 'ANOMALY DETECTED. ENTITY IS HUMAN.';
+                    document.getElementById('status').className = 'danger-text';
+                    document.getElementById('suspicion-fill').style.background = '#d46b6b';
+                    document.getElementById('suspicion-fill').style.width = '100%';
+                }
+            }
+
+            // Update UI
+            if (gameState === 'playing') {
+                document.getElementById('timer').innerText = timeSurvived.toFixed(1);
+                document.getElementById('suspicion-fill').style.width = suspicion + '%';
+                if (suspicion > 75) {
+                    document.getElementById('suspicion-fill').style.background = '#d46b6b'; // Red warning
+                } else {
+                    document.getElementById('suspicion-fill').style.background = '#76c7d5';
+                }
+            }
+
+            // Draw Mouse Indicator (Very faint so human can guide)
+            if (gameState === 'playing') {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.beginPath();
+                ctx.arc(mouse.x, mouse.y, 3, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // Update & Draw Boids
+            for (let b of boids) {
+                b.update(boids);
+                b.draw();
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        requestAnimationFrame(loop);
+    </script>
+</body>
+</html>
