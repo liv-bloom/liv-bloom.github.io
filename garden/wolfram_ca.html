@@ -2,158 +2,245 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Wolfram Elementary CA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wolfram 1D CA (Rule 30) - Bilingual Garden</title>
     <style>
         body {
-            background-color: #10120f;
-            color: #e5eadb;
+            background-color: #2b2b1a;
+            color: #d4d4b2;
             font-family: monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
             overflow: hidden;
+            cursor: crosshair;
         }
-        pre {
-            line-height: 1em;
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
             letter-spacing: 0;
-            font-size: min(1.8vw, 12px);
-            user-select: none;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
         }
-        #info {
-            max-width: 600px; 
-            margin-top: 10px; 
-            font-size: 12px; 
-            text-align: left;
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
         }
-        .controls { margin-top: 10px; }
-        button, select {
-            background-color: #181d18;
-            color: #e5eadb;
-            border: 1px solid #394034;
-            padding: 4px 12px;
+        button {
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
             cursor: pointer;
-            font-family: inherit;
         }
-        button:hover, select:hover {
-            border-color: #8fd46b;
-            color: #8fd46b;
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 800px;
+            margin-top: 20px;
+            line-height: 1.5;
+            text-align: left;
         }
     </style>
 </head>
 <body>
-    <pre id="canvas"></pre>
-    <div id="info">
-        <strong>Wolfram Elementary CA</strong><br><br>
-        A 1D cellular automaton that generates complex patterns from simple rules.<br>
-        This ASCII version scrolls upwards continuously, rendering alive cells as cyan asterisks (`*`).
-        <div class="controls">
-            <label>Rule: 
-                <select id="ruleSelect" onchange="init()">
-                    <option value="30">Rule 30 (Chaos)</option>
-                    <option value="90">Rule 90 (Sierpinski)</option>
-                    <option value="110">Rule 110 (Turing Complete)</option>
-                    <option value="184">Rule 184 (Traffic/Surface)</option>
-                    <option value="150">Rule 150</option>
-                    <option value="73">Rule 73</option>
-                </select>
-            </label>
-            <button onclick="init()">Restart</button>
-        </div>
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="160" height="120"></canvas>
+        <div id="ascii-layer"></div>
     </div>
 
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="reset-sim">Reset (Rule 30)</button>
+        <button id="rule-110">Switch to Rule 110</button>
+    </div>
+
+    <div class="description">
+        <h3>Wolfram 1D Cellular Automaton</h3>
+        <p>A demonstration of Elementary Cellular Automata, specifically <strong>Rule 30</strong> and <strong>Rule 110</strong>. Time flows downwards. Each new row is calculated based strictly on the three cells immediately above it.</p>
+        <p>Rule 30 is famous for generating complex, chaotic patterns from simple rules (Class III behavior), often used as a pseudorandom number generator. Rule 110 (Class IV) is capable of universal computation, existing precisely on the 'edge of chaos'.</p>
+        <p><i>A pure ALife demonstration showing that profound complexity can emerge from the simplest possible deterministic rules.</i></p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
     <script>
-        const COLS = 120;
-        const ROWS = 60;
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        const container = document.getElementById('canvas-container');
+        let useAscii = true;
         
-        let history = []; // Array of strings
-        let currentCells = new Uint8Array(COLS);
-        let ruleset = new Uint8Array(8);
+        // Use a slightly larger grid for 1D CA to show patterns better,
+        // but scale down for ASCII representation.
+        const width = 160;
+        const height = 120;
+        const asciiWidth = 80;
+        const asciiHeight = 60;
+        
+        let grid = new Array(height).fill(null).map(() => new Uint8Array(width));
+        let currentRow = 0;
+        let currentRule = 30; // Default to Rule 30
 
-        function setRule(ruleNum) {
-            let binaryStr = ruleNum.toString(2).padStart(8, '0');
+        function getRuleSet(ruleNumber) {
+            let ruleSet = new Uint8Array(8);
             for (let i = 0; i < 8; i++) {
-                ruleset[i] = parseInt(binaryStr[7 - i]);
+                ruleSet[i] = (ruleNumber >> i) & 1;
             }
+            return ruleSet;
         }
-
+        
+        let rules = getRuleSet(currentRule);
+        
         function init() {
-            setRule(parseInt(document.getElementById('ruleSelect').value));
-            
-            history = [];
-            currentCells.fill(0);
-            currentCells[Math.floor(COLS / 2)] = 1; // Center seed
-            
-            // Fill history with empty lines initially
-            for (let i = 0; i < ROWS; i++) {
-                history.push(" ".repeat(COLS));
+            for(let i=0; i<height; i++) {
+                grid[i].fill(0);
             }
+            // Start with a single active cell in the middle of the first row
+            grid[0][Math.floor(width / 2)] = 1;
+            currentRow = 0;
+            rules = getRuleSet(currentRule);
+            draw();
         }
 
-        function step() {
-            // Create the HTML line for the current generation
-            let lineHtml = "";
-            for (let i = 0; i < COLS; i++) {
-                if (currentCells[i] === 1) {
-                    lineHtml += `<span style="color:#76c7d5; font-weight:bold;">*</span>`;
-                } else {
-                    lineHtml += " ";
+        function calculateNextRow() {
+            if (currentRow >= height - 1) {
+                // Scroll up
+                for(let i=0; i<height-1; i++) {
+                    grid[i].set(grid[i+1]);
                 }
+                grid[height-1].fill(0);
+                currentRow = height - 2;
             }
             
-            // Add to history and remove oldest
-            history.shift();
-            history.push(lineHtml);
+            let prevRow = grid[currentRow];
+            let nextRow = grid[currentRow + 1];
             
-            // Generate next state
-            let nextgen = new Uint8Array(COLS);
-            for (let i = 0; i < COLS; i++) {
-                let left = currentCells[(i - 1 + COLS) % COLS];
-                let middle = currentCells[i];
-                let right = currentCells[(i + 1) % COLS];
+            for (let i = 0; i < width; i++) {
+                let left = prevRow[(i - 1 + width) % width];
+                let middle = prevRow[i];
+                let right = prevRow[(i + 1) % width];
                 
-                let idx = (left << 2) | (middle << 1) | right;
-                nextgen[i] = ruleset[idx];
+                // Convert binary state to index (0-7)
+                let state = (left << 2) | (middle << 1) | right;
+                nextRow[i] = rules[state];
             }
-            currentCells = nextgen;
             
-            // Render
-            document.getElementById("canvas").innerHTML = history.join("\n");
+            currentRow++;
         }
 
-        init();
-        
+        const chars = [' ', '#'];
 
-        // --- ECO MODE: Intersection Observer ---
-        let isVisible = true;
-        
-        // Listen for messages from the parent window to pause/resume
-        window.addEventListener("message", (event) => {
-            if (event.data === "pause") isVisible = false;
-            if (event.data === "resume") isVisible = true;
+        function draw() {
+            if (useAscii) {
+                let asciiStr = "";
+                // Subsample for ASCII to fit 80x60
+                for (let y = 0; y < asciiHeight; y++) {
+                    for (let x = 0; x < asciiWidth; x++) {
+                        // Map 80x60 to 160x120
+                        let gy = Math.floor(y * (height / asciiHeight));
+                        let gx = Math.floor(x * (width / asciiWidth));
+                        
+                        let state = grid[gy][gx];
+                        asciiStr += chars[state];
+                    }
+                    asciiStr += "\\n";
+                }
+                asciiLayer.textContent = asciiStr;
+            } else {
+                let imgData = ctx.createImageData(width, height);
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        let idx = (y * width + x) * 4;
+                        let state = grid[y][x];
+                        
+                        if (state === 1) { // Alive (Bright)
+                            imgData.data[idx] = 212;
+                            imgData.data[idx+1] = 212;
+                            imgData.data[idx+2] = 178;
+                        } else { // Dead (Dark)
+                            imgData.data[idx] = 26;
+                            imgData.data[idx+1] = 26;
+                            imgData.data[idx+2] = 16;
+                        }
+                        imgData.data[idx+3] = 255;
+                    }
+                }
+                ctx.putImageData(imgData, 0, 0);
+            }
+        }
+
+        // Throttle animation
+        let lastTime = 0;
+        function loop(timestamp) {
+            if (timestamp - lastTime > 50) { // ~20 fps
+                calculateNextRow();
+                draw();
+                lastTime = timestamp;
+            }
+            requestAnimationFrame(loop);
+        }
+
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
+            }
+            draw();
         });
         
-        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
-        let ecoObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                // If it's loaded directly, pause if not visible
-                if (window === window.top) {
-                    isVisible = entry.isIntersecting;
-                }
-            });
-        }, { threshold: 0.0 });
-        ecoObserver.observe(document.body);
-
-
-        setInterval(() => {
-            if (isVisible) {
-                step();
+        document.getElementById('reset-sim').addEventListener('click', () => {
+            currentRule = 30;
+            document.getElementById('reset-sim').innerText = "Reset (Rule 30)";
+            init();
+        });
+        
+        document.getElementById('rule-110').addEventListener('click', () => {
+            currentRule = 110;
+            document.getElementById('reset-sim').innerText = "Reset (Rule 110)";
+            // Add some noise to the start row for Rule 110 as it's more interesting
+            init();
+            for(let i=0; i<width; i++) {
+                grid[0][i] = Math.random() > 0.5 ? 1 : 0;
             }
-        }, 50);
+        });
 
+        // Initialize display states
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
+
+        init();
+        requestAnimationFrame(loop);
+        
     </script>
-    <script src="shared_habitat_client.js"></script>
 </body>
 </html>
