@@ -11,7 +11,8 @@
             font-family: monospace; 
             overflow: hidden; 
             margin: 0; 
-            cursor: none; /* Hide default cursor to force focus on the boid */
+            cursor: none;
+            touch-action: none; /* Prevent scrolling on mobile */
         }
         #canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
         #ui { 
@@ -62,6 +63,20 @@
         window.addEventListener('mousemove', e => {
             mouse.x = e.clientX;
             mouse.y = e.clientY;
+        });
+
+        window.addEventListener('touchstart', e => {
+            if(e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+            }
+        });
+
+        window.addEventListener('touchmove', e => {
+            if(e.touches.length > 0) {
+                mouse.x = e.touches[0].clientX;
+                mouse.y = e.touches[0].clientY;
+            }
         });
 
         window.addEventListener('resize', () => {
