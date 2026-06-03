@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cognitive Jitter | The Entropy Detector</title>
+    <style>
+        body { 
+            background: #0a0a0a; 
+            color: #76c7d5; 
+            font-family: monospace; 
+            margin: 0; 
+            overflow: hidden; 
+            user-select: none;
+            touch-action: none;
+        }
+        #ui { 
+            position: absolute; top: 20px; left: 20px; z-index: 10; 
+            pointer-events: none;
+            text-shadow: 0 0 5px rgba(118, 199, 213, 0.5);
+        }
+        #target {
+            position: absolute;
+            width: 30px; height: 30px;
+            background: transparent;
+            border: 2px solid #ff5e5e;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: crosshair;
+            display: none;
+            box-shadow: 0 0 10px #ff5e5e;
+            transition: width 0.1s, height 0.1s;
+        }
+        #target:active {
+            width: 25px; height: 25px;
+        }
+        .trail {
+            position: absolute;
+            width: 4px; height: 4px;
+            background: rgba(118, 199, 213, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        #start-btn {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px 20px;
+            background: transparent;
+            color: #76c7d5;
+            border: 1px solid #76c7d5;
+            font-family: monospace;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 20;
+        }
+        #start-btn:hover { background: rgba(118, 199, 213, 0.2); }
+        h1, h2 { margin: 0 0 10px 0; font-weight: normal; }
+        .red { color: #ff5e5e; text-shadow: 0 0 5px rgba(255, 94, 94, 0.5); }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h1>COGNITIVE_JITTER_DETECTOR</h1>
+        <div id="status">Awaiting subject...</div>
+        <div id="stats" style="margin-top: 20px; opacity: 0.7;">
+            Targets: <span id="t-count">0</span>/5<br>
+            Current Entropy: <span id="t-entropy">--</span>
+        </div>
+    </div>
+    
+    <button id="start-btn">INITIATE TEST</button>
+    <div id="target"></div>
+
+    <script>
+        const target = document.getElementById('target');
+        const startBtn = document.getElementById('start-btn');
+        const statusEl = document.getElementById('status');
+        const entropyEl = document.getElementById('t-entropy');
+        const countEl = document.getElementById('t-count');
+
+        let points = [];
+        let paths = [];
+        let targetCount = 0;
+        const maxTargets = 5;
+        let recording = false;
+        let lastTime = 0;
+
+        function spawnTarget() {
+            const margin = 100;
+            const x = margin + Math.random() * (window.innerWidth - margin * 2);
+            const y = margin + Math.random() * (window.innerHeight - margin * 2);
+            target.style.left = x + 'px';
+            target.style.top = y + 'px';
+            target.style.display = 'block';
+            points = [];
+            recording = true;
+            lastTime = performance.now();
+        }
+
+        startBtn.addEventListener('click', () => {
+            startBtn.style.display = 'none';
+            statusEl.innerText = "Analyzing motor-cognitive trace...";
+            targetCount = 0;
+            paths = [];
+            countEl.innerText = targetCount;
+            entropyEl.innerText = "--";
+            // Clear trails
+            document.querySelectorAll('.trail').forEach(e => e.remove());
+            spawnTarget();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!recording) return;
+            const now = performance.now();
+            const dt = now - lastTime;
+            
+            points.push({ x: e.clientX, y: e.clientY, t: now, dt: dt });
+            lastTime = now;
+
+            // Draw trail
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = e.clientX + 'px';
+            trail.style.top = e.clientY + 'px';
+            document.body.appendChild(trail);
+        });
+
+        target.addEventListener('mousedown', () => {
+            recording = false;
+            target.style.display = 'none';
+            if (points.length > 1) {
+                paths.push([...points]);
+            }
+            targetCount++;
+            countEl.innerText = targetCount;
+
+            if (targetCount < maxTargets) {
+                setTimeout(spawnTarget, 400 + Math.random() * 600);
+            } else {
+                analyzeResults();
+            }
+        });
+
+        function analyzeResults() {
+            let totalPathLength = 0;
+            let totalDirectLength = 0;
+            let speedVarianceSum = 0;
+            
+            paths.forEach(path => {
+                if (path.length < 2) return;
+                
+                let pathDist = 0;
+                let speeds = [];
+                
+                for (let i = 1; i < path.length; i++) {
+                    const dx = path[i].x - path[i-1].x;
+                    const dy = path[i].y - path[i-1].y;
+                    const dist = Math.hypot(dx, dy);
+                    pathDist += dist;
+                    if (path[i].dt > 0) {
+                        speeds.push(dist / path[i].dt);
+                    }
+                }
+                
+                const start = path[0];
+                const end = path[path.length - 1];
+                const directDist = Math.hypot(end.x - start.x, end.y - start.y);
+                
+                totalPathLength += pathDist;
+                totalDirectLength += directDist;
+                
+                if (speeds.length > 0) {
+                    const avgSpeed = speeds.reduce((a,b)=>a+b,0) / speeds.length;
+                    const variance = speeds.reduce((acc, val) => acc + Math.pow(val - avgSpeed, 2), 0) / speeds.length;
+                    speedVarianceSum += variance;
+                }
+            });
+
+            // Efficiency ratio: 1.0 is perfectly straight line (Synthetic). Humans usually > 1.05 due to arcs.
+            const efficiency = totalDirectLength > 0 ? (totalPathLength / totalDirectLength) : 1;
+            
+            // Speed variance: Synthetics often move at constant speeds. Humans have high variance (acceleration/deceleration curves).
+            const avgSpeedVariance = speedVarianceSum / paths.length;
+
+            let classification = "ORGANIC";
+            let reason = "";
+
+            if (efficiency < 1.02 && avgSpeedVariance < 0.5) {
+                classification = "SYNTHETIC (Scripted automation)";
+                reason = "Perfectly straight trajectories with uniform velocity.";
+            } else if (efficiency < 1.01) {
+                classification = "SYNTHETIC (Linear interpolation)";
+                reason = "Zero spatial entropy. Human motor systems cannot draw perfect lines.";
+            } else if (avgSpeedVariance < 0.1) {
+                classification = "SYNTHETIC (Constant velocity)";
+                reason = "Zero temporal entropy. Lacks organic acceleration/deceleration (Fitts's Law).";
+            } else {
+                classification = "ORGANIC (Human presence detected)";
+                reason = "Sufficient spatial and temporal entropy. Motor jitter confirmed.";
+            }
+
+            statusEl.innerHTML = `
+                <div style="margin-top:10px; padding:10px; border:1px solid #76c7d5; background:rgba(0,0,0,0.8);">
+                    <h2>CLASSIFICATION: <span class="${classification.includes('SYNTHETIC') ? 'red' : ''}">${classification}</span></h2>
+                    <p>> Path Efficiency: ${efficiency.toFixed(4)}</p>
+                    <p>> Velocity Entropy: ${avgSpeedVariance.toFixed(4)}</p>
+                    <p>> Analysis: ${reason}</p>
+                </div>
+            `;
+            entropyEl.innerText = avgSpeedVariance.toFixed(2);
+            startBtn.innerText = "RUN AGAIN";
+            startBtn.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
