@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Solitary Boids</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    const numBoids = 40;
+    const boids = [];
+    
+    for(let i=0; i<numBoids; i++) {
+      boids.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2
+      });
+    }
+
+    const display = document.getElementById('canvas');
+    
+    function update() {
+      let grid = new Array(height).fill(0).map(() => new Array(width).fill('.'));
+      
+      for(let b of boids) {
+        let repelX = 0;
+        let repelY = 0;
+        
+        // EXPERIMENTAL: Anti-flocking (pure repulsion, no alignment or cohesion)
+        for(let other of boids) {
+          if (b === other) continue;
+          let dx = b.x - other.x;
+          let dy = b.y - other.y;
+          let distSq = dx*dx + dy*dy;
+          
+          if (distSq < 100) { // High repulsion radius
+             repelX += dx / distSq;
+             repelY += dy / distSq;
+          }
+        }
+        
+        b.vx += repelX * 2.0;
+        b.vy += repelY * 2.0;
+        
+        // Speed limit
+        let speed = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
+        if (speed > 1.5) {
+          b.vx = (b.vx / speed) * 1.5;
+          b.vy = (b.vy / speed) * 1.5;
+        }
+        
+        b.x += b.vx;
+        b.y += b.vy;
+        
+        // Wrapping
+        if (b.x < 0) b.x += width;
+        if (b.x >= width) b.x -= width;
+        if (b.y < 0) b.y += height;
+        if (b.y >= height) b.y -= height;
+        
+        let py = Math.floor(b.y);
+        let px = Math.floor(b.x);
+        grid[py][px] = 'V';
+      }
+      
+      let out = '';
+      for (let y = 0; y < height; y++) {
+        out += grid[y].join('') + '\n';
+      }
+      display.textContent = out;
+      requestAnimationFrame(update);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

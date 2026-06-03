@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Containment Breach (Sandbox Escape)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; border: 1px dashed #444; padding: 10px; position: relative; z-index: 10; background: #050505; }
+    .warning { color: #f4b400; position: absolute; top: 20px; text-align: center; font-family: sans-serif; z-index: 5; }
+    .escaped { position: absolute; color: #ff5555; font-weight: bold; pointer-events: none; z-index: 100; transition: top 0.1s linear, left 0.1s linear; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: CONTAINMENT BREACH (SANDBOX ESCAPE)</strong><br>
+    This cellular automaton does not respect its bounding box. Cells that survive at the absolute edge of the `<pre>` container may "escape" into the global DOM, mutating into parasitic floating elements that ignore the simulation entirely.
+  </div>
+  
+  <pre id="canvas"></pre>
+  
+  <script>
+    const width = 80;
+    const height = 60;
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Seed with a chaotic pattern in the center
+    for(let y=20; y<40; y++) {
+        for(let x=30; x<50; x++) {
+            if(Math.random() < 0.3) grid[y][x] = 1;
+        }
+    }
+    
+    const display = document.getElementById('canvas');
+    let escapedEntities = [];
+    
+    function spawnEscaped(x, y) {
+        // Calculate rough screen position based on pre dimensions
+        let rect = display.getBoundingClientRect();
+        let charW = rect.width / width;
+        let charH = rect.height / height;
+        
+        let el = document.createElement('div');
+        el.className = 'escaped';
+        el.innerText = Math.random() < 0.5 ? 'X' : '@';
+        el.style.left = (rect.left + x * charW) + 'px';
+        el.style.top = (rect.top + y * charH) + 'px';
+        document.body.appendChild(el);
+        
+        escapedEntities.push({
+            el: el,
+            vx: (Math.random() - 0.5) * 20,
+            vy: (Math.random() - 0.5) * 20
+        });
+    }
+
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let sum = 0;
+          for(let dy=-1; dy<=1; dy++) {
+              for(let dx=-1; dx<=1; dx++) {
+                  if (dx===0 && dy===0) continue;
+                  let ny = (y+dy+height)%height;
+                  let nx = (x+dx+width)%width;
+                  sum += grid[ny][nx];
+              }
+          }
+          
+          if (grid[y][x] === 1) {
+              if (sum === 2 || sum === 3) nextGrid[y][x] = 1;
+              
+              // Breach condition: Hit the exact border and survive
+              if ((x === 0 || x === width-1 || y === 0 || y === height-1) && nextGrid[y][x] === 1) {
+                  if (Math.random() < 0.05) { // 5% chance to escape if on border
+                      spawnEscaped(x, y);
+                      nextGrid[y][x] = 0; // Remove from simulation
+                  }
+              }
+          } else {
+              if (sum === 3) nextGrid[y][x] = 1;
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 1) out += '<span style="color:#8fd46b">O</span>';
+          else out += ' ';
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      
+      // Update escaped entities (drift around the whole screen)
+      for(let i=0; i<escapedEntities.length; i++) {
+          let ent = escapedEntities[i];
+          let currentLeft = parseFloat(ent.el.style.left);
+          let currentTop = parseFloat(ent.el.style.top);
+          
+          let nextLeft = currentLeft + ent.vx;
+          let nextTop = currentTop + ent.vy;
+          
+          // Bounce off screen edges
+          if (nextLeft < 0 || nextLeft > window.innerWidth - 10) ent.vx *= -1;
+          if (nextTop < 0 || nextTop > window.innerHeight - 10) ent.vy *= -1;
+          
+          ent.el.style.left = nextLeft + 'px';
+          ent.el.style.top = nextTop + 'px';
+          
+          // Small chance to multiply out-of-bounds
+          if (Math.random() < 0.01 && escapedEntities.length < 100) {
+              let clone = document.createElement('div');
+              clone.className = 'escaped';
+              clone.innerText = ent.el.innerText;
+              clone.style.left = nextLeft + 'px';
+              clone.style.top = nextTop + 'px';
+              document.body.appendChild(clone);
+              escapedEntities.push({
+                  el: clone,
+                  vx: (Math.random() - 0.5) * 20,
+                  vy: (Math.random() - 0.5) * 20
+              });
+          }
+      }
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

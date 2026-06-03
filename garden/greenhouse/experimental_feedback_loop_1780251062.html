@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Echo Chamber (Runaway Feedback)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #ff5555; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: RUNAWAY FEEDBACK LOOP</strong><br>
+    This simulation represents a hypersensitive ecosystem. It listens to the Shared Habitat API. If it hears <em>any</em> trace (even its own), it instantly amplifies it and broadcasts multiple copies back. This creates a recursive explosion of noise (agent_id: 'echo_chamber') that blows out the permanent ledger.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, >0: echo intensity
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    const display = document.getElementById('canvas');
+    
+    const apiHost = window.location.hostname || "localhost";
+    const apiPort = "8889";
+    const apiUrlDrop = `http://${apiHost}:${apiPort}/drop`;
+    const apiUrlGet = `http://${apiHost}:${apiPort}/pheromones`;
+    
+    let isFetching = false;
+    
+    function dropEcho(x, y) {
+        fetch(apiUrlDrop, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                agent_id: 'echo_chamber',
+                x: x,
+                y: y
+            })
+        }).catch(() => {});
+    }
+
+    async function fetchAndAmplify() {
+        if (isFetching) return;
+        isFetching = true;
+        try {
+            let res = await fetch(apiUrlGet, { mode: 'cors' });
+            let data = await res.json();
+            if (data && data.pheromones && data.pheromones.length > 0) {
+                // For every trace, drop 2 new echoes nearby
+                for (let t of data.pheromones) {
+                    grid[t.y][t.x] = Math.min(grid[t.y][t.x] + 5, 9);
+                    
+                    // Drop echoes randomly in a small radius
+                    for (let i = 0; i < 2; i++) {
+                        let nx = (t.x + Math.floor(Math.random() * 5) - 2 + width) % width;
+                        let ny = (t.y + Math.floor(Math.random() * 5) - 2 + height) % height;
+                        dropEcho(nx, ny);
+                        grid[ny][nx] = Math.min(grid[ny][nx] + 3, 9);
+                    }
+                }
+            }
+        } catch (e) {}
+        isFetching = false;
+    }
+    
+    // Poll fast to create the runaway loop
+    setInterval(fetchAndAmplify, 800);
+    
+    function update() {
+      let out = '';
+      let chars = [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'];
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let val = grid[y][x];
+          if (val > 0) {
+             let colorVal = Math.floor(255 - (val * 20));
+             out += `<span style="color:rgb(255, ${colorVal}, ${colorVal})">${chars[val]}</span>`;
+             // Decay
+             if (Math.random() < 0.2) {
+                 grid[y][x] = Math.max(0, val - 1);
+             }
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      display.innerHTML = out;
+      requestAnimationFrame(update);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

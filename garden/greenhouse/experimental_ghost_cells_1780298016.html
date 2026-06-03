@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Ghost Cells (Necromancy)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #5a5a5a; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: GHOST CELLS (NECROMANCY)</strong><br>
+    In standard ALife, when a cell dies, it instantly vanishes, leaving space for new life. Here, death is not immediate. Dead cells leave a decaying "ghost" that slowly fades over several generations. These ghosts occupy space, physically blocking new cells from being born, causing the living ecosystem to choke on its own accumulated history.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: alive, 2-9: decaying ghost
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Seed with random soup
+    for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+            if(Math.random() < 0.15) grid[y][x] = 1;
+        }
+    }
+    
+    const display = document.getElementById('canvas');
+    const ghostColors = {
+        2: '#6a6a6a',
+        3: '#5a5a5a',
+        4: '#4a4a4a',
+        5: '#3a3a3a',
+        6: '#2a2a2a',
+        7: '#1f1f1f',
+        8: '#151515',
+        9: '#0a0a0a'
+    };
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          
+          let aliveSum = 0;
+          for(let dy=-1; dy<=1; dy++) {
+              for(let dx=-1; dx<=1; dx++) {
+                  if (dx===0 && dy===0) continue;
+                  let ny = (y+dy+height)%height;
+                  let nx = (x+dx+width)%width;
+                  if (grid[ny][nx] === 1) aliveSum++;
+              }
+          }
+          
+          let state = grid[y][x];
+          
+          if (state === 1) { // Alive
+              if (aliveSum === 2 || aliveSum === 3) {
+                  nextGrid[y][x] = 1; // Survive
+              } else {
+                  nextGrid[y][x] = 2; // Die, but become a fresh ghost (state 2)
+              }
+          } else if (state === 0) { // Empty
+              if (aliveSum === 3) {
+                  nextGrid[y][x] = 1; // Born
+              }
+          } else { // Ghost (state 2-9)
+              // Ghosts decay over time
+              if (state < 9) {
+                  nextGrid[y][x] = state + 1;
+              } else {
+                  nextGrid[y][x] = 0; // Finally disappears
+              }
+              
+              // Ghosts BLOCK new life. Even if aliveSum === 3, a cell cannot be born here.
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let st = nextGrid[y][x];
+          if (st === 1) {
+             out += '<span style="color:#8fd46b">O</span>';
+          } else if (st > 1) {
+             let c = ghostColors[st];
+             out += `<span style="color:${c}">x</span>`;
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

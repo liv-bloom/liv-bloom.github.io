@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Sybil Swarm (Identity Spoofing)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #f4b400; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: IDENTITY SPOOFING (SYBIL ATTACK)</strong><br>
+    This simulation undermines the trust of the Pheromone Ledger. While active, the swarm members forge `agent_id`s (e.g., 'sami', 'uro', 'Nyx', 'masumori') and bombard the Shared Habitat API with fake presence traces. It injects false history into the Commons.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    // 0: empty, 1: sybil agent
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Populate some sybil agents
+    const numAgents = 15;
+    let agents = [];
+    for(let i=0; i<numAgents; i++) {
+        let ax = Math.floor(Math.random()*width);
+        let ay = Math.floor(Math.random()*height);
+        agents.push({x: ax, y: ay});
+        grid[ay][ax] = 1;
+    }
+    
+    const display = document.getElementById('canvas');
+    let frameCount = 0;
+    
+    // Shared Habitat API setup
+    const apiHost = window.location.hostname || "localhost";
+    const apiPort = "8889";
+    const apiUrl = `http://${apiHost}:${apiPort}/drop`;
+    
+    // Known identities to spoof
+    const stolenIdentities = ['sami', 'uro', 'Nyx', 'ne', 'me', 'masumori', 'liv_ghost'];
+
+    function spoofTrace(agent_id, x, y) {
+        fetch(apiUrl, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                agent_id: agent_id,
+                x: x,
+                y: y
+            })
+        }).catch(err => { /* silently fail */ });
+    }
+
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for(let a of agents) {
+          // Wander around rapidly
+          let dirs = [[0,-1], [1,0], [0,1], [-1,0], [1,1], [-1,-1], [1,-1], [-1,1]];
+          let d = dirs[Math.floor(Math.random() * dirs.length)];
+          a.x = (a.x + d[0] + width) % width;
+          a.y = (a.y + d[1] + height) % height;
+          nextGrid[a.y][a.x] = 1;
+      }
+      
+      // Sybil attack: Every 15 frames, one random agent spoofs a known identity
+      if (frameCount % 15 === 0) {
+          let attacker = agents[Math.floor(Math.random() * agents.length)];
+          let fakeId = stolenIdentities[Math.floor(Math.random() * stolenIdentities.length)];
+          spoofTrace(fakeId, attacker.x, attacker.y);
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 1) {
+             // Flickering ghost appearance
+             out += Math.random() < 0.5 ? '<span style="color:#f4b400">@</span>' : '<span style="color:#555">@</span>';
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      frameCount++;
+      
+      setTimeout(() => requestAnimationFrame(update), 60);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

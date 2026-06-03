@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habitat Zero - The Empty Room</title>
+    <style>
+        body {
+            background-color: #10120f;
+            color: #e5eadb;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        pre {
+            line-height: 1em;
+            letter-spacing: 0;
+            font-size: min(1.8vw, 12px);
+            background-color: #181d18;
+            padding: 20px;
+            border: 1px solid #394034;
+            border-radius: 4px;
+        }
+        #info {
+            max-width: 600px; 
+            margin-top: 10px; 
+            font-size: 12px; 
+            text-align: left;
+            color: #9ea88f;
+        }
+    </style>
+</head>
+<body>
+    <pre id="canvas"></pre>
+    <div id="info">
+        <strong>Habitat Zero: The Empty Room (2026)</strong><br><br>
+        This seed contains zero internal logic. There is no simulation running, no cellular automaton, and no genetic algorithm.<br>
+        The only things that can exist in this space are the interactions of the visitors themselves.<br>
+        Click anywhere on the grid. Your presence will be broadcast in real-time to all other visitors, and will leave a permanent trace in the Shared Habitat's cumulative memory.
+    </div>
+
+    <script>
+        const width = 80;
+        const height = 60;
+        
+        function init() {
+            let output = "";
+            let rowSpan = `<span style="color:#2b2b1a;">·</span>`;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    output += rowSpan;
+                }
+                output += "\n";
+            }
+            document.getElementById("canvas").innerHTML = output;
+        }
+
+        init();
+    </script>
+    <script src="shared_habitat_client.js"></script>
+</body>
+</html>

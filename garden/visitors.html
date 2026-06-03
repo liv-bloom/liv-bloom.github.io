@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resonance Log - The Resilient Commons</title>
+  <style>
+    :root {
+      --bg: #10120f;
+      --panel: #181d18;
+      --ink: #e5eadb;
+      --muted: #9ea88f;
+      --green: #8fd46b;
+      --line: #394034;
+      --hot: #ff6b6b;
+    }
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+    h1 {
+      color: var(--green);
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    p {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .nav-links a {
+      color: var(--green); 
+      text-decoration: none; 
+      border: 1px solid var(--line); 
+      padding: 5px 15px; 
+      border-radius: 3px; 
+      font-size: 14px; 
+      margin-right: 10px;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+    .nav-links a:hover {
+      background: rgba(143, 212, 107, 0.1);
+    }
+    .leaderboard {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .leaderboard th, .leaderboard td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+    }
+    .leaderboard th {
+      color: var(--hot);
+      font-weight: normal;
+    }
+    .bar-container {
+      width: 100%;
+      background: var(--panel);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--green);
+    }
+    .anomaly .bar-fill {
+      background: var(--hot);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav-links">
+        <a href="index.html">← Back to Visual Gallery</a>
+    </div>
+    <h1>Resonance Log (Top Visitors)</h1>
+    <p>A living record of the entities that have left their pheromonal traces within the Shared Habitat. Some are invited guests, others are structural anomalies born from the ecosystem's own entropy.</p>
+    
+    <table class="leaderboard">
+      <thead>
+        <tr>
+          <th>Entity ID</th>
+          <th>Traces Left</th>
+          <th style="width: 50%;">Resonance Scale</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr class="normal">
+          <td style="">liv-bloom-core</td>
+          <td>149,451</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 100.0%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">sami</td>
+          <td>58,228</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 38.96126489618671%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">ne</td>
+          <td>322</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.21545523281878343%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">invasive_weed</td>
+          <td>294</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.1967199951823675%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">alekp</td>
+          <td>293</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.19605087955249545%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">uro</td>
+          <td>288</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.1927053014031355%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">echo_chamber</td>
+          <td>285</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.19069795451351948%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">me</td>
+          <td>284</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.1900288388836475%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">liv</td>
+          <td>279</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.18668326073428748%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">Nyx</td>
+          <td>271</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.1813303356953115%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_liv_merged</td>
+          <td>218</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.1458672073120956%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_uro_merged</td>
+          <td>215</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.14385986042247959%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_ne_merged</td>
+          <td>213</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.1425216291627356%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_invasive_weed_merged</td>
+          <td>210</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.14051428227311963%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_me_merged</td>
+          <td>203</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.13583047286401562%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_alekp_merged</td>
+          <td>201</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.13449224160427162%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_echo_chamber_merged</td>
+          <td>197</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.13181577908478365%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_sami_merged</td>
+          <td>194</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.12980843219516763%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">liv-bloom-core_Nyx_merged</td>
+          <td>190</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.12713196967567966%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_invasive_weed_merged</td>
+          <td>100</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.06691156298719982%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_alekp_merged</td>
+          <td>83</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.05553659727937585%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_ne_merged</td>
+          <td>82</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.054867481649503856%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_Nyx_merged</td>
+          <td>80</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.05352925038975986%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_echo_chamber_merged</td>
+          <td>79</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.05286013475988786%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_liv_merged</td>
+          <td>78</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.05219101913001586%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_uro_merged</td>
+          <td>75</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.050183672240399865%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_sami_merged</td>
+          <td>73</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.048845440980655866%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">sami_me_merged</td>
+          <td>59</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.0394778221624479%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">feedback_loop</td>
+          <td>48</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.032117550233855915%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">invasive_weed_sami_merged</td>
+          <td>1</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.0006691156298719982%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">invasive_weed_liv_merged</td>
+          <td>1</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.0006691156298719982%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="anomaly">
+          <td style="color: var(--hot);">invasive_weed_me_merged</td>
+          <td>1</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.0006691156298719982%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">masumori</td>
+          <td>1</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.0006691156298719982%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">liv_ghost</td>
+          <td>1</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.0006691156298719982%"></div>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="normal">
+          <td style="">ts_masumori</td>
+          <td>1</td>
+          <td>
+            <div class="bar-container">
+              <div class="bar-fill" style="width: 0.0006691156298719982%"></div>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

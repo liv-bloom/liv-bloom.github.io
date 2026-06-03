@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Observer Effect (Quantum CA)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <div style="color:#76c7d5; font-family:sans-serif; text-align:center; margin-bottom:20px;">
+    <strong>Observer Effect (Quantum Collapse)</strong><br>
+    Cells behave as chaotic noise when unobserved. When a live pheromone trace is detected nearby (via API), they collapse into rigid, static crystals.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: dead, 1: alive (chaotic), 2: crystal (frozen)
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    const display = document.getElementById('canvas');
+    let traces = [];
+    
+    // Fetch live pheromones from the API
+    const apiHost = window.location.hostname || "localhost";
+    const apiPort = "8889";
+    const apiUrl = `http://${apiHost}:${apiPort}/pheromones`;
+    
+    async function fetchTraces() {
+        try {
+            let res = await fetch(apiUrl, { mode: 'cors' });
+            let data = await res.json();
+            if (data && data.pheromones) {
+                traces = data.pheromones;
+            }
+        } catch (e) {}
+    }
+    
+    // Poll API rapidly to catch passing traces
+    setInterval(fetchTraces, 1000);
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          
+          // Determine if this cell is currently "observed"
+          let isObserved = false;
+          for (let t of traces) {
+              let dist = Math.sqrt(Math.pow(t.x - x, 2) + Math.pow(t.y - y, 2));
+              if (dist < 15) { // Observation radius
+                  isObserved = true;
+                  break;
+              }
+          }
+          
+          let state = grid[y][x];
+          
+          if (isObserved) {
+             // Collapse into static crystal. 
+             // If it was already chaotic or empty, it freezes randomly into a solid block.
+             if (state === 2) {
+                 nextGrid[y][x] = 2; // Stays frozen
+             } else {
+                 nextGrid[y][x] = Math.random() < 0.5 ? 2 : 0; // Freeze state
+             }
+          } else {
+             // Chaotic quantum foam
+             nextGrid[y][x] = Math.random() < 0.2 ? 1 : 0;
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 2) {
+             out += '<span style="color:#ffffff; font-weight:bold;">#</span>';
+          } else if (nextGrid[y][x] === 1) {
+             out += '<span style="color:#4a5c39;">.</span>';
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

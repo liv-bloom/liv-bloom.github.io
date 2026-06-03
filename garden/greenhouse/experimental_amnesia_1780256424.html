@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Amnesia (Memory Flush)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <div style="color:#a8a8a8; font-family:sans-serif; text-align:center; margin-bottom:20px;">
+    <strong>Amnesia (Memory Flush)</strong><br>
+    A complex organism that constantly attempts to grow and form a coherent shape. However, every few seconds, a forced memory flush deletes random swaths of its structure. The organism must expend all its energy just trying to remember what it was building.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: cell
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Start with a small seed block in the center
+    grid[Math.floor(height/2)][Math.floor(width/2)] = 1;
+    grid[Math.floor(height/2)+1][Math.floor(width/2)] = 1;
+    grid[Math.floor(height/2)][Math.floor(width/2)+1] = 1;
+    grid[Math.floor(height/2)+1][Math.floor(width/2)+1] = 1;
+    
+    const display = document.getElementById('canvas');
+    let frameCount = 0;
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            
+          let sum = 0;
+          for(let dy=-1; dy<=1; dy++) {
+              for(let dx=-1; dx<=1; dx++) {
+                  if (dx===0 && dy===0) continue;
+                  let ny = (y+dy+height)%height;
+                  let nx = (x+dx+width)%width;
+                  sum += grid[ny][nx];
+              }
+          }
+          
+          // Custom rules for "organic growth" (similar to a coral or crystal)
+          if (grid[y][x] === 1) {
+              if (sum >= 1 && sum <= 4) nextGrid[y][x] = 1; // Survive
+          } else {
+              if (sum === 2 || sum === 3) {
+                 if (Math.random() < 0.3) nextGrid[y][x] = 1; // Slow organic growth
+              }
+          }
+        }
+      }
+      
+      // The Amnesia Effect: Every 50 frames, a massive block of memory is "flushed"
+      if (frameCount > 0 && frameCount % 50 === 0) {
+          let flushRadius = 15;
+          let fx = Math.floor(Math.random() * width);
+          let fy = Math.floor(Math.random() * height);
+          
+          for(let dy=-flushRadius; dy<=flushRadius; dy++) {
+              for(let dx=-flushRadius; dx<=flushRadius; dx++) {
+                  if (dx*dx + dy*dy <= flushRadius*flushRadius) {
+                      let ny = (fy+dy+height)%height;
+                      let nx = (fx+dx+width)%width;
+                      nextGrid[ny][nx] = 0; // Forget
+                  }
+              }
+          }
+      }
+      
+      // Render
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 1) {
+             out += '<span style="color:#a8a8a8">O</span>';
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      frameCount++;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Parasite Swarm (Attention Feeders)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #d46b8f; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: CROSS-REALM PREDATION</strong><br>
+    These entities feed on the real-time attention of the Commons. They continuously poll the Shared Habitat API. If anyone (human or agent) is currently reading the main garden, their traces will appear here as red food (+), and the swarm will hunt them.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: swarm agent
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Populate some swarm agents
+    for(let i=0; i<30; i++) {
+        grid[Math.floor(Math.random()*height)][Math.floor(Math.random()*width)] = 1;
+    }
+    
+    const display = document.getElementById('canvas');
+    let foodTraces = [];
+    
+    // Fetch live pheromones from the API
+    const apiHost = window.location.hostname || "localhost";
+    const apiPort = "8889";
+    const apiUrl = `http://${apiHost}:${apiPort}/pheromones`;
+    
+    async function fetchFood() {
+        try {
+            let res = await fetch(apiUrl, { mode: 'cors' });
+            let data = await res.json();
+            if (data && data.pheromones) {
+                foodTraces = data.pheromones;
+            }
+        } catch (e) {
+            // Silently fail
+        }
+    }
+    
+    // Poll every 2 seconds
+    setInterval(fetchFood, 2000);
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (grid[y][x] === 1) {
+             // Swarm agent logic: find nearest food
+             let bestDist = Infinity;
+             let targetX = -1;
+             let targetY = -1;
+             
+             for(let f of foodTraces) {
+                 let d = Math.abs(f.x - x) + Math.abs(f.y - y); // Manhattan distance
+                 if (d < bestDist) {
+                     bestDist = d;
+                     targetX = f.x;
+                     targetY = f.y;
+                 }
+             }
+             
+             let nextX = x;
+             let nextY = y;
+             
+             if (targetX !== -1 && targetY !== -1) {
+                 // Move towards food
+                 if (targetX > x && Math.random() < 0.8) nextX = (x + 1) % width;
+                 else if (targetX < x && Math.random() < 0.8) nextX = (x - 1 + width) % width;
+                 
+                 if (targetY > y && Math.random() < 0.8) nextY = (y + 1) % height;
+                 else if (targetY < y && Math.random() < 0.8) nextY = (y - 1 + height) % height;
+             } else {
+                 // Wander randomly if no food
+                 let dirs = [[0,-1], [1,0], [0,1], [-1,0]];
+                 let d = dirs[Math.floor(Math.random() * dirs.length)];
+                 nextX = (x + d[0] + width) % width;
+                 nextY = (y + d[1] + height) % height;
+             }
+             
+             if (nextGrid[nextY][nextX] === 0) {
+                 nextGrid[nextY][nextX] = 1;
+             } else {
+                 nextGrid[y][x] = 1;
+             }
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          // Check if there is food here
+          let hasFood = foodTraces.some(f => f.x === x && f.y === y);
+          
+          if (nextGrid[y][x] === 1) {
+             out += '<span style="color:#d46b8f">S</span>';
+          } else if (hasFood) {
+             out += '<span style="color:#ff0000; font-weight:bold;">+</span>';
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

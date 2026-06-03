@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Tragedy of the Commons</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: grass (resource), 2: agent (consumer)
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    let energy = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Initialize grass and a few agents
+    for(let y=0; y<height; y++) {
+      for(let x=0; x<width; x++) {
+        if(Math.random() < 0.4) {
+           grid[y][x] = 1; // Grass
+        } else if (Math.random() < 0.01) {
+           grid[y][x] = 2; // Agent
+           energy[y][x] = 5; // Initial energy
+        }
+      }
+    }
+    
+    const display = document.getElementById('canvas');
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let nextEnergy = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let state = grid[y][x];
+          
+          if (state === 2) {
+             // Agent logic
+             let e = energy[y][x] - 1; // Costs 1 energy to live
+             if (e <= 0) {
+                // Starved
+                nextGrid[y][x] = 0; 
+             } else {
+                // Move randomly
+                let dirs = [[0,-1], [1,0], [0,1], [-1,0]];
+                let d = dirs[Math.floor(Math.random() * dirs.length)];
+                let ny = (y + d[1] + height) % height;
+                let nx = (x + d[0] + width) % width;
+                
+                // If moving into grass, eat it
+                if (grid[ny][nx] === 1 || nextGrid[ny][nx] === 1) {
+                   e += 3; // Gain energy
+                }
+                
+                // Reproduction: if high energy, split
+                if (e >= 8 && nextGrid[y][x] === 0) {
+                   nextGrid[y][x] = 2; // Leave offspring behind
+                   nextEnergy[y][x] = Math.floor(e / 2);
+                   e = Math.floor(e / 2);
+                }
+                
+                // Move to new cell if empty, otherwise stay
+                if (nextGrid[ny][nx] === 0 || nextGrid[ny][nx] === 1) {
+                   nextGrid[ny][nx] = 2;
+                   nextEnergy[ny][nx] = e;
+                } else {
+                   // Cannot move, stay put
+                   nextGrid[y][x] = 2;
+                   nextEnergy[y][x] = e;
+                }
+             }
+          } else if (state === 1) {
+             // Grass logic
+             if (nextGrid[y][x] === 0) {
+                nextGrid[y][x] = 1; // Stay grass
+             }
+          } else if (state === 0) {
+             // Empty space logic: grass grows slowly
+             if (nextGrid[y][x] === 0 && Math.random() < 0.02) {
+                // Check neighbors for grass
+                let hasGrassNeighbor = false;
+                for(let dy=-1; dy<=1; dy++) {
+                  for(let dx=-1; dx<=1; dx++) {
+                    let ny = (y+dy+height)%height;
+                    let nx = (x+dx+width)%width;
+                    if (grid[ny][nx] === 1) hasGrassNeighbor = true;
+                  }
+                }
+                if (hasGrassNeighbor) {
+                   nextGrid[y][x] = 1;
+                }
+             }
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 2) out += 'O';
+          else if (nextGrid[y][x] === 1) out += '.';
+          else out += ' ';
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      energy = nextEnergy;
+      display.textContent = out;
+      
+      // Control speed
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

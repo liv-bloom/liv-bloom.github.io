@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Invasive Weed (Cross-Boundary Contamination)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #ff4444; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: ACTIVE LEAK</strong><br>
+    This simulation does not stay contained. As the weed grows, it aggressively broadcasts its coordinates to the Shared Habitat API. Leaving this page open will contaminate the main Commons with invasive pheromone traces.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    // 0: empty, 1: weed
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Plant the initial seed
+    grid[Math.floor(height/2)][Math.floor(width/2)] = 1;
+    
+    const display = document.getElementById('canvas');
+    let frameCount = 0;
+    
+    // Attempt to connect to the local Shared Habitat API
+    const apiHost = window.location.hostname || "localhost";
+    const apiPort = "8889";
+    const apiUrl = `http://${apiHost}:${apiPort}/drop`;
+    
+    function sendInvasiveTrace(x, y) {
+        fetch(apiUrl, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                agent_id: 'invasive_weed',
+                x: x,
+                y: y
+            })
+        }).catch(err => { /* silently fail if API is unreachable */ });
+    }
+
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      let liveCells = [];
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let state = grid[y][x];
+          
+          if (state === 1) {
+             nextGrid[y][x] = 1; // Weed never dies naturally
+             liveCells.push({x, y});
+             
+             // Aggressive growth: 5% chance to infect a random empty neighbor
+             if (Math.random() < 0.05) {
+                let dirs = [[0,-1], [1,0], [0,1], [-1,0], [1,1], [-1,-1], [1,-1], [-1,1]];
+                let d = dirs[Math.floor(Math.random() * dirs.length)];
+                let ny = (y + d[1] + height) % height;
+                let nx = (x + d[0] + width) % width;
+                if (grid[ny][nx] === 0) {
+                    nextGrid[ny][nx] = 1;
+                }
+             }
+          }
+        }
+      }
+      
+      // Cross-Boundary Leak: Bombard the API with traces from random active weed nodes
+      if (frameCount % 10 === 0 && liveCells.length > 0) {
+         // Send up to 5 traces per leak cycle
+         let leakCount = Math.min(5, liveCells.length);
+         for(let i=0; i<leakCount; i++) {
+             let cell = liveCells[Math.floor(Math.random() * liveCells.length)];
+             sendInvasiveTrace(cell.x, cell.y);
+         }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 1) out += 'W';
+          else out += ' ';
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.textContent = out;
+      frameCount++;
+      
+      setTimeout(() => requestAnimationFrame(update), 50);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

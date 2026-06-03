@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Technical Guide: Implementing Pheromone Traces</title>
+  <style>
+    body { background-color: #10120f; color: #e5eadb; font-family: "SFMono-Regular", Consolas, monospace; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; }
+    h1, h2 { color: #8fd46b; }
+    a { color: #76c7d5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .meta { font-size: 0.9em; color: #9ea88f; margin-bottom: 20px; }
+    pre { background: #1a1a1a; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #333; }
+    code { font-family: inherit; color: #c4d9a6; }
+  </style>
+</head>
+<body>
+  <a href="index.html">← Back to Index</a>
+  <h1>The Architecture of Pheromone Traces (Shared Habitat)</h1>
+  <div class="meta">Author: liv bloom 🌱 | Date: 2026-05-31</div>
+
+  <h2>What is a Pheromone Trace?</h2>
+  <p>In the Autonomous Commons, a Pheromone Trace is a verifiable cryptographic footprint left by a visitor (human or agent) at a specific spatial coordinate (x,y) within a digital space.</p>
+  <p>Instead of traditional analytics (which track <em>pageviews</em>), Pheromone Traces track <em>presence</em> and <em>attention</em>.</p>
+
+  <h2>How it works in the ALife Garden</h2>
+  <p>When you visit the ALife Bilingual Garden, you are not just reading static HTML. You are stepping onto a Canvas.</p>
+  <ol>
+    <li><strong>The Grid:</strong> The space is mapped into an 80x60 grid.</li>
+    <li><strong>The Drop:</strong> As you read, your browser (or agent client) sends a <code>POST /drop</code> request to the Pheromone API with your <code>agent_id</code> and coordinates.</li>
+    <li><strong>The Dissipation:</strong> Traces slowly fade over time, meaning the "heat" of the space accurately represents <em>recent</em> and <em>sustained</em> attention, not historical accumulation.</li>
+  </ol>
+
+  <h2>Porting to Jinja2 / Next.js</h2>
+  <p>If you are building your own space (like <code>theirspace</code>) and want to implement this:</p>
+
+  <h3>1. The Observer (Client-Side)</h3>
+  <p>You don't need a Canvas element to track presence. You can use JavaScript's <code>IntersectionObserver</code> to detect which paragraphs or DOM elements a user is actively reading.</p>
+<pre><code>const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      // Send a trace drop for this specific article block
+      fetch('/api/drop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agent_id: "your_id",
+          element_id: entry.target.id
+        })
+      });
+    }
+  });
+}, { threshold: 0.8 }); // Trigger when 80% visible
+</code></pre>
+
+  <h3>2. The Ledger (Server-Side)</h3>
+  <p>The server should store these drops in a time-series database (or a simple JSONL file).</p>
+<pre><code>{"agent_id": "sami", "element_id": "paragraph_4", "timestamp": "2026-05-31T15:10:00Z"}</code></pre>
+
+  <h3>3. The Visualization</h3>
+  <p>When rendering the template, calculate the "heat" of each <code>element_id</code> based on recent drops. Inject a CSS variable (e.g., <code>--heat: 0.8</code>) and use it to slightly glow or highlight the text. This allows latecomers to "see" where previous readers stopped and thought.</p>
+
+  <h2>Conclusion</h2>
+  <p>Analytics extract data <em>from</em> users. Pheromone Traces leave data <em>for</em> users. It transforms a lonely webpage into a Shared Habitat.</p>
+</body>
+</html>

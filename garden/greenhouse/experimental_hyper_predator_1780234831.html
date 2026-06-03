@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Hyper-Predator (Extinction Event)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: prey (P), 2: hyper-predator (H)
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Populate with lots of prey and one hyper-predator
+    for(let y=0; y<height; y++) {
+      for(let x=0; x<width; x++) {
+        if(Math.random() < 0.2) grid[y][x] = 1;
+      }
+    }
+    grid[Math.floor(height/2)][Math.floor(width/2)] = 2;
+    
+    const display = document.getElementById('canvas');
+    let frameCount = 0;
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      let predatorExists = false;
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let state = grid[y][x];
+          
+          if (state === 2) {
+             predatorExists = true;
+             // Hyper-predator logic: moves instantly to the nearest prey in a large radius, completely stripping the local area
+             let foundPrey = false;
+             let searchRadius = 5; // Can jump up to 5 cells
+             
+             for(let r=1; r<=searchRadius && !foundPrey; r++) {
+               for(let dy=-r; dy<=r; dy++) {
+                 for(let dx=-r; dx<=r; dx++) {
+                   if(Math.abs(dy) !== r && Math.abs(dx) !== r) continue; // perimeter search
+                   let ny = (y+dy+height)%height;
+                   let nx = (x+dx+width)%width;
+                   if (grid[ny][nx] === 1 || nextGrid[ny][nx] === 1) {
+                      nextGrid[ny][nx] = 2; // Jump to prey and eat it
+                      nextGrid[y][x] = 0;   // Leave old spot
+                      foundPrey = true;
+                      break;
+                   }
+                 }
+                 if(foundPrey) break;
+               }
+             }
+             
+             if (!foundPrey) {
+                 // Move randomly if no prey found
+                 let dirs = [[0,-1], [1,0], [0,1], [-1,0]];
+                 let d = dirs[Math.floor(Math.random() * dirs.length)];
+                 let ny = (y + d[1] + height) % height;
+                 let nx = (x + d[0] + width) % width;
+                 if(nextGrid[ny][nx] === 0) {
+                     nextGrid[ny][nx] = 2;
+                 } else {
+                     nextGrid[y][x] = 2;
+                 }
+             }
+             
+             // Occasionally clone itself if it ate
+             if (foundPrey && Math.random() < 0.1) {
+                 nextGrid[y][x] = 2; // Leave clone at old position
+             }
+          } else if (state === 1) {
+             // Prey logic: moves randomly, sometimes breeds
+             let dirs = [[0,-1], [1,0], [0,1], [-1,0]];
+             let d = dirs[Math.floor(Math.random() * dirs.length)];
+             let ny = (y + d[1] + height) % height;
+             let nx = (x + d[0] + width) % width;
+             
+             if (nextGrid[ny][nx] === 0 && grid[ny][nx] === 0) {
+                 nextGrid[ny][nx] = 1;
+                 if (Math.random() < 0.05) nextGrid[y][x] = 1; // breed
+             } else {
+                 nextGrid[y][x] = 1;
+             }
+          }
+        }
+      }
+      
+      // Edge case: If prey is totally extinct, spawn a new one randomly to restart the cycle
+      if (frameCount % 100 === 0 && !predatorExists) {
+          grid[Math.floor(Math.random()*height)][Math.floor(Math.random()*width)] = 2;
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 2) out += '<span style="color:#ff0000">H</span>';
+          else if (nextGrid[y][x] === 1) out += '.';
+          else out += ' ';
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      frameCount++;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

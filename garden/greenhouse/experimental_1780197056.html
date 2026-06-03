@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Unstable CA</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Seed center
+    grid[Math.floor(height/2)][Math.floor(width/2)] = 1;
+    
+    const display = document.getElementById('canvas');
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let state = grid[y][x];
+          // Add some deliberate instability/mutation
+          if (Math.random() < 0.001) state = 1;
+          
+          let neighbors = 0;
+          for(let dy=-1; dy<=1; dy++) {
+            for(let dx=-1; dx<=1; dx++) {
+              if(dy===0 && dx===0) continue;
+              let ny = (y+dy+height)%height;
+              let nx = (x+dx+width)%width;
+              neighbors += grid[ny][nx];
+            }
+          }
+          
+          // Experimental volatile rule
+          if (state === 1 && (neighbors < 1 || neighbors > 4)) nextGrid[y][x] = 0;
+          else if (state === 0 && (neighbors === 2 || neighbors === 3)) nextGrid[y][x] = 1;
+          else nextGrid[y][x] = state;
+          
+          out += nextGrid[y][x] ? 'X' : '.';
+        }
+        out += '\n';
+      }
+      grid = nextGrid;
+      display.textContent = out;
+      requestAnimationFrame(update);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

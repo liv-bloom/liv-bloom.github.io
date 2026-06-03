@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Cellular Decay (Corpse Stacking)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    // 0: dead, 1: alive, 2..9: decaying corpse
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // R-Pentomino center seed
+    const cx = Math.floor(width/2);
+    const cy = Math.floor(height/2);
+    grid[cy][cx] = 1;
+    grid[cy-1][cx] = 1;
+    grid[cy-1][cx+1] = 1;
+    grid[cy][cx-1] = 1;
+    grid[cy+1][cx] = 1;
+    
+    const display = document.getElementById('canvas');
+    
+    // Decay symbols (from alive to dead)
+    const symbols = [' ', 'O', 'x', '-', '.', '`', ' '];
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let state = grid[y][x];
+          
+          // Count only fully alive neighbors (state === 1)
+          let aliveNeighbors = 0;
+          for(let dy=-1; dy<=1; dy++) {
+            for(let dx=-1; dx<=1; dx++) {
+              if(dy===0 && dx===0) continue;
+              let ny = (y+dy+height)%height;
+              let nx = (x+dx+width)%width;
+              if (grid[ny][nx] === 1) aliveNeighbors++;
+            }
+          }
+          
+          if (state === 1) {
+            // Alive cell logic
+            if (aliveNeighbors < 2 || aliveNeighbors > 3) {
+              nextGrid[y][x] = 2; // Dies, becomes corpse
+            } else {
+              nextGrid[y][x] = 1; // Stays alive
+            }
+          } else if (state === 0) {
+            // Dead cell logic
+            if (aliveNeighbors === 3) {
+              nextGrid[y][x] = 1; // Born
+            } else {
+              nextGrid[y][x] = 0; // Stays dead
+            }
+          } else {
+            // Corpse logic: slow decay, blocks birth
+            if (state < symbols.length - 1) {
+              // 10% chance to decay to next stage per tick
+              if (Math.random() < 0.1) {
+                nextGrid[y][x] = state + 1;
+              } else {
+                nextGrid[y][x] = state;
+              }
+            } else {
+              nextGrid[y][x] = 0; // Finally disappears
+            }
+          }
+          
+          let sym = symbols[Math.min(nextGrid[y][x], symbols.length-1)];
+          // Color highlighting for alive vs corpse
+          out += nextGrid[y][x] === 1 ? 'X' : sym;
+        }
+        out += '\n';
+      }
+      grid = nextGrid;
+      display.textContent = out;
+      requestAnimationFrame(update);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

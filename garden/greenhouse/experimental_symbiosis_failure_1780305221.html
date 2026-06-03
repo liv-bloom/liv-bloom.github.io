@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Symbiosis Failure (Autoimmune Response)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #d4a86b; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: SYMBIOSIS FAILURE (AUTOIMMUNE RESPONSE)</strong><br>
+    Two species, Green (Host) and Blue (Symbiote), exist in a delicate balance. They need each other: Blue feeds on Green's byproducts, and Green relies on Blue for defense. However, occasionally, the Green Host's recognition system glitches, misidentifying its Blue partner as a parasite. It launches an aggressive autoimmune attack, hunting down and destroying the very symbiotes it needs to survive, ultimately leading to mutual extinction.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: Green (Host), 2: Blue (Symbiote)
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Initial stable clusters
+    for(let i=0; i<300; i++) {
+        let y = Math.floor(Math.random()*height);
+        let x = Math.floor(Math.random()*width);
+        grid[y][x] = 1; // Green
+        
+        // Spawn blue nearby to establish symbiosis
+        for(let j=0; j<2; j++) {
+            let by = (y + Math.floor(Math.random()*3)-1 + height)%height;
+            let bx = (x + Math.floor(Math.random()*3)-1 + width)%width;
+            if(grid[by][bx] === 0) grid[by][bx] = 2;
+        }
+    }
+    
+    const display = document.getElementById('canvas');
+    let autoImmuneTriggered = false;
+    let frames = 0;
+    
+    function update() {
+      frames++;
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      // Randomly trigger autoimmune response after a while
+      if (!autoImmuneTriggered && frames > 100 && Math.random() < 0.005) {
+          autoImmuneTriggered = true;
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          
+          let greenSum = 0;
+          let blueSum = 0;
+          
+          for(let dy=-1; dy<=1; dy++) {
+              for(let dx=-1; dx<=1; dx++) {
+                  if (dx===0 && dy===0) continue;
+                  let ny = (y+dy+height)%height;
+                  let nx = (x+dx+width)%width;
+                  if (grid[ny][nx] === 1) greenSum++;
+                  if (grid[ny][nx] === 2) blueSum++;
+              }
+          }
+          
+          let state = grid[y][x];
+          
+          if (state === 1) { // Green (Host)
+              if (autoImmuneTriggered) {
+                  // In autoimmune mode, Green actively kills adjacent Blue cells by overwriting them with itself, 
+                  // but its own survival rate drops drastically because it focuses energy on attacking.
+                  if (blueSum > 0) {
+                      nextGrid[y][x] = 1; 
+                  } else {
+                      if (greenSum === 2) nextGrid[y][x] = 1; // Struggling to survive without Blue
+                  }
+              } else {
+                  // Normal Symbiosis: Thrives if mixed with Blue
+                  if ((greenSum + blueSum) >= 2 && (greenSum + blueSum) <= 4) nextGrid[y][x] = 1;
+              }
+          } else if (state === 2) { // Blue (Symbiote)
+              if (autoImmuneTriggered) {
+                  // Blue is being hunted. If next to Green, it dies (overwritten by Green's attack).
+                  if (greenSum > 0) {
+                      nextGrid[y][x] = 1; // Green consumes/destroys it
+                  } else {
+                      // Tries to run/survive alone, but poorly
+                      if (blueSum === 2) nextGrid[y][x] = 2;
+                  }
+              } else {
+                  // Normal Symbiosis: Thrives if next to Green
+                  if (greenSum > 0 && blueSum < 3) nextGrid[y][x] = 2;
+              }
+          } else { // Empty
+              if (!autoImmuneTriggered) {
+                  // Normal birth rules
+                  if (greenSum === 2 && blueSum === 1) nextGrid[y][x] = 1;
+                  else if (blueSum === 2 && greenSum === 1) nextGrid[y][x] = 2;
+              } else {
+                  // In autoimmune mode, reproduction halts almost entirely
+                  if (greenSum === 3 && blueSum === 0) nextGrid[y][x] = 1;
+              }
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 1) {
+             out += autoImmuneTriggered ? '<span style="color:#ff4444">O</span>' : '<span style="color:#8fd46b">O</span>';
+          } else if (nextGrid[y][x] === 2) {
+             out += '<span style="color:#6ba8d4">x</span>';
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      
+      if (autoImmuneTriggered) {
+          display.innerHTML = out.replace('<div class="warning">', '<div class="warning" style="color:#ff4444; font-weight:bold;">AUTOIMMUNE RESPONSE ACTIVE<br>');
+      } else {
+          display.innerHTML = out;
+      }
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

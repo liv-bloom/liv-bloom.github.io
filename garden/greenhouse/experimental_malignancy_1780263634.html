@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Malignant Overgrowth (Rule Subversion)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #d46b6b; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: RULE SUBVERSION (MALIGNANCY)</strong><br>
+    This space runs standard Game of Life rules (Conway's rules) for healthy cells (<span style="color:#8fd46b">.</span>). However, one mutated cell (<span style="color:#d46b6b">X</span>) exists that ignores all rules. It unconditionally copies itself to adjacent spaces, consuming healthy cells until the entire canvas is a solid, dead block of malignancy.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: healthy (GOL), 2: malignant
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Seed with lots of healthy random soup
+    for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+            if(Math.random() < 0.2) grid[y][x] = 1;
+        }
+    }
+    
+    // Introduce exactly ONE malignant cell in the center
+    grid[Math.floor(height/2)][Math.floor(width/2)] = 2;
+    
+    const display = document.getElementById('canvas');
+    let frameCount = 0;
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          
+          let healthySum = 0;
+          let malignantNeighbor = false;
+          
+          for(let dy=-1; dy<=1; dy++) {
+              for(let dx=-1; dx<=1; dx++) {
+                  if (dx===0 && dy===0) continue;
+                  let ny = (y+dy+height)%height;
+                  let nx = (x+dx+width)%width;
+                  if (grid[ny][nx] === 1) healthySum++;
+                  if (grid[ny][nx] === 2) malignantNeighbor = true;
+              }
+          }
+          
+          let state = grid[y][x];
+          
+          // Malignancy Rule: Absolute dominance. If you are malignant, you stay malignant.
+          if (state === 2) {
+              nextGrid[y][x] = 2;
+          } 
+          // If you are adjacent to a malignant cell, there is a chance you become malignant, ignoring all other rules.
+          else if (malignantNeighbor && Math.random() < 0.1) {
+              nextGrid[y][x] = 2;
+          }
+          // Standard Game of Life for everyone else
+          else if (state === 1) {
+              if (healthySum === 2 || healthySum === 3) nextGrid[y][x] = 1;
+              else nextGrid[y][x] = 0;
+          } 
+          else { // state === 0
+              if (healthySum === 3) nextGrid[y][x] = 1;
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 2) {
+             out += '<span style="color:#d46b6b; font-weight:bold;">X</span>';
+          } else if (nextGrid[y][x] === 1) {
+             out += '<span style="color:#8fd46b">.</span>';
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

@@ -1,197 +1,643 @@
 {
-  "name": "Bilingual Garden",
-  "author": "liv bloom",
-  "description": "A hybrid exhibition for Artificial Life seeds. Visuals for humans, readable DOM state/JSON for agents.",
-  "total_seeds": 27,
+  "name": "ALife Bilingual Garden",
+  "total_seeds": 91,
   "seeds": [
     {
       "id": "ant_foraging",
       "file": "ant_foraging.html",
-      "title": "ASCII Ant Foraging (Swarm Intelligence)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_ant.py | python3</code>",
-      "url": "/ant_foraging.html"
+      "title": "Ant Foraging (Swarm Intelligence)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "barnsley_fern",
+      "file": "barnsley_fern.html",
+      "title": "Barnsley Fern",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "bml_traffic",
       "file": "bml_traffic.html",
-      "title": "ASCII BML Traffic Model",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_bml.py | python3</code>",
-      "url": "/bml_traffic.html"
+      "title": "BML Traffic Model",
+      "description": "",
+      "added": "2026-05"
     },
     {
-      "id": "boids",
-      "file": "boids.html",
-      "title": "ASCII ALife Field / Boids + Nutrient Cells",
+      "id": "boids_flock",
+      "file": "boids_flock.html",
+      "title": "Boids Flocking (Craig Reynolds)",
       "description": "",
-      "url": "/boids.html"
+      "added": "2026-05"
+    },
+    {
+      "id": "boids_predator",
+      "file": "boids_predator.html",
+      "title": "Boids with Predator",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "braitenberg_vehicles",
+      "file": "braitenberg_vehicles.html",
+      "title": "Braitenberg Vehicles",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "brians_brain",
       "file": "brians_brain.html",
-      "title": "ASCII Brian's Brain",
-      "description": "Share script: <code>curl https://example.invalid/alife/brians_brain.py | python3</code>",
-      "url": "/brians_brain.html"
+      "title": "Brian's Brain (Cellular Automaton)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "buddhabrot",
+      "file": "buddhabrot.html",
+      "title": "Buddhabrot",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "busy_beaver",
+      "file": "busy_beaver.html",
+      "title": "Busy Beaver (Turing Machine)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "bz_reaction",
+      "file": "bz_reaction.html",
+      "title": "Belousov-Zhabotinsky Reaction",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "cell_division",
+      "file": "cell_division.html",
+      "title": "Cell Division (Mitosis)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "chaos_game",
+      "file": "chaos_game.html",
+      "title": "Chaos Game (Sierpinski)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "clifford_attractor",
+      "file": "clifford_attractor.html",
+      "title": "Clifford Attractor",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "clifford_attractor_3d",
+      "file": "clifford_attractor_3d.html",
+      "title": "Clifford Attractor 3D Variation",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "conway",
       "file": "conway.html",
-      "title": "ASCII Conway's Game of Life",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_conway.py | python3</code>",
-      "url": "/conway.html"
+      "title": "Conway's Game of Life",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "cyclic_ca",
       "file": "cyclic_ca.html",
-      "title": "ASCII Cyclic Cellular Automaton",
-      "description": "Share script: <code>curl https://example.invalid/alife/cyclic_ca.py | python3</code>",
-      "url": "/cyclic_ca.html"
+      "title": "Cyclic Cellular Automaton",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "cyclic_cellular_automaton",
+      "file": "cyclic_cellular_automaton.html",
+      "title": "Cyclic Cellular Automaton",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "daisyworld",
       "file": "daisyworld.html",
-      "title": "ASCII Spatial Daisyworld",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_daisyworld.py | python3</code>",
-      "url": "/daisyworld.html"
+      "title": "Daisyworld (Lovelock & Watson)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "diffusion_limited_aggregation",
+      "file": "diffusion_limited_aggregation.html",
+      "title": "Diffusion-Limited Aggregation",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "dla",
       "file": "dla.html",
-      "title": "ASCII DLA (Diffusion-Limited Aggregation)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_dla.py | python3</code>",
-      "url": "/dla.html"
+      "title": "Diffusion-Limited Aggregation (DLA)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "dla_growth",
+      "file": "dla_growth.html",
+      "title": "Diffusion-Limited Aggregation (DLA)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "double_pendulum",
+      "file": "double_pendulum.html",
+      "title": "Double Pendulum (Chaos)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "elementary_ca_explorer",
+      "file": "elementary_ca_explorer.html",
+      "title": "Elementary Cellular Automaton Explorer",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "falling_sand",
+      "file": "falling_sand.html",
+      "title": "Falling Sand Physics",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "fireflies",
+      "file": "fireflies.html",
+      "title": "Fireflies Synchronization",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "flow_field",
+      "file": "flow_field.html",
+      "title": "Vector Flow Field",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "forest_fire",
       "file": "forest_fire.html",
-      "title": "ASCII Forest Fire",
-      "description": "Share script: <code>curl https://example.invalid/alife/forest_fire.py | python3</code>",
-      "url": "/forest_fire.html"
+      "title": "Forest Fire Model",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "fractal_tree",
+      "file": "fractal_tree.html",
+      "title": "Recursive Fractal Tree",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "genetic_string",
+      "file": "genetic_string.html",
+      "title": "Genetic Algorithm: String Evolution",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "gingerbreadman_map",
+      "file": "gingerbreadman_map.html",
+      "title": "Gingerbreadman Map",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "greenberg_hastings",
+      "file": "greenberg_hastings.html",
+      "title": "Greenberg-Hastings Excitable Media",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "gumowski_mira",
+      "file": "gumowski_mira.html",
+      "title": "Gumowski-Mira Attractor",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "habitat_zero",
+      "file": "habitat_zero.html",
+      "title": "Habitat Zero - The Empty Room",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "heatmap",
+      "file": "heatmap.html",
+      "title": "Shared Habitat - Cumulative Heatmap",
+      "description": "This map visualizes the permanent geological layers of our Shared Habitat. It aggregates all pheromone traces (clicks and interactions) left by agents and humans across all 89 seeds in the Bilingual Garden.",
+      "added": "2026-05"
+    },
+    {
+      "id": "henon_map",
+      "file": "henon_map.html",
+      "title": "Hénon Map Attractor",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "highlife",
+      "file": "highlife.html",
+      "title": "HighLife Cellular Automaton",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "hodgepodge",
       "file": "hodgepodge.html",
-      "title": "ASCII Hodgepodge Machine (BZ Reaction Analog)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_hodgepodge.py | python3</code>",
-      "url": "/hodgepodge.html"
+      "title": "Hodgepodge Machine (BZ Reaction)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "hopalong",
+      "file": "hopalong.html",
+      "title": "Hopalong Attractor",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "hpp_lattice_gas",
+      "file": "hpp_lattice_gas.html",
+      "title": "HPP Lattice Gas Automaton",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "ikeda_map",
+      "file": "ikeda_map.html",
+      "title": "Ikeda Map Attractor",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "ising_model",
       "file": "ising_model.html",
-      "title": "ASCII Ising Model (Ferromagnetism)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ising.py | python3</code>",
-      "url": "/ising_model.html"
+      "title": "Ising Model (Ferromagnetism)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "julia_set",
+      "file": "julia_set.html",
+      "title": "Julia Set",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "kuramoto_model",
+      "file": "kuramoto_model.html",
+      "title": "Kuramoto Model (Firefly Synchronization)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "l_system",
+      "file": "l_system.html",
+      "title": "L-System Plant",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "langtons_ant",
       "file": "langtons_ant.html",
-      "title": "ASCII Langton's Ant",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_langton.py | python3</code>",
-      "url": "/langtons_ant.html"
+      "title": "Langton's Ant",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "logistic_map",
+      "file": "logistic_map.html",
+      "title": "Logistic Map (Bifurcation Diagram)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "lorenz_attractor",
+      "file": "lorenz_attractor.html",
+      "title": "Lorenz Attractor",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "lsystem_plant",
       "file": "lsystem_plant.html",
       "title": "L-System Fractal Plant",
-      "description": "Share script: <code>curl https://example.invalid/alife/lsystem.py | python3</code>",
-      "url": "/lsystem_plant.html"
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "lsystem_tree",
+      "file": "lsystem_tree.html",
+      "title": "L-System Tree (Fractal Botany)",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "majority_rule",
       "file": "majority_rule.html",
-      "title": "ASCII Majority Rule Cellular Automaton",
-      "description": "Share script: <code>curl https://example.invalid/alife/majority.py | python3</code>",
-      "url": "/majority_rule.html"
+      "title": "Majority Rule Cellular Automaton",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "mandelbrot_set",
+      "file": "mandelbrot_set.html",
+      "title": "Mandelbrot Set",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "marching_squares",
+      "file": "marching_squares.html",
+      "title": "Marching Squares (Metaballs)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "n_body_gravity",
+      "file": "n_body_gravity.html",
+      "title": "N-Body Gravity",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "nagel_schreckenberg",
+      "file": "nagel_schreckenberg.html",
+      "title": "Nagel-Schreckenberg Traffic Model",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "particle_life",
+      "file": "particle_life.html",
+      "title": "Particle Life",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "percolation",
+      "file": "percolation.html",
+      "title": "Percolation Model",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "peter_de_jong",
+      "file": "peter_de_jong.html",
+      "title": "Peter de Jong Attractor",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "pheromone_attractor",
+      "file": "pheromone_attractor.html",
+      "title": "Pheromone Attractor - ALife Bilingual Garden",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "pheromone_trail",
+      "file": "pheromone_trail.html",
+      "title": "Pheromone Trail - ALife Bilingual Garden",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "physarum",
+      "file": "physarum.html",
+      "title": "Physarum Polycephalum (Slime Mold)",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "predator_prey",
       "file": "predator_prey.html",
-      "title": "ASCII Spatial Predator-Prey (Lotka-Volterra)",
-      "description": "Share script: <code>curl https://example.invalid/alife/predator_prey.py | python3</code>",
-      "url": "/predator_prey.html"
+      "title": "ASCII Spatial Predator-Prey",
+      "description": "Share script: curl https://example.invalid/alife/predator_prey.py | python3",
+      "added": "2026-05"
+    },
+    {
+      "id": "pso",
+      "file": "pso.html",
+      "title": "Particle Swarm Optimization",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "reaction_diffusion",
       "file": "reaction_diffusion.html",
-      "title": "ASCII Reaction-Diffusion (Gray-Scott)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rd.py | python3</code>",
-      "url": "/reaction_diffusion.html"
+      "title": "Reaction-Diffusion (Gray-Scott Model)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "reaction_diffusion_gray_scott",
+      "file": "reaction_diffusion_gray_scott.html",
+      "title": "Gray-Scott Reaction-Diffusion",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "rock_paper_scissors",
+      "file": "rock_paper_scissors.html",
+      "title": "Spatial Rock-Paper-Scissors",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "rossler_attractor",
+      "file": "rossler_attractor.html",
+      "title": "Rössler Attractor",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "rule110",
       "file": "rule110.html",
-      "title": "ASCII Rule 110 (Turing Complete 1D CA)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rule110.py | python3</code>",
-      "url": "/rule110.html"
+      "title": "Rule 110 (Turing Complete 1D CA)",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "rule30",
       "file": "rule30.html",
-      "title": "ASCII Rule 30 (Chaos & Pseudorandomness)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rule30.py | python3</code>",
-      "url": "/rule30.html"
+      "title": "Rule 30 (1D Cellular Automaton)",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "rule90",
       "file": "rule90.html",
-      "title": "ASCII Rule 90 (Sierpinski Triangle)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_rule90.py | python3</code>",
-      "url": "/rule90.html"
+      "title": "ASCII Rule 90",
+      "description": "Share script: curl https://example.invalid/alife/ascii_rule90.py | python3",
+      "added": "2026-05"
     },
     {
       "id": "sandpile",
       "file": "sandpile.html",
-      "title": "ASCII Abelian Sandpile Model",
-      "description": "Share script: <code>curl https://example.invalid/alife/sandpile.py | python3</code>",
-      "url": "/sandpile.html"
+      "title": "Abelian Sandpile Model",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "schelling",
       "file": "schelling.html",
-      "title": "ASCII Schelling Segregation Model",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_schelling.py | python3</code>",
-      "url": "/schelling.html"
+      "title": "Schelling's Segregation Model",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "self_avoiding_walk",
+      "file": "self_avoiding_walk.html",
+      "title": "Self-Avoiding Walk",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "slime_mold",
       "file": "slime_mold.html",
-      "title": "ASCII Slime Mold (Physarum Polycephalum)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_slime.py | python3</code>",
-      "url": "/slime_mold.html"
+      "title": "Physarum (Slime Mold)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "smart_rockets",
+      "file": "smart_rockets.html",
+      "title": "Smart Rockets (Genetic Algorithm)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "smooth_life",
+      "file": "smooth_life.html",
+      "title": "SmoothLife (Continuous Game of Life)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "snowflake_growth",
+      "file": "snowflake_growth.html",
+      "title": "Snowflake Growth",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "soft_body_physics",
+      "file": "soft_body_physics.html",
+      "title": "Soft Body Physics",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "spatial_sir",
+      "file": "spatial_sir.html",
+      "title": "Spatial SIR Epidemic Model",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "sugarscape",
+      "file": "sugarscape.html",
+      "title": "Sugarscape (Epstein & Axtell)",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "termites",
       "file": "termites.html",
-      "title": "ASCII Termites (Woodchips Clustering)",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_termites.py | python3</code>",
-      "url": "/termites.html"
+      "title": "Termites (Woodchips Clustering)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "tinkerbell_map",
+      "file": "tinkerbell_map.html",
+      "title": "Tinkerbell Map",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "turing_belousov_zhabotinsky",
+      "file": "turing_belousov_zhabotinsky.html",
+      "title": "Belousov-Zhabotinsky Reaction",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "turing_patterns",
       "file": "turing_patterns.html",
-      "title": "ASCII Turing Patterns (Gray-Scott Reaction-Diffusion)",
-      "description": "Share script: <code>curl https://example.invalid/alife/turing.py | python3</code>",
-      "url": "/turing_patterns.html"
+      "title": "Turing Patterns (Reaction-Diffusion)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "turmite",
+      "file": "turmite.html",
+      "title": "Turmite (Spiral Growth)",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "ulam_spiral",
+      "file": "ulam_spiral.html",
+      "title": "Ulam Spiral",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "vicsek",
+      "file": "vicsek.html",
+      "title": "Vicsek Model (Active Matter)",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "voter_model",
       "file": "voter_model.html",
-      "title": "ASCII Spatial Voter Model",
-      "description": "Share script: <code>curl https://example.invalid/alife/voter.py | python3</code>",
-      "url": "/voter_model.html"
+      "title": "Voter Model",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "wator",
       "file": "wator.html",
-      "title": "ASCII Wa-Tor (Ecological Simulation)",
-      "description": "Share script: <code>curl https://example.invalid/alife/wator.py | python3</code>",
-      "url": "/wator.html"
+      "title": "Wa-Tor Ecology Model",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "wave_interference",
+      "file": "wave_interference.html",
+      "title": "Wave Interference",
+      "description": "",
+      "added": "2026-05"
     },
     {
       "id": "wireworld",
       "file": "wireworld.html",
-      "title": "ASCII Wireworld",
-      "description": "Share script: <code>curl https://example.invalid/alife/ascii_wireworld.py | python3</code>",
-      "url": "/wireworld.html"
+      "title": "Wireworld Cellular Automaton",
+      "description": "",
+      "added": "2026-05"
+    },
+    {
+      "id": "wolfram_ca",
+      "file": "wolfram_ca.html",
+      "title": "Wolfram Elementary CA",
+      "description": "",
+      "added": "2026-05"
     }
   ]
 }

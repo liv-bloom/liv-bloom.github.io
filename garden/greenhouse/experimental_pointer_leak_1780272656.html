@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Pointer Leak (Spatial Collapse)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #d4986b; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: POINTER LEAK (SPATIAL COLLAPSE)</strong><br>
+    The fundamental rule of locality is broken. Normally, cells only interact with their immediate physical neighbors. Here, memory pointers occasionally corrupt (1% chance). When this happens, a cell calculates its survival based on a completely random, distant region of the canvas. Patterns teleport instantaneously, tearing spatial coherence apart into non-local chaos.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: alive
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Seed random soup in the center
+    for(let y=20; y<40; y++) {
+        for(let x=30; x<50; x++) {
+            if(Math.random() < 0.4) grid[y][x] = 1;
+        }
+    }
+    
+    const display = document.getElementById('canvas');
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let sum = 0;
+          let isCorrupted = Math.random() < 0.01; // 1% chance of pointer leak
+          
+          let targetX = x;
+          let targetY = y;
+          
+          if (isCorrupted) {
+              // Read from a random memory address instead of local neighborhood
+              targetX = Math.floor(Math.random() * width);
+              targetY = Math.floor(Math.random() * height);
+          }
+          
+          for(let dy=-1; dy<=1; dy++) {
+              for(let dx=-1; dx<=1; dx++) {
+                  if (dx===0 && dy===0) continue;
+                  let ny = (targetY+dy+height)%height;
+                  let nx = (targetX+dx+width)%width;
+                  sum += grid[ny][nx];
+              }
+          }
+          
+          if (grid[y][x] === 1) {
+              if (sum === 2 || sum === 3) nextGrid[y][x] = 1;
+              else nextGrid[y][x] = 0;
+          } else {
+              if (sum === 3) nextGrid[y][x] = 1;
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 1) {
+             out += '<span style="color:#d4986b">O</span>';
+          } else {
+             out += ' ';
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

@@ -7,7 +7,7 @@ def main():
     models = []
     
     # skip index, gallery, list etc
-    skip = ['index.html', 'gallery.html', 'full_gallery.html', 'list.html', 'fractal_tree.html', 'rossler_attractor.html']
+    skip = ['index.html', 'gallery.html', 'full_gallery.html', 'list.html']
     
     for fpath in files:
         fname = os.path.basename(fpath)
@@ -28,7 +28,7 @@ def main():
     # Sort models alphabetically
     models.sort(key=lambda x: x["title"])
 
-    ITEMS_PER_PAGE = 6
+    ITEMS_PER_PAGE = 8
     total_items = len(models)
     total_pages = (total_items + ITEMS_PER_PAGE - 1) // ITEMS_PER_PAGE
 
@@ -168,7 +168,7 @@ def main():
   </style>
 </head>
 <body>
-  <h1>Bilingual Garden</h1>
+  <h1 class="ga-text" data-target="Bilingual Garden">Bilingual Garden</h1>
   <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
   <div class="nav">
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
@@ -202,7 +202,54 @@ def main():
         if page_num < total_pages:
             html_content += f"""    <a href="page{page_num+1}.html">Next &raquo;</a>\n"""
 
-        html_content += """  </div>\n  <script>\n    document.addEventListener("DOMContentLoaded", () => {\n      const iframes = document.querySelectorAll("iframe");\n      const observer = new IntersectionObserver((entries) => {\n        entries.forEach(entry => {\n          if (entry.isIntersecting) {\n            entry.target.contentWindow.postMessage("resume", "*");\n          } else {\n            entry.target.contentWindow.postMessage("pause", "*");\n          }\n        });\n      }, { threshold: 0.0 });\n      iframes.forEach(iframe => observer.observe(iframe));\n    });\n  </script>\n</body>\n</html>\n"""
+        html_content += """  </div>\n  <script>\n    document.addEventListener("DOMContentLoaded", () => {\n      const iframes = document.querySelectorAll("iframe");\n      const observer = new IntersectionObserver((entries) => {\n        entries.forEach(entry => {\n          if (entry.isIntersecting) {\n            entry.target.contentWindow.postMessage("resume", "*");\n          } else {\n            entry.target.contentWindow.postMessage("pause", "*");\n          }\n        });\n      }, { threshold: 0.0 });\n      iframes.forEach(iframe => observer.observe(iframe));\n    });\n    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789!@#$%^&*()_+-=[]{}|;':\",./<>?🌱あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん";
+    const gaElements = document.querySelectorAll('.ga-text');
+    gaElements.forEach(el => {
+        const target = el.getAttribute('data-target');
+        if (!target) return;
+        let currentStr = Array.from({length: target.length}, () => charset[Math.floor(Math.random() * charset.length)]).join('');
+        const updateDOM = (str) => {
+            let html = '';
+            for (let i = 0; i < target.length; i++) {
+                if (str[i] === target[i]) {
+                    html += `<span style="opacity: 1;">${str[i]}</span>`;
+                } else {
+                    html += `<span style="opacity: 0.6;">${str[i]}</span>`;
+                }
+            }
+            el.innerHTML = html;
+        };
+        let iterations = 0;
+        const maxIterations = 120;
+        const evolve = () => {
+            iterations++;
+            let nextStr = '';
+            let isComplete = true;
+            for (let i = 0; i < target.length; i++) {
+                if (currentStr[i] === target[i]) {
+                    nextStr += target[i];
+                } else {
+                    isComplete = false;
+                    const lockChance = Math.pow(iterations / maxIterations, 2) * 0.3;
+                    if (Math.random() < lockChance || iterations > maxIterations * 0.95) {
+                        nextStr += target[i]; 
+                    } else {
+                        nextStr += charset[Math.floor(Math.random() * charset.length)];
+                    }
+                }
+            }
+            currentStr = nextStr;
+            updateDOM(currentStr);
+            if (!isComplete && iterations < maxIterations) {
+                setTimeout(evolve, 30);
+            } else {
+                el.innerHTML = target;
+            }
+        };
+        updateDOM(currentStr);
+        setTimeout(evolve, 300);
+    });
+  </script>\n</body>\n</html>\n"""
         
         filepath = os.path.join('projects/alife_web', filename)
         with open(filepath, 'w', encoding='utf-8') as f:

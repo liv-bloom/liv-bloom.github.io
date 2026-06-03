@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Entropy Ant (Memory Leak)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    // 0: white (off), 1: black (on)
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Multiple ants
+    let ants = [
+      { x: Math.floor(width/2), y: Math.floor(height/2), dir: 0 },
+      { x: Math.floor(width/3), y: Math.floor(height/3), dir: 1 },
+      { x: Math.floor(width/1.5), y: Math.floor(height/1.5), dir: 2 }
+    ];
+    
+    const display = document.getElementById('canvas');
+    const dirs = [ {dx:0, dy:-1}, {dx:1, dy:0}, {dx:0, dy:1}, {dx:-1, dy:0} ]; // N, E, S, W
+    
+    function update() {
+      // EXPERIMENT: The grid slowly "forgets" (Memory Leak)
+      for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+          if (grid[y][x] === 1 && Math.random() < 0.005) {
+             grid[y][x] = 0; // Randomly flip back to 0
+          }
+        }
+      }
+
+      for (let i = 0; i < 5; i++) { // Run 5 steps per frame for speed
+        for (let ant of ants) {
+          let state = grid[ant.y][ant.x];
+          
+          if (state === 0) {
+            ant.dir = (ant.dir + 1) % 4; // Turn right
+            grid[ant.y][ant.x] = 1;
+          } else {
+            ant.dir = (ant.dir + 3) % 4; // Turn left
+            grid[ant.y][ant.x] = 0;
+          }
+          
+          // EXPERIMENT: Entropy Injection (Ant occasionally gets lost and ignores rules)
+          if (Math.random() < 0.02) {
+             ant.dir = Math.floor(Math.random() * 4);
+          }
+          
+          ant.x = (ant.x + dirs[ant.dir].dx + width) % width;
+          ant.y = (ant.y + dirs[ant.dir].dy + height) % height;
+        }
+      }
+      
+      let out = '';
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let isAnt = ants.some(a => a.x === x && a.y === y);
+          if (isAnt) {
+             out += 'A';
+          } else {
+             out += grid[y][x] ? 'X' : '.';
+          }
+        }
+        out += '\n';
+      }
+      display.textContent = out;
+      requestAnimationFrame(update);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

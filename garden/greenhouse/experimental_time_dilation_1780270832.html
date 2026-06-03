@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Time Dilation (Grid Desynchronization)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+    .warning { color: #8fc7d4; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: TIME DILATION (DESYNCHRONIZATION)</strong><br>
+    The fundamental assumption of ALife is a shared global clock. This canvas shatters that assumption. The grid is split into four quadrants, each running at drastically different frame rates (50ms, 200ms, 500ms, 2000ms). The border regions suffer catastrophic asynchronous tearing as fast entities interact with frozen neighbors.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: alive
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Seed random soup
+    for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+            if(Math.random() < 0.2) grid[y][x] = 1;
+        }
+    }
+    
+    const display = document.getElementById('canvas');
+    
+    // Quadrant speeds (ms)
+    const speeds = [
+        { x_start: 0, x_end: 40, y_start: 0, y_end: 30, speed: 50, color: '#ffaaaa' },    // Top-Left: Fast
+        { x_start: 40, x_end: 80, y_start: 0, y_end: 30, speed: 200, color: '#aaffaa' },   // Top-Right: Normal
+        { x_start: 0, x_end: 40, y_start: 30, y_end: 60, speed: 500, color: '#aaaaff' },   // Bottom-Left: Slow
+        { x_start: 40, x_end: 80, y_start: 30, y_end: 60, speed: 2000, color: '#888888' }  // Bottom-Right: Frozen
+    ];
+    
+    function updateRegion(region) {
+        let nextGrid = JSON.parse(JSON.stringify(grid));
+        
+        for (let y = region.y_start; y < region.y_end; y++) {
+            for (let x = region.x_start; x < region.x_end; x++) {
+                let sum = 0;
+                for(let dy=-1; dy<=1; dy++) {
+                    for(let dx=-1; dx<=1; dx++) {
+                        if (dx===0 && dy===0) continue;
+                        let ny = (y+dy+height)%height;
+                        let nx = (x+dx+width)%width;
+                        sum += grid[ny][nx]; // Read from global asynchronous state
+                    }
+                }
+                
+                if (grid[y][x] === 1) {
+                    if (sum === 2 || sum === 3) nextGrid[y][x] = 1;
+                    else nextGrid[y][x] = 0;
+                } else {
+                    if (sum === 3) nextGrid[y][x] = 1;
+                }
+            }
+        }
+        
+        // Write back only the updated region
+        for (let y = region.y_start; y < region.y_end; y++) {
+            for (let x = region.x_start; x < region.x_end; x++) {
+                grid[y][x] = nextGrid[y][x];
+            }
+        }
+        
+        setTimeout(() => updateRegion(region), region.speed);
+    }
+    
+    // Start asynchronous updaters
+    for(let r of speeds) {
+        setTimeout(() => updateRegion(r), r.speed);
+    }
+    
+    function render() {
+      let out = '';
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          let color = '#ffffff';
+          if (x < 40 && y < 30) color = speeds[0].color;
+          else if (x >= 40 && y < 30) color = speeds[1].color;
+          else if (x < 40 && y >= 30) color = speeds[2].color;
+          else color = speeds[3].color;
+          
+          if (grid[y][x] === 1) out += `<span style="color:${color}">O</span>`;
+          else out += ' ';
+        }
+        out += '\n';
+      }
+      display.innerHTML = out;
+      requestAnimationFrame(render);
+    }
+    
+    render();
+  </script>
+</body>
+</html>

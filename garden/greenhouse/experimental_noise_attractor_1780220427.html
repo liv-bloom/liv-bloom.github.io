@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Noise Attractor</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; }
+  </style>
+</head>
+<body>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // Background noise grid
+    let noiseGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Particles that seek noise
+    const numParticles = 20;
+    let particles = [];
+    for(let i=0; i<numParticles; i++) {
+       particles.push({x: Math.random()*width, y: Math.random()*height});
+    }
+
+    const display = document.getElementById('canvas');
+    
+    function update() {
+      let out = '';
+      
+      // 1. Shift and generate background noise
+      for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+           noiseGrid[y][x] *= 0.9; // fade noise
+           if (Math.random() < 0.05) noiseGrid[y][x] = 1.0; // random spike
+        }
+      }
+      
+      // 2. Move particles toward the highest noise in their Moore neighborhood
+      for(let p of particles) {
+         let px = Math.floor(p.x);
+         let py = Math.floor(p.y);
+         
+         let bestX = px;
+         let bestY = py;
+         let maxNoise = -1;
+         
+         for(let dy=-1; dy<=1; dy++) {
+           for(let dx=-1; dx<=1; dx++) {
+             let ny = (py+dy+height)%height;
+             let nx = (px+dx+width)%width;
+             if (noiseGrid[ny][nx] > maxNoise) {
+                maxNoise = noiseGrid[ny][nx];
+                bestX = nx;
+                bestY = ny;
+             }
+           }
+         }
+         
+         // Move towards best noise
+         p.x += (bestX - px) * 0.5;
+         p.y += (bestY - py) * 0.5;
+         
+         // Consume the noise
+         noiseGrid[Math.floor(p.y)][Math.floor(p.x)] = 0;
+      }
+      
+      // 3. Render
+      for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+          let isParticle = particles.some(p => Math.floor(p.x) === x && Math.floor(p.y) === y);
+          if (isParticle) {
+             out += 'O';
+          } else {
+             let n = noiseGrid[y][x];
+             out += n > 0.8 ? '*' : n > 0.3 ? '.' : ' ';
+          }
+        }
+        out += '\n';
+      }
+      display.textContent = out;
+      requestAnimationFrame(update);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

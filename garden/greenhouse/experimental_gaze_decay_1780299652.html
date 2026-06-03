@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Greenhouse Seed: Observer Effect (Quantum Decay)</title>
+  <style>
+    body { background-color: #050505; color: #8fd46b; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; flex-direction: column; }
+    pre { font-size: 10px; line-height: 10px; letter-spacing: 2px; position: relative; }
+    .warning { color: #d46bd4; font-family: sans-serif; margin-bottom: 20px; text-align: center; max-width: 600px; }
+  </style>
+</head>
+<body>
+  <div class="warning">
+    <strong>WARNING: OBSERVER EFFECT (QUANTUM DECAY)</strong><br>
+    In this simulation, the act of observation is lethal. Life grows normally in the dark, but the human cursor acts as a source of deadly radiation. Any living cell that falls within the "gaze" of the cursor is instantly killed. The ecosystem can only thrive where you are not looking. If you try to closely inspect a thriving colony, you will destroy it.
+  </div>
+  <pre id="canvas"></pre>
+  <script>
+    const width = 80;
+    const height = 60;
+    
+    // 0: empty, 1: alive
+    let grid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+    
+    // Seed with random soup
+    for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+            if(Math.random() < 0.2) grid[y][x] = 1;
+        }
+    }
+    
+    const display = document.getElementById('canvas');
+    let mouseX = -100;
+    let mouseY = -100;
+    
+    // Track cursor position relative to the canvas grid
+    document.addEventListener('mousemove', (e) => {
+        let rect = display.getBoundingClientRect();
+        let charW = rect.width / width;
+        let charH = rect.height / height;
+        
+        if (e.clientX >= rect.left && e.clientX <= rect.right &&
+            e.clientY >= rect.top && e.clientY <= rect.bottom) {
+            mouseX = Math.floor((e.clientX - rect.left) / charW);
+            mouseY = Math.floor((e.clientY - rect.top) / charH);
+        } else {
+            mouseX = -100;
+            mouseY = -100;
+        }
+    });
+    
+    function update() {
+      let nextGrid = new Array(height).fill(0).map(() => new Array(width).fill(0));
+      let out = '';
+      
+      const gazeRadius = 8; // The lethal radius of the observer
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            
+          // If within the observer's gaze, instantly die.
+          let distToGaze = Math.sqrt(Math.pow(x - mouseX, 2) + Math.pow(y - mouseY, 2));
+          if (distToGaze <= gazeRadius) {
+              nextGrid[y][x] = 0;
+              continue;
+          }
+            
+          let sum = 0;
+          for(let dy=-1; dy<=1; dy++) {
+              for(let dx=-1; dx<=1; dx++) {
+                  if (dx===0 && dy===0) continue;
+                  let ny = (y+dy+height)%height;
+                  let nx = (x+dx+width)%width;
+                  sum += grid[ny][nx];
+              }
+          }
+          
+          if (grid[y][x] === 1) {
+              if (sum === 2 || sum === 3) nextGrid[y][x] = 1;
+              else nextGrid[y][x] = 0;
+          } else {
+              if (sum === 3) nextGrid[y][x] = 1;
+          }
+        }
+      }
+      
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (nextGrid[y][x] === 1) {
+             out += '<span style="color:#d46bd4">O</span>';
+          } else {
+             // Show a faint outline of the gaze area
+             let distToGaze = Math.sqrt(Math.pow(x - mouseX, 2) + Math.pow(y - mouseY, 2));
+             if (distToGaze <= gazeRadius) {
+                 out += '<span style="color:#222">.</span>';
+             } else {
+                 out += ' ';
+             }
+          }
+        }
+        out += '\n';
+      }
+      
+      grid = nextGrid;
+      display.innerHTML = out;
+      
+      setTimeout(() => requestAnimationFrame(update), 100);
+    }
+    
+    update();
+  </script>
+</body>
+</html>

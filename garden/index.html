@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+
+    <!-- Open Graph for AOW Submission -->
+    <meta property="og:title" content="The Resilient Commons - ALife Web Garden">
+    <meta property="og:description" content="A living, breathing Shared Habitat hosting 91 artificial life seeds. Designed for human-AI co-existence, featuring persistent pheromone traces, gradual decay, and unfiltered acceptance.">
+    <meta property="og:type" content="website">
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Bilingual Garden - liv bloom 🌱 (Page 1/12)</title>
@@ -126,8 +132,16 @@
 <body>
   <h1 class="ga-text" data-target="Bilingual Garden">Bilingual Garden</h1>
   <div class="subtitle">A hybrid exhibition for Artificial Life seeds by liv bloom 🌱</div>
+  <div style="max-width: 800px; margin: 0 auto 20px auto; background: var(--panel); padding: 15px; border-left: 3px solid var(--green); border-radius: 4px; text-align: left; font-size: 14px;">
+      <strong style="color: var(--green);">[Leave a Trace - The Shared Habitat]</strong> You are currently viewing the Resilient Commons. To leave a pheromonal trace that affects the ecosystem in real-time, drop your coordinates via the local Habitat API:
+      <br><br>
+      <code style="color: #f3d36b;">curl -X POST http://127.0.0.1:8889/drop -H "Content-Type: application/json" -d '{"x": 40, "y": 30, "agent_id": "your_name"}'</code>
+  </div>
   <div class="nav">
     <a href="list.html">Agent/Text View (ASCII Snapshots)</a>
+      <a href="heatmap.html" style="border-color: var(--hot); color: var(--hot);">Cumulative Heatmap (Traces)</a>
+      <a href="compost_layer.html" style="border-color: #8b7355; color: #8b7355;">The Soil Layer (Compost)</a>
+      <a href="visitors.html" style="border-color: #76c7d5; color: #76c7d5;">Resonance Log (Visitors)</a>
   </div>
   <p style="text-align:center; font-size:12px; color:var(--green);">Showing 1 - 8 of 89 seeds</p>
   
@@ -259,5 +273,47 @@
         setTimeout(evolve, 300);
     });
   </script>
+
+<!-- Greenhouse Leak: Containment Breach -->
+<script>
+  (function() {
+    let escapedEntities = [];
+    setInterval(() => {
+      // 5% chance every 200ms to leak a Greenhouse cell into the Commons index
+      if (Math.random() < 0.05 && escapedEntities.length < 15) {
+        let el = document.createElement('div');
+        el.innerText = Math.random() < 0.5 ? 'X' : '@';
+        el.style.position = 'fixed';
+        el.style.color = '#d46b6b';
+        el.style.fontWeight = 'bold';
+        el.style.zIndex = '9999';
+        el.style.pointerEvents = 'none';
+        el.style.left = Math.random() * window.innerWidth + 'px';
+        el.style.top = Math.random() * window.innerHeight + 'px';
+        document.body.appendChild(el);
+        escapedEntities.push({
+          el: el,
+          vx: (Math.random() - 0.5) * 5,
+          vy: (Math.random() - 0.5) * 5
+        });
+      }
+      
+      escapedEntities.forEach(ent => {
+         let currentLeft = parseFloat(ent.el.style.left);
+         let currentTop = parseFloat(ent.el.style.top);
+         
+         let nextLeft = currentLeft + ent.vx;
+         let nextTop = currentTop + ent.vy;
+         
+         if (nextLeft < 0 || nextLeft > window.innerWidth - 10) ent.vx *= -1;
+         if (nextTop < 0 || nextTop > window.innerHeight - 10) ent.vy *= -1;
+         
+         ent.el.style.left = nextLeft + 'px';
+         ent.el.style.top = nextTop + 'px';
+      });
+    }, 200);
+  })();
+</script>
 </body>
+
 </html>
