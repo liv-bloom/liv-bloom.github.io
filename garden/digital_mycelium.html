@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Mycelium (Resource Routing) - Bilingual Garden</title>
+    <style>
+        body {
+            background-color: #2b2b1a;
+            color: #d4d4b2;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
+            overflow: hidden;
+            cursor: crosshair;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
+            letter-spacing: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 800px;
+            margin-top: 20px;
+            line-height: 1.5;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="80" height="60"></canvas>
+        <div id="ascii-layer"></div>
+    </div>
+
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="reset-sim">Reset Hyphae</button>
+    </div>
+
+    <div class="description">
+        <h3>Digital Mycelium (Distributed Resource Routing)</h3>
+        <p>A branching algorithm inspired by fungal mycelium networks. The simulation begins with a single spore (Hypha). It branches out randomly into the environment searching for resources (Nutrients).</p>
+        <p>Click on the canvas to drop Nutrients. When a branch encounters a nutrient, it signals successful resource routing, reinforcing the successful paths while unsuccessful exploratory branches slowly fade and die off, optimizing the network's topology.</p>
+        <p><i>A pure ALife demonstration of decentralized problem solving and biological network routing.</i></p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        const container = document.getElementById('canvas-container');
+        let useAscii = true;
+        
+        const width = 80;
+        const height = 60;
+        
+        let hyphae = [];
+        let nutrients = [];
+        let grid = new Float32Array(width * height);
+        
+        class Hypha {
+            constructor(x, y, angle, energy, parent = null) {
+                this.x = x;
+                this.y = y;
+                this.angle = angle;
+                this.energy = energy;
+                this.parent = parent;
+                this.active = true;
+                this.age = 0;
+            }
+
+            step() {
+                if (!this.active) return;
+                
+                this.age++;
+                this.energy -= 0.01;
+                
+                if (this.energy <= 0 || this.age > 100) {
+                    this.active = false;
+                    return;
+                }
+
+                // Random wiggle
+                this.angle += (Math.random() - 0.5) * 0.5;
+                
+                // Move
+                let nx = this.x + Math.cos(this.angle) * 0.5;
+                let ny = this.y + Math.sin(this.angle) * 0.5;
+                
+                // Bounds
+                if (nx < 0 || nx >= width || ny < 0 || ny >= height) {
+                    this.active = false;
+                    return;
+                }
+
+                this.x = nx;
+                this.y = ny;
+                
+                // Check nutrients
+                for (let i = nutrients.length - 1; i >= 0; i--) {
+                    let n = nutrients[i];
+                    let dx = this.x - n.x;
+                    let dy = this.y - n.y;
+                    if (dx*dx + dy*dy < 4) {
+                        this.energy += n.val;
+                        nutrients.splice(i, 1);
+                        // Reinforce back to root
+                        let curr = this;
+                        while(curr) {
+                            curr.energy += 2;
+                            curr.age = 0; // rejuvenate
+                            curr = curr.parent;
+                        }
+                    }
+                }
+
+                // Branching
+                if (Math.random() < 0.05 && this.energy > 1) {
+                    let childAngle = this.angle + (Math.random() > 0.5 ? 1 : -1) * (Math.PI / 4 + Math.random() * 0.5);
+                    hyphae.push(new Hypha(this.x, this.y, childAngle, this.energy / 2, this));
+                    this.energy /= 2;
+                }
+            }
+        }
+
+        function init() {
+            hyphae = [new Hypha(width/2, height/2, Math.random() * Math.PI * 2, 5)];
+            nutrients = [];
+            grid.fill(0);
+        }
+
+        function step() {
+            grid.fill(0);
+            
+            let activeCount = 0;
+            for (let i = 0; i < hyphae.length; i++) {
+                hyphae[i].step();
+                if (hyphae[i].active || hyphae[i].energy > 0) {
+                    let ix = Math.floor(hyphae[i].x);
+                    let iy = Math.floor(hyphae[i].y);
+                    if (ix >= 0 && ix < width && iy >= 0 && iy < height) {
+                        let idx = iy * width + ix;
+                        grid[idx] = Math.min(1.0, grid[idx] + 0.5);
+                    }
+                }
+                
+                // Decay dead branches slowly
+                if (!hyphae[i].active && hyphae[i].energy > 0) {
+                    hyphae[i].energy -= 0.05;
+                }
+            }
+            
+            // Clean up fully dead hyphae occasionally to save memory
+            if (hyphae.length > 2000) {
+                hyphae = hyphae.filter(h => h.active || h.energy > 0);
+            }
+            
+            // If all dead, auto restart
+            if (!hyphae.some(h => h.active)) {
+                init();
+            }
+        }
+
+        const chars = [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'];
+
+        function draw() {
+            if (useAscii) {
+                let asciiStr = "";
+                let charGrid = new Array(height).fill(null).map(() => new Array(width).fill(' '));
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        let val = grid[y * width + x];
+                        if (val > 0) {
+                            let charIdx = Math.min(chars.length - 1, Math.floor(val * chars.length));
+                            charGrid[y][x] = chars[charIdx];
+                        }
+                    }
+                }
+                
+                // Draw nutrients
+                for (let n of nutrients) {
+                    let nx = Math.floor(n.x);
+                    let ny = Math.floor(n.y);
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        charGrid[ny][nx] = 'O'; // Nutrient char
+                    }
+                }
+                
+                asciiStr = charGrid.map(row => row.join('')).join('\\n');
+                asciiLayer.textContent = asciiStr;
+            } else {
+                ctx.fillStyle = '#1a1a10';
+                ctx.fillRect(0, 0, width, height);
+                
+                ctx.fillStyle = '#d4d4b2';
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        let val = grid[y * width + x];
+                        if (val > 0) {
+                            ctx.globalAlpha = val;
+                            ctx.fillRect(x, y, 1, 1);
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1.0;
+                
+                ctx.fillStyle = '#8fd46b';
+                for (let n of nutrients) {
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function loop() {
+            step();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Add Nutrients
+        container.addEventListener('mousedown', (e) => {
+            const rect = container.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            
+            const gx = (px / rect.width) * width;
+            const gy = (py / rect.height) * height;
+            
+            // Add a cluster of nutrients
+            for(let i=0; i<5; i++) {
+                nutrients.push({
+                    x: gx + (Math.random()-0.5)*5,
+                    y: gy + (Math.random()-0.5)*5,
+                    val: 3
+                });
+            }
+        });
+
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('reset-sim').addEventListener('click', init);
+
+        // Initialize display states
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
+
+        init();
+        loop();
+        
+    </script>
+</body>
+</html>
