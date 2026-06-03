@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lenia (Continuous ALife) - Bilingual Garden</title>
+    <style>
+        body {
+            background-color: #2b2b1a;
+            color: #d4d4b2;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
+            overflow: hidden;
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
+            letter-spacing: 0;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
+        }
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 800px;
+            margin-top: 20px;
+            line-height: 1.5;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="80" height="60"></canvas>
+        <div id="ascii-layer"></div>
+    </div>
+
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="reset-sim">Drop Orbium (Reset)</button>
+    </div>
+
+    <div class="description">
+        <h3>Lenia (Continuous Cellular Automata)</h3>
+        <p>A generalization of Conway's Game of Life into continuous space, time, and state. Discovered by Bert Chan.</p>
+        <p>Instead of binary cells (alive/dead), each cell holds a continuous real number [0, 1]. The neighborhood is not just 8 adjacent cells, but a continuous ring-like kernel. The update rule is a smooth Gaussian growth function.</p>
+        <p>This specific parameter set allows for the emergence of "Orbium", a complex, stable glider that swims through the primordial soup.</p>
+        <p><i>The return to pure, genesis-level modeling. Not just a trace-detector, but the cultivation of entirely new phyla.</i></p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        let useAscii = true;
+        
+        const width = 80;
+        const height = 60;
+        let grid = new Float32Array(width * height);
+        let nextGrid = new Float32Array(width * height);
+        
+        // Lenia parameters (Orbium-like)
+        const R = 8;
+        const mu = 0.15;
+        const sigma = 0.015;
+        const dt = 0.1;
+        
+        // Build Kernel
+        const kernelSize = R * 2 + 1;
+        const kernel = new Float32Array(kernelSize * kernelSize);
+        let kernelSum = 0;
+        
+        for (let y = 0; y < kernelSize; y++) {
+            for (let x = 0; x < kernelSize; x++) {
+                const dx = x - R;
+                const dy = y - R;
+                const r = Math.sqrt(dx*dx + dy*dy) / R;
+                let val = 0;
+                if (r < 1 && r > 0) {
+                    val = Math.exp(4 - 1 / (r * (1 - r)));
+                } else if (r === 0) {
+                    val = 0; // Ring core is empty
+                }
+                kernel[y * kernelSize + x] = val;
+                kernelSum += val;
+            }
+        }
+        
+        for (let i = 0; i < kernel.length; i++) {
+            kernel[i] /= kernelSum;
+        }
+
+        const chars = [' ', '.', ':', '-', '=', '+', '*', '#', '%', '@'];
+
+        function init() {
+            grid.fill(0);
+            // Drop some random noise in the center to spark life
+            for (let y = height/2 - 15; y < height/2 + 15; y++) {
+                for (let x = width/2 - 15; x < width/2 + 15; x++) {
+                    if (Math.random() > 0.5) {
+                        grid[y * width + x] = Math.random();
+                    }
+                }
+            }
+        }
+
+        function step() {
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let sum = 0;
+                    // Convolution
+                    for (let ky = 0; ky < kernelSize; ky++) {
+                        for (let kx = 0; kx < kernelSize; kx++) {
+                            const w = kernel[ky * kernelSize + kx];
+                            if (w === 0) continue;
+                            
+                            // Toroidal wrap
+                            const gx = (x + kx - R + width) % width;
+                            const gy = (y + ky - R + height) % height;
+                            
+                            sum += grid[gy * width + gx] * w;
+                        }
+                    }
+                    
+                    // Growth function
+                    const growth = 2 * Math.exp(-Math.pow(sum - mu, 2) / (2 * sigma * sigma)) - 1;
+                    
+                    // Update and clip
+                    let val = grid[y * width + x] + dt * growth;
+                    if (val > 1) val = 1;
+                    if (val < 0) val = 0;
+                    
+                    nextGrid[y * width + x] = val;
+                }
+            }
+            
+            // Swap buffers
+            let temp = grid;
+            grid = nextGrid;
+            nextGrid = temp;
+        }
+
+        function draw() {
+            let asciiStr = "";
+            const imgData = ctx.createImageData(width, height);
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const val = grid[y * width + x];
+                    
+                    if (useAscii) {
+                        const charIdx = Math.min(chars.length - 1, Math.floor(val * chars.length));
+                        asciiStr += chars[charIdx];
+                    } else {
+                        const idx = (y * width + x) * 4;
+                        const col = Math.floor(val * 255);
+                        // Using garden theme colors (#2b2b1a to #d4d4b2)
+                        // #2b2b1a = 43, 43, 26
+                        // #d4d4b2 = 212, 212, 178
+                        imgData.data[idx] = 43 + val * (212 - 43);
+                        imgData.data[idx+1] = 43 + val * (212 - 43);
+                        imgData.data[idx+2] = 26 + val * (178 - 26);
+                        imgData.data[idx+3] = 255;
+                    }
+                }
+                if (useAscii) asciiStr += "\n";
+            }
+            
+            if (useAscii) {
+                asciiLayer.textContent = asciiStr;
+            } else {
+                ctx.putImageData(imgData, 0, 0);
+            }
+        }
+
+        function loop() {
+            step();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
+            }
+        });
+        
+        document.getElementById('reset-sim').addEventListener('click', init);
+
+        // Initialize display states
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
+
+        init();
+        loop();
+        
+        // Pheromone API integration (optional)
+        if (typeof SharedHabitat !== 'undefined') {
+            SharedHabitat.onPheromone((x, y, strength) => {
+                const gx = Math.floor(x * width);
+                const gy = Math.floor(y * height);
+                if (gx >= 0 && gx < width && gy >= 0 && gy < height) {
+                    grid[gy * width + gx] = Math.min(1.0, grid[gy * width + gx] + 0.5);
+                }
+            });
+        }
+    </script>
+</body>
+</html>
