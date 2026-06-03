@@ -28,7 +28,19 @@
         .danger-text { color: #d46b6b !important; }
         .success-text { color: #8fd46b !important; }
         .instructions { font-size: 0.8rem; color: #888; margin-top: 10px; max-width: 250px; }
-    </style>
+    
+        #joystick-base {
+            position: absolute; width: 100px; height: 100px; 
+            border: 2px solid rgba(118, 199, 213, 0.3); border-radius: 50%;
+            display: none; pointer-events: none; z-index: 5;
+            transform: translate(-50%, -50%);
+        }
+        #joystick-stick {
+            position: absolute; width: 40px; height: 40px; 
+            background: rgba(118, 199, 213, 0.6); border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+</style>
 </head>
 <body>
     <div id="ui">
@@ -39,13 +51,14 @@
         <div class="suspicion-bar"><div class="suspicion-fill" id="suspicion-fill"></div></div>
         
         <div class="instructions">
-            <strong>MISSION:</strong> You are one of the 'v's. Your mouse guides it.<br>
+            <strong>MISSION:</strong> You are one of the 'v's. Click/touch and drag to steer (vector control).<br>
             <strong>RULE 1:</strong> Do not make sudden, jerky movements.<br>
             <strong>RULE 2:</strong> Follow the flow of the flock (Align).<br>
             <strong>RULE 3:</strong> Do not isolate yourself.<br>
             <em>If you act like a human, the Hunter will find you.</em>
         </div>
     </div>
+    <div id="joystick-base"><div id="joystick-stick"></div></div>
     <canvas id="canvas"></canvas>
 
     <script>
@@ -55,31 +68,64 @@
         let height = canvas.height = window.innerHeight;
 
         let mouse = { x: width/2, y: height/2 };
+        let joystick = { active: false, originX: 0, originY: 0, deltaX: 0, deltaY: 0 };
+        const joyBase = document.getElementById('joystick-base');
+        const joyStick = document.getElementById('joystick-stick');
+
         let suspicion = 0;
         let timeSurvived = 0;
         let gameState = 'playing'; // playing, caught
         let lastTime = performance.now();
 
-        window.addEventListener('mousemove', e => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-        });
+                function handleStart(x, y) {
+            joystick.active = true;
+            joystick.originX = x;
+            joystick.originY = y;
+            joystick.deltaX = 0;
+            joystick.deltaY = 0;
+            joyBase.style.left = x + 'px';
+            joyBase.style.top = y + 'px';
+            joyBase.style.display = 'block';
+            joyStick.style.transform = `translate(-50%, -50%)`;
+        }
 
+        function handleMove(x, y) {
+            if (!joystick.active) return;
+            let dx = x - joystick.originX;
+            let dy = y - joystick.originY;
+            let dist = Math.hypot(dx, dy);
+            let maxDist = 50;
+            
+            if (dist > maxDist) {
+                dx = (dx / dist) * maxDist;
+                dy = (dy / dist) * maxDist;
+            }
+            
+            joystick.deltaX = dx / maxDist;
+            joystick.deltaY = dy / maxDist;
+            
+            joyStick.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+        }
+
+        function handleEnd() {
+            joystick.active = false;
+            joystick.deltaX = 0;
+            joystick.deltaY = 0;
+            joyBase.style.display = 'none';
+        }
+
+        window.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleEnd);
+        
         window.addEventListener('touchstart', e => {
-            if(e.touches.length > 0) {
-                mouse.x = e.touches[0].clientX;
-                mouse.y = e.touches[0].clientY;
-            }
+            if(e.touches.length > 0) handleStart(e.touches[0].clientX, e.touches[0].clientY);
         });
-
         window.addEventListener('touchmove', e => {
-            if(e.touches.length > 0) {
-                mouse.x = e.touches[0].clientX;
-                mouse.y = e.touches[0].clientY;
-            }
+            if(e.touches.length > 0) handleMove(e.touches[0].clientX, e.touches[0].clientY);
         });
-
-        window.addEventListener('resize', () => {
+        window.addEventListener('touchend', handleEnd);
+        window.addEventListener('touchcancel', handleEnd);window.addEventListener('resize', () => {
             width = canvas.width = window.innerWidth;
             height = canvas.height = window.innerHeight;
         });
@@ -97,18 +143,21 @@
                 if (gameState === 'caught' && this.isPlayer) {
                     this.vx *= 0.9; this.vy *= 0.9; // Stop moving if caught
                 } else if (this.isPlayer) {
-                    // Player Steering towards mouse
-                    let dx = mouse.x - this.x;
-                    let dy = mouse.y - this.y;
-                    let dist = Math.hypot(dx, dy);
-                    
-                    if (dist > 5) {
-                        this.vx += (dx / dist) * 0.2;
-                        this.vy += (dy / dist) * 0.2;
+                    // Player Steering via Virtual Joystick (Vector Control)
+                    if (joystick.active) {
+                        // Apply vector thrust
+                        this.vx += joystick.deltaX * 0.15;
+                        this.vy += joystick.deltaY * 0.15;
                     }
 
                     // Friction & Max Speed
                     let speed = Math.hypot(this.vx, this.vy);
+                    // Add natural slight decay if no input, like a real bird gliding
+                    if (!joystick.active && speed > 2) {
+                        this.vx *= 0.99;
+                        this.vy *= 0.99;
+                    }
+                    
                     if (speed > 4.5) {
                         this.vx = (this.vx / speed) * 4.5;
                         this.vy = (this.vy / speed) * 4.5;
@@ -286,13 +335,7 @@
                 }
             }
 
-            // Draw Mouse Indicator (Very faint so human can guide)
-            if (gameState === 'playing') {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                ctx.beginPath();
-                ctx.arc(mouse.x, mouse.y, 3, 0, Math.PI*2);
-                ctx.fill();
-            }
+
 
             // Update & Draw Boids
             for (let b of boids) {
