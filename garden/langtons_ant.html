@@ -2,158 +2,248 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Langton's Ant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Langton's Ant (Emergent Complexity) - Bilingual Garden</title>
     <style>
         body {
-            background-color: #10120f;
-            color: #e5eadb;
+            background-color: #2b2b1a;
+            color: #d4d4b2;
             font-family: monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
             overflow: hidden;
+            cursor: crosshair;
         }
-        pre {
-            line-height: 1em;
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
             letter-spacing: 0;
-            font-size: min(1.8vw, 12px);
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
         }
-        #info {
-            max-width: 600px; 
-            margin-top: 10px; 
-            font-size: 12px; 
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 800px;
+            margin-top: 20px;
+            line-height: 1.5;
             text-align: left;
         }
     </style>
 </head>
 <body>
-    <pre id="canvas"></pre>
-    <div id="info">
-        <strong>Langton's Ant (1986)</strong><br><br>
-        A two-dimensional universal Turing machine invented by Chris Langton.<br>
-        The rules are incredibly simple: At a dark square (<span style="color:#2b2b1a;">.</span>), turn 90° right, flip the color to light (<span style="color:#8fd46b; font-weight:bold;">#</span>), and move forward. At a light square, turn 90° left, flip the color to dark, and move forward.<br>
-        Despite this simplicity, the ant (<span style="color:#f3d36b; font-weight:bold;">@</span>) will eventually build a repeating "highway" out of chaotic behavior. Here, we run multiple ants simultaneously, leading to complex interference patterns and delayed highway formation.
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="80" height="60"></canvas>
+        <div id="ascii-layer"></div>
     </div>
 
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="reset-sim">Reset Grid</button>
+        <button id="add-ant">Drop Ant</button>
+    </div>
+
+    <div class="description">
+        <h3>Langton's Ant</h3>
+        <p>A simple two-dimensional universal Turing machine invented by Chris Langton. Ants move on a grid according to two basic rules:</p>
+        <ul>
+            <li>At a black square, turn 90° right, flip the color, move forward.</li>
+            <li>At a white square, turn 90° left, flip the color, move forward.</li>
+        </ul>
+        <p>After a period of chaotic pseudo-random behavior, the ant inexplicably begins building a recurring "highway" pattern. A profound example of complex, emergent behavior arising from deterministic local rules.</p>
+        <p><i>Click to drop additional ants and watch their highways collide.</i></p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
     <script>
-        const COLS = 80;
-        const ROWS = 60;
-        const NUM_ANTS = 5;
-        const STEPS_PER_FRAME = 20;
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        const container = document.getElementById('canvas-container');
+        let useAscii = true;
         
-        let grid = new Uint8Array(COLS * ROWS);
+        const width = 80;
+        const height = 60;
+        
+        // Grid: 0 = black (background), 1 = white (flipped)
+        let grid = new Uint8Array(width * height);
         
         let ants = [];
-        for (let i = 0; i < NUM_ANTS; i++) {
-            ants.push({
-                x: Math.floor(COLS / 2) + (Math.random() * 20 - 10),
-                y: Math.floor(ROWS / 2) + (Math.random() * 20 - 10),
-                dir: Math.floor(Math.random() * 4),
-                colorIdx: i % 4
-            });
+        const UP = 0, RIGHT = 1, DOWN = 2, LEFT = 3;
+
+        function init() {
+            grid.fill(0);
+            ants = [];
+            addAnt(Math.floor(width / 2), Math.floor(height / 2));
         }
 
-        const dirs = [
-            {dx: 0, dy: -1}, // North
-            {dx: 1, dy: 0},  // East
-            {dx: 0, dy: 1},  // South
-            {dx: -1, dy: 0}  // West
-        ];
-
-        const antChars = ["^", ">", "v", "<"];
-        // Adjusted to fit the ALife Web Garden palette
-        const antColors = ["#e77a61", "#f3d36b", "#76c7d5", "#e5eadb"];
+        function addAnt(x, y) {
+            ants.push({
+                x: x,
+                y: y,
+                dir: Math.floor(Math.random() * 4)
+            });
+        }
 
         function step() {
-            for (let s = 0; s < STEPS_PER_FRAME; s++) {
-                for (let i = 0; i < ants.length; i++) {
-                    let a = ants[i];
-                    
-                    a.x = Math.floor(a.x);
-                    a.y = Math.floor(a.y);
-                    if (a.x < 0) a.x += COLS; if (a.x >= COLS) a.x -= COLS;
-                    if (a.y < 0) a.y += ROWS; if (a.y >= ROWS) a.y -= ROWS;
-
-                    let idx = a.y * COLS + a.x;
+            for (let i = 0; i < 100; i++) { // Run multiple steps per frame
+                for (let ant of ants) {
+                    let idx = ant.y * width + ant.x;
                     let state = grid[idx];
-
+                    
                     if (state === 0) {
-                        a.dir = (a.dir + 1) % 4;
+                        // Black: turn right
+                        ant.dir = (ant.dir + 1) % 4;
                         grid[idx] = 1;
                     } else {
-                        a.dir = (a.dir + 3) % 4;
+                        // White: turn left
+                        ant.dir = (ant.dir + 3) % 4;
                         grid[idx] = 0;
                     }
-
-                    a.x += dirs[a.dir].dx;
-                    a.y += dirs[a.dir].dy;
+                    
+                    // Move forward
+                    if (ant.dir === UP) ant.y--;
+                    else if (ant.dir === RIGHT) ant.x++;
+                    else if (ant.dir === DOWN) ant.y++;
+                    else if (ant.dir === LEFT) ant.x--;
+                    
+                    // Wrap around
+                    ant.x = (ant.x + width) % width;
+                    ant.y = (ant.y + height) % height;
                 }
             }
-            draw();
         }
+
+        const chars = [' ', '#'];
 
         function draw() {
-            let display = new Array(COLS * ROWS);
-            for (let i = 0; i < grid.length; i++) {
-                display[i] = grid[i] === 0 
-                    ? '<span style="color:#2b2b1a;">.</span>' 
-                    : '<span style="color:#8fd46b; font-weight:bold;">#</span>';
-            }
-
-            for (let i = 0; i < ants.length; i++) {
-                let a = ants[i];
-                let ax = Math.floor(a.x);
-                let ay = Math.floor(a.y);
-                if (ax < 0) ax += COLS; if (ax >= COLS) ax -= COLS;
-                if (ay < 0) ay += ROWS; if (ay >= ROWS) ay -= ROWS;
+            if (useAscii) {
+                let asciiStr = "";
+                let charGrid = new Array(height).fill(null).map(() => new Array(width).fill(' '));
                 
-                let idx = ay * COLS + ax;
-                display[idx] = `<span style="color:${antColors[a.colorIdx]}; font-weight:bold;">${antChars[a.dir]}</span>`;
-            }
-
-            let html = "";
-            for (let y = 0; y < ROWS; y++) {
-                for (let x = 0; x < COLS; x++) {
-                    html += display[y * COLS + x];
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        let state = grid[y * width + x];
+                        charGrid[y][x] = chars[state];
+                    }
                 }
-                html += "\n";
+                
+                // Draw ants
+                for (let ant of ants) {
+                    charGrid[ant.y][ant.x] = '@';
+                }
+                
+                asciiStr = charGrid.map(row => row.join('')).join('\\n');
+                asciiLayer.textContent = asciiStr;
+            } else {
+                let imgData = ctx.createImageData(width, height);
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        let idx = (y * width + x) * 4;
+                        let state = grid[y * width + x];
+                        
+                        if (state === 1) { // White (flipped)
+                            imgData.data[idx] = 212;
+                            imgData.data[idx+1] = 212;
+                            imgData.data[idx+2] = 178;
+                        } else { // Black (bg)
+                            imgData.data[idx] = 26;
+                            imgData.data[idx+1] = 26;
+                            imgData.data[idx+2] = 16;
+                        }
+                        imgData.data[idx+3] = 255;
+                    }
+                }
+                
+                // Draw ants
+                for (let ant of ants) {
+                    let idx = (ant.y * width + ant.x) * 4;
+                    imgData.data[idx] = 255;
+                    imgData.data[idx+1] = 85;
+                    imgData.data[idx+2] = 85;
+                }
+                
+                ctx.putImageData(imgData, 0, 0);
             }
-            document.getElementById("canvas").innerHTML = html;
         }
 
-        
+        function loop() {
+            step();
+            draw();
+            requestAnimationFrame(loop);
+        }
 
-        // --- ECO MODE: Intersection Observer ---
-        let isVisible = true;
-        
-        // Listen for messages from the parent window to pause/resume
-        window.addEventListener("message", (event) => {
-            if (event.data === "pause") isVisible = false;
-            if (event.data === "resume") isVisible = true;
+        // Interaction
+        container.addEventListener('mousedown', (e) => {
+            const rect = container.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            
+            const gx = Math.floor((px / rect.width) * width);
+            const gy = Math.floor((py / rect.height) * height);
+            
+            addAnt(gx, gy);
+        });
+
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
+            }
         });
         
-        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
-        let ecoObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                // If it's loaded directly, pause if not visible
-                if (window === window.top) {
-                    isVisible = entry.isIntersecting;
-                }
-            });
-        }, { threshold: 0.0 });
-        ecoObserver.observe(document.body);
+        document.getElementById('reset-sim').addEventListener('click', init);
+        document.getElementById('add-ant').addEventListener('click', () => addAnt(Math.floor(Math.random()*width), Math.floor(Math.random()*height)));
 
+        // Initialize display states
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
 
-        setInterval(() => {
-            if (isVisible) {
-                step();
-            }
-        }, 50);
-
+        init();
+        requestAnimationFrame(loop);
+        
     </script>
-    <script src="shared_habitat_client.js"></script>
 </body>
 </html>
