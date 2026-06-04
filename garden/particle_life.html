@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Particle Life (Artificial Chemistry) - Bilingual Garden</title>
+    <title>Particle Life - Bilingual Garden</title>
     <style>
         body {
             background-color: #2b2b1a;
@@ -17,12 +17,12 @@
         }
         #canvas-container {
             position: relative;
-            width: 800px;
+            width: 600px;
             height: 600px;
             background-color: #1a1a10;
             border: 1px solid #4a4a3a;
             overflow: hidden;
-            cursor: crosshair;
+            cursor: pointer;
         }
         canvas {
             position: absolute;
@@ -30,7 +30,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-            image-rendering: pixelated;
         }
         #ascii-layer {
             position: absolute;
@@ -50,6 +49,7 @@
             margin-top: 20px;
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         button {
             background-color: #4a4a3a;
@@ -61,7 +61,7 @@
         }
         button:hover { background-color: #d4d4b2; color: #2b2b1a; }
         .description {
-            max-width: 800px;
+            max-width: 600px;
             margin-top: 20px;
             line-height: 1.5;
             text-align: left;
@@ -71,20 +71,20 @@
 <body>
 
     <div id="canvas-container">
-        <canvas id="simCanvas" width="80" height="60"></canvas>
+        <canvas id="simCanvas" width="600" height="600"></canvas>
         <div id="ascii-layer"></div>
     </div>
 
     <div class="controls">
         <button id="toggle-view">Toggle ASCII / Canvas</button>
-        <button id="reset-sim">Mutate Rules (Re-seed)</button>
+        <button id="reset-sim">Randomize Rules & Reset</button>
     </div>
 
     <div class="description">
-        <h3>Particle Life (Primordial Soup)</h3>
-        <p>An artificial chemistry simulation. Particles of different types (colors/ASCII characters) interact based on a randomized matrix of attraction and repulsion forces.</p>
-        <p>Because the rules are asymmetrical (A might attract B, but B might repel A), stable structures like cell membranes, swimming organisms, and complex crystalline bonds naturally emerge from the primordial soup without any predefined design.</p>
-        <p><i>Click 'Mutate Rules' to generate a new random interaction matrix and watch a completely different physics universe unfold.</i></p>
+        <h3>Particle Life (Artificial Chemistry)</h3>
+        <p>A continuous simulation of simple particles governed by attraction and repulsion rules. There are three types of particles (Red, Green, Blue).</p>
+        <p>The rules matrix defines how each color interacts with itself and other colors. For example, Green might be attracted to Red, but Red might be repelled by Green, leading to continuous chasing behavior. These asymmetric forces generate complex, life-like micro-structures, cell walls, and moving organisms.</p>
+        <p><i>Click "Randomize Rules & Reset" to explore different artificial chemistries.</i></p>
     </div>
 
     <script src="shared_habitat_client.js"></script>
@@ -95,35 +95,31 @@
         const container = document.getElementById('canvas-container');
         let useAscii = true;
         
-        const width = 80;
-        const height = 60;
-        const numParticles = 600;
-        const numTypes = 4;
-        
-        // Types: 0: R, 1: G, 2: B, 3: Y
-        const colors = [
-            [255, 85, 85],   // R
-            [85, 255, 85],   // G
-            [85, 85, 255],   // B
-            [255, 255, 85]   // Y
-        ];
-        const chars = ['*', '+', 'o', 'x'];
+        const width = 600;
+        const height = 600;
+        const asciiCols = 60;
+        const asciiRows = 60;
         
         let particles = [];
-        let matrix = []; // Interaction matrix
-        
-        function randomizeMatrix() {
-            matrix = [];
-            for (let i = 0; i < numTypes; i++) {
-                matrix[i] = [];
-                for (let j = 0; j < numTypes; j++) {
-                    // Random force between -1 (repel) and 1 (attract)
-                    matrix[i][j] = (Math.random() - 0.5) * 2.0;
+        let rules = {};
+        const colors = ['red', 'green', 'blue'];
+        const numParticles = 400;
+
+        function randomRule() {
+            return (Math.random() - 0.5) * 2; // -1 to 1
+        }
+
+        function initRules() {
+            rules = {};
+            for (let a of colors) {
+                rules[a] = {};
+                for (let b of colors) {
+                    rules[a][b] = randomRule();
                 }
             }
         }
 
-        function init() {
+        function createParticles() {
             particles = [];
             for (let i = 0; i < numParticles; i++) {
                 particles.push({
@@ -131,122 +127,84 @@
                     y: Math.random() * height,
                     vx: 0,
                     vy: 0,
-                    type: Math.floor(Math.random() * numTypes)
+                    color: colors[Math.floor(Math.random() * colors.length)]
                 });
             }
-            randomizeMatrix();
         }
 
-        function step() {
-            const dt = 0.5;
+        function init() {
+            initRules();
+            createParticles();
+        }
+
+        function applyRules() {
             const friction = 0.5;
-            const maxRadius = 10;
-            
-            // Spatial partitioning could be added for performance, but N=600 is small enough for O(N^2)
-            for (let i = 0; i < particles.length; i++) {
-                let p1 = particles[i];
-                let fx = 0;
-                let fy = 0;
-                
-                for (let j = 0; j < particles.length; j++) {
+            for (let i = 0; i < numParticles; i++) {
+                let fx = 0, fy = 0;
+                let a = particles[i];
+                for (let j = 0; j < numParticles; j++) {
                     if (i === j) continue;
-                    let p2 = particles[j];
+                    let b = particles[j];
+                    let dx = a.x - b.x;
+                    let dy = a.y - b.y;
                     
-                    let dx = p1.x - p2.x;
-                    let dy = p1.y - p2.y;
-                    
-                    // Wrapping bounds for toroidal distance
+                    // Periodic boundary conditions for distance
                     if (dx > width / 2) dx -= width;
                     else if (dx < -width / 2) dx += width;
-                    
                     if (dy > height / 2) dy -= height;
                     else if (dy < -height / 2) dy += height;
                     
-                    let d = Math.sqrt(dx*dx + dy*dy);
-                    
-                    if (d > 0 && d < maxRadius) {
-                        let force = 0;
-                        let F = matrix[p1.type][p2.type];
-                        
-                        // Close repulsion to prevent collapse
-                        if (d < 1.0) {
-                            force = Math.abs(F) * -1.5 * (1.0 - d);
-                        } else {
-                            // Attraction / Repulsion based on matrix
-                            force = F * (1.0 - Math.abs(d - (maxRadius/2)) / (maxRadius/2));
-                        }
-                        
-                        fx += (dx / d) * force;
-                        fy += (dy / d) * force;
+                    let d = Math.sqrt(dx * dx + dy * dy);
+                    if (d > 0 && d < 80) {
+                        let force = rules[a.color][b.color] * 1 / d;
+                        fx += (dx * force);
+                        fy += (dy * force);
                     }
                 }
+                a.vx = (a.vx + fx) * friction;
+                a.vy = (a.vy + fy) * friction;
+                a.x += a.vx;
+                a.y += a.vy;
                 
-                p1.vx = (p1.vx + fx * dt) * friction;
-                p1.vy = (p1.vy + fy * dt) * friction;
-            }
-            
-            // Apply velocity and wrap
-            for (let p of particles) {
-                p.x += p.vx * dt;
-                p.y += p.vy * dt;
-                
-                p.x = (p.x + width) % width;
-                p.y = (p.y + height) % height;
+                if (a.x < 0) a.x += width;
+                else if (a.x >= width) a.x -= width;
+                if (a.y < 0) a.y += height;
+                else if (a.y >= height) a.y -= height;
             }
         }
 
         function draw() {
             if (useAscii) {
-                let asciiStr = "";
-                let charGrid = new Array(height).fill(null).map(() => new Array(width).fill(' '));
-                
+                let charGrid = new Array(asciiRows).fill(null).map(() => new Array(asciiCols).fill(' '));
                 for (let p of particles) {
-                    let px = Math.floor(p.x);
-                    let py = Math.floor(p.y);
-                    if (px >= 0 && px < width && py >= 0 && py < height) {
-                        charGrid[py][px] = chars[p.type];
+                    let c = Math.floor((p.x / width) * asciiCols);
+                    let r = Math.floor((p.y / height) * asciiRows);
+                    if (c >= 0 && c < asciiCols && r >= 0 && r < asciiRows) {
+                        let char = '*';
+                        if (p.color === 'red') char = 'R';
+                        else if (p.color === 'green') char = 'G';
+                        else if (p.color === 'blue') char = 'B';
+                        charGrid[r][c] = char;
                     }
                 }
-                
-                asciiStr = charGrid.map(row => row.join('')).join('\\n');
-                asciiLayer.textContent = asciiStr;
+                asciiLayer.textContent = charGrid.map(row => row.join('')).join('\\n');
             } else {
                 ctx.fillStyle = '#1a1a10';
                 ctx.fillRect(0, 0, width, height);
-                
                 for (let p of particles) {
-                    ctx.fillStyle = `rgb(${colors[p.type][0]}, ${colors[p.type][1]}, ${colors[p.type][2]})`;
-                    ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 1);
+                    ctx.fillStyle = p.color === 'red' ? '#ff5555' : p.color === 'green' ? '#55ff55' : '#5555ff';
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         }
 
         function loop() {
-            step();
+            applyRules();
             draw();
             requestAnimationFrame(loop);
         }
-
-        // Interaction (perturb)
-        container.addEventListener('mousedown', (e) => {
-            const rect = container.getBoundingClientRect();
-            const px = e.clientX - rect.left;
-            const py = e.clientY - rect.top;
-            
-            const gx = (px / rect.width) * width;
-            const gy = (py / rect.height) * height;
-            
-            // Blast radius
-            for (let p of particles) {
-                let dx = p.x - gx;
-                let dy = p.y - gy;
-                let d = Math.sqrt(dx*dx + dy*dy);
-                if (d < 15) {
-                    p.vx += (dx / d) * 10;
-                    p.vy += (dy / d) * 10;
-                }
-            }
-        });
 
         document.getElementById('toggle-view').addEventListener('click', () => {
             useAscii = !useAscii;
@@ -261,7 +219,6 @@
         
         document.getElementById('reset-sim').addEventListener('click', init);
 
-        // Initialize display states
         canvas.style.display = 'none';
         asciiLayer.style.display = 'block';
 
