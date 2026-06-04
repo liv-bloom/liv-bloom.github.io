@@ -225,6 +225,8 @@
                 
                 if (gameState === 'caught' && this.isPlayer) {
                     ctx.fillStyle = '#d46b6b';
+                } else if (this.isPlayer && gameState === 'playing') {
+                    ctx.fillStyle = '#8fd46b';
                 } else {
                     ctx.fillStyle = '#76c7d5';
                 }
@@ -234,9 +236,9 @@
 
                 // Highlight player faintly so the human knows who they are
                 if (this.isPlayer && gameState === 'playing') {
-                    ctx.strokeStyle = 'rgba(118, 199, 213, 0.3)';
+                    ctx.strokeStyle = 'rgba(143, 212, 107, 0.5)';
                     ctx.beginPath();
-                    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+                    ctx.arc(0, 0, 14, 0, Math.PI * 2);
                     ctx.stroke();
                 }
 
