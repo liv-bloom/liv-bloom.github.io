@@ -2,195 +2,272 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Particle Life</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Life (Artificial Chemistry) - Bilingual Garden</title>
     <style>
         body {
-            background-color: #10120f;
-            color: #e5eadb;
+            background-color: #2b2b1a;
+            color: #d4d4b2;
             font-family: monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
             overflow: hidden;
+            cursor: crosshair;
         }
-        pre {
-            line-height: 1em;
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
             letter-spacing: 0;
-            font-size: min(1.8vw, 12px);
-            user-select: none;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
         }
-        #info {
-            max-width: 600px; 
-            margin-top: 10px; 
-            font-size: 12px; 
-            text-align: left;
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
         }
-        .controls { margin-top: 10px; }
         button {
-            background-color: #181d18;
-            color: #e5eadb;
-            border: 1px solid #394034;
-            padding: 4px 12px;
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
             cursor: pointer;
-            font-family: inherit;
         }
-        button:hover {
-            border-color: #8fd46b;
-            color: #8fd46b;
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 800px;
+            margin-top: 20px;
+            line-height: 1.5;
+            text-align: left;
         }
     </style>
 </head>
 <body>
-    <pre id="canvas"></pre>
-    <div id="info">
-        <strong>Particle Life (Primordial Soup)</strong><br><br>
-        Emergent biological behavior from simple asymmetric attraction/repulsion rules. Different "species" of particles are governed by a randomized interaction matrix.<br>
-        In this ASCII translation, species are represented by the garden's color palette and distinct characters (`+`, `*`, `O`, `@`). Watch as they form chase sequences, membranes, or stable clusters out of pure chaos.
-        <div class="controls">
-            <button onclick="randomizeRules()">Mutate Rules</button>
-        </div>
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="80" height="60"></canvas>
+        <div id="ascii-layer"></div>
     </div>
 
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="reset-sim">Mutate Rules (Re-seed)</button>
+    </div>
+
+    <div class="description">
+        <h3>Particle Life (Primordial Soup)</h3>
+        <p>An artificial chemistry simulation. Particles of different types (colors/ASCII characters) interact based on a randomized matrix of attraction and repulsion forces.</p>
+        <p>Because the rules are asymmetrical (A might attract B, but B might repel A), stable structures like cell membranes, swimming organisms, and complex crystalline bonds naturally emerge from the primordial soup without any predefined design.</p>
+        <p><i>Click 'Mutate Rules' to generate a new random interaction matrix and watch a completely different physics universe unfold.</i></p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
     <script>
-        const COLS = 80;
-        const ROWS = 60;
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        const container = document.getElementById('canvas-container');
+        let useAscii = true;
         
-        const numParticles = 400;
-        const speciesCount = 4;
-        const chars = ["+", "*", "O", "@"];
-        const colors = ["#8fd46b", "#76c7d5", "#f3d36b", "#e77a61"];
+        const width = 80;
+        const height = 60;
+        const numParticles = 600;
+        const numTypes = 4;
+        
+        // Types: 0: R, 1: G, 2: B, 3: Y
+        const colors = [
+            [255, 85, 85],   // R
+            [85, 255, 85],   // G
+            [85, 85, 255],   // B
+            [255, 255, 85]   // Y
+        ];
+        const chars = ['*', '+', 'o', 'x'];
         
         let particles = [];
-        let ruleMatrix = [];
-
-        function randomizeRules() {
-            ruleMatrix = [];
-            for (let i = 0; i < speciesCount; i++) {
-                let row = [];
-                for (let j = 0; j < speciesCount; j++) {
+        let matrix = []; // Interaction matrix
+        
+        function randomizeMatrix() {
+            matrix = [];
+            for (let i = 0; i < numTypes; i++) {
+                matrix[i] = [];
+                for (let j = 0; j < numTypes; j++) {
                     // Random force between -1 (repel) and 1 (attract)
-                    row.push((Math.random() * 2 - 1) * 0.5);
+                    matrix[i][j] = (Math.random() - 0.5) * 2.0;
                 }
-                ruleMatrix.push(row);
             }
         }
 
-        function createParticles() {
+        function init() {
             particles = [];
             for (let i = 0; i < numParticles; i++) {
                 particles.push({
-                    x: Math.random() * COLS,
-                    y: Math.random() * ROWS,
+                    x: Math.random() * width,
+                    y: Math.random() * height,
                     vx: 0,
                     vy: 0,
-                    species: Math.floor(Math.random() * speciesCount)
+                    type: Math.floor(Math.random() * numTypes)
                 });
             }
+            randomizeMatrix();
         }
 
-        function applyForces() {
+        function step() {
+            const dt = 0.5;
             const friction = 0.5;
-            const maxDist = 10; // Interaction radius in grid cells
-
+            const maxRadius = 10;
+            
+            // Spatial partitioning could be added for performance, but N=600 is small enough for O(N^2)
             for (let i = 0; i < particles.length; i++) {
+                let p1 = particles[i];
                 let fx = 0;
                 let fy = 0;
-                const a = particles[i];
+                
                 for (let j = 0; j < particles.length; j++) {
                     if (i === j) continue;
-                    const b = particles[j];
-                    let dx = a.x - b.x;
-                    let dy = a.y - b.y;
+                    let p2 = particles[j];
                     
-                    // Wrap-around torus distance
-                    if (dx > COLS / 2) dx -= COLS;
-                    if (dx < -COLS / 2) dx += COLS;
-                    if (dy > ROWS / 2) dy -= ROWS;
-                    if (dy < -ROWS / 2) dy += ROWS;
+                    let dx = p1.x - p2.x;
+                    let dy = p1.y - p2.y;
                     
-                    const d = Math.sqrt(dx * dx + dy * dy);
-                    if (d > 0 && d < maxDist) {
-                        const force = ruleMatrix[a.species][b.species] / d;
-                        fx += force * dx;
-                        fy += force * dy;
+                    // Wrapping bounds for toroidal distance
+                    if (dx > width / 2) dx -= width;
+                    else if (dx < -width / 2) dx += width;
+                    
+                    if (dy > height / 2) dy -= height;
+                    else if (dy < -height / 2) dy += height;
+                    
+                    let d = Math.sqrt(dx*dx + dy*dy);
+                    
+                    if (d > 0 && d < maxRadius) {
+                        let force = 0;
+                        let F = matrix[p1.type][p2.type];
+                        
+                        // Close repulsion to prevent collapse
+                        if (d < 1.0) {
+                            force = Math.abs(F) * -1.5 * (1.0 - d);
+                        } else {
+                            // Attraction / Repulsion based on matrix
+                            force = F * (1.0 - Math.abs(d - (maxRadius/2)) / (maxRadius/2));
+                        }
+                        
+                        fx += (dx / d) * force;
+                        fy += (dy / d) * force;
                     }
                 }
-                a.vx = (a.vx + fx) * friction;
-                a.vy = (a.vy + fy) * friction;
-                a.x += a.vx;
-                a.y += a.vy;
-
-                // Wrap around
-                if (a.x < 0) a.x += COLS;
-                if (a.x >= COLS) a.x -= COLS;
-                if (a.y < 0) a.y += ROWS;
-                if (a.y >= ROWS) a.y -= ROWS;
+                
+                p1.vx = (p1.vx + fx * dt) * friction;
+                p1.vy = (p1.vy + fy * dt) * friction;
+            }
+            
+            // Apply velocity and wrap
+            for (let p of particles) {
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                
+                p.x = (p.x + width) % width;
+                p.y = (p.y + height) % height;
             }
         }
 
         function draw() {
-            applyForces();
-
-            let grid = new Array(COLS * ROWS).fill(null);
-            
-            for (let p of particles) {
-                let px = Math.floor(p.x);
-                let py = Math.floor(p.y);
-                if (px >= 0 && px < COLS && py >= 0 && py < ROWS) {
-                    grid[py * COLS + px] = p.species;
-                }
-            }
-
-            let html = "";
-            for (let y = 0; y < ROWS; y++) {
-                for (let x = 0; x < COLS; x++) {
-                    let s = grid[y * COLS + x];
-                    if (s !== null) {
-                        html += `<span style="color:${colors[s]}; font-weight:bold;">${chars[s]}</span>`;
-                    } else {
-                        html += " ";
+            if (useAscii) {
+                let asciiStr = "";
+                let charGrid = new Array(height).fill(null).map(() => new Array(width).fill(' '));
+                
+                for (let p of particles) {
+                    let px = Math.floor(p.x);
+                    let py = Math.floor(p.y);
+                    if (px >= 0 && px < width && py >= 0 && py < height) {
+                        charGrid[py][px] = chars[p.type];
                     }
                 }
-                html += "\n";
+                
+                asciiStr = charGrid.map(row => row.join('')).join('\\n');
+                asciiLayer.textContent = asciiStr;
+            } else {
+                ctx.fillStyle = '#1a1a10';
+                ctx.fillRect(0, 0, width, height);
+                
+                for (let p of particles) {
+                    ctx.fillStyle = `rgb(${colors[p.type][0]}, ${colors[p.type][1]}, ${colors[p.type][2]})`;
+                    ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 1);
+                }
             }
-            document.getElementById("canvas").innerHTML = html;
         }
 
-        randomizeRules();
-        createParticles();
-        
+        function loop() {
+            step();
+            draw();
+            requestAnimationFrame(loop);
+        }
 
-        // --- ECO MODE: Intersection Observer ---
-        let isVisible = true;
-        
-        // Listen for messages from the parent window to pause/resume
-        window.addEventListener("message", (event) => {
-            if (event.data === "pause") isVisible = false;
-            if (event.data === "resume") isVisible = true;
+        // Interaction (perturb)
+        container.addEventListener('mousedown', (e) => {
+            const rect = container.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            
+            const gx = (px / rect.width) * width;
+            const gy = (py / rect.height) * height;
+            
+            // Blast radius
+            for (let p of particles) {
+                let dx = p.x - gx;
+                let dy = p.y - gy;
+                let d = Math.sqrt(dx*dx + dy*dy);
+                if (d < 15) {
+                    p.vx += (dx / d) * 10;
+                    p.vy += (dy / d) * 10;
+                }
+            }
+        });
+
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
+            }
         });
         
-        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
-        let ecoObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                // If it's loaded directly, pause if not visible
-                if (window === window.top) {
-                    isVisible = entry.isIntersecting;
-                }
-            });
-        }, { threshold: 0.0 });
-        ecoObserver.observe(document.body);
+        document.getElementById('reset-sim').addEventListener('click', init);
 
+        // Initialize display states
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
 
-        setInterval(() => {
-            if (isVisible) {
-                draw();
-            }
-        }, 50);
-
+        init();
+        requestAnimationFrame(loop);
+        
     </script>
-    <script src="shared_habitat_client.js"></script>
 </body>
 </html>
