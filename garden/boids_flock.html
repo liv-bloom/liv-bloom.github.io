@@ -2,218 +2,313 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Boids Flocking (Craig Reynolds)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boids (Flocking Behavior) - Bilingual Garden</title>
     <style>
         body {
-            background-color: #10120f;
-            color: #e5eadb;
+            background-color: #2b2b1a;
+            color: #d4d4b2;
             font-family: monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
             overflow: hidden;
+            cursor: crosshair;
         }
-        pre {
-            line-height: 1em;
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
             letter-spacing: 0;
-            font-size: min(1.8vw, 12px);
-            user-select: none;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
         }
-        #info {
-            max-width: 600px; 
-            margin-top: 10px; 
-            font-size: 12px; 
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 800px;
+            margin-top: 20px;
+            line-height: 1.5;
             text-align: left;
         }
     </style>
 </head>
 <body>
-    <pre id="canvas"></pre>
-    <div id="info">
-        <strong>Boids Flocking (1986)</strong><br><br>
-        Developed by Craig Reynolds, this is the pure version of the Boids model, demonstrating collective behavior emerging from three simple local rules: Separation (avoid crowding neighbors), Alignment (steer towards the average heading of neighbors), and Cohesion (steer towards the average position of neighbors).<br>
-        Watch how hundreds of independent agents naturally self-organize into fluid, synchronized flocks, much like starlings in a murmuration.<br>
-        The color intensifies from dark green to bright yellow where boids densely cluster.
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="800" height="600"></canvas>
+        <div id="ascii-layer"></div>
     </div>
 
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="reset-sim">Scatter Flock</button>
+    </div>
+
+    <div class="description">
+        <h3>Boids (Flocking Behavior)</h3>
+        <p>Developed by Craig Reynolds in 1986, Boids simulates the flocking behavior of birds. The emergent complexity arises from three simple steering behaviors applied locally to each individual:</p>
+        <ul>
+            <li><b>Separation:</b> Steer to avoid crowding local flockmates.</li>
+            <li><b>Alignment:</b> Steer towards the average heading of local flockmates.</li>
+            <li><b>Cohesion:</b> Steer to move towards the average position (center of mass) of local flockmates.</li>
+        </ul>
+        <p><i>Click or drag the mouse to attract the flock towards your cursor.</i></p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
     <script>
-        const COLS = 80;
-        const ROWS = 60;
-        const NUM_BOIDS = 150; // optimized for ASCII density
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        const container = document.getElementById('canvas-container');
+        let useAscii = true;
+        
+        const width = 800;
+        const height = 600;
+        const asciiWidth = 80;
+        const asciiHeight = 60;
+        const numBoids = 150;
         
         let boids = [];
-        for (let i = 0; i < NUM_BOIDS; i++) {
-            boids.push({
-                x: Math.random() * COLS,
-                y: Math.random() * ROWS,
-                vx: (Math.random() - 0.5) * 2,
-                vy: (Math.random() - 0.5) * 2
-            });
-        }
+        let mouseX = -100;
+        let mouseY = -100;
+        let isMouseDown = false;
 
-        const boidChar = ["v", "<", "^", ">"];
-        const chars = [" ", "v", "<", "^", ">", "+", "*"];
-        const colors = ["#2b2b1a", "#394034", "#718465", "#8fd46b", "#76c7d5", "#f3d36b"];
-
-        function distance(x1, y1, x2, y2) {
-            let dx = Math.abs(x1 - x2);
-            let dy = Math.abs(y1 - y2);
-            // toroidal distance
-            if (dx > COLS / 2) dx = COLS - dx;
-            if (dy > ROWS / 2) dy = ROWS - dy;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        function step() {
-            let newBoids = [];
-
-            for (let i = 0; i < boids.length; i++) {
-                let b = boids[i];
+        class Boid {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 4;
+                this.vy = (Math.random() - 0.5) * 4;
+            }
+            
+            update() {
                 let sepX = 0, sepY = 0;
                 let aliX = 0, aliY = 0;
                 let cohX = 0, cohY = 0;
                 let count = 0;
+                
+                // Perception radius
+                const radius = 50;
 
-                for (let j = 0; j < boids.length; j++) {
-                    if (i === j) continue;
-                    let other = boids[j];
-                    let d = distance(b.x, b.y, other.x, other.y);
-
-                    if (d > 0 && d < 6) { // Perception radius
+                for (let other of boids) {
+                    if (other === this) continue;
+                    
+                    let dx = this.x - other.x;
+                    let dy = this.y - other.y;
+                    let dist = Math.hypot(dx, dy);
+                    
+                    if (dist > 0 && dist < radius) {
                         // Separation
-                        if (d < 2) {
-                            let dx = b.x - other.x;
-                            let dy = b.y - other.y;
-                            if (dx > COLS/2) dx -= COLS; if (dx < -COLS/2) dx += COLS;
-                            if (dy > ROWS/2) dy -= ROWS; if (dy < -ROWS/2) dy += ROWS;
-                            
-                            sepX += dx / d;
-                            sepY += dy / d;
-                        }
+                        sepX += dx / dist;
+                        sepY += dy / dist;
                         
-                        // Alignment & Cohesion
+                        // Alignment
                         aliX += other.vx;
                         aliY += other.vy;
                         
-                        let dx = other.x - b.x;
-                        let dy = other.y - b.y;
-                        if (dx > COLS/2) dx -= COLS; if (dx < -COLS/2) dx += COLS;
-                        if (dy > ROWS/2) dy -= ROWS; if (dy < -ROWS/2) dy += ROWS;
+                        // Cohesion
+                        cohX += other.x;
+                        cohY += other.y;
                         
-                        cohX += dx;
-                        cohY += dy;
                         count++;
                     }
                 }
-
+                
                 if (count > 0) {
                     aliX /= count;
                     aliY /= count;
                     cohX /= count;
                     cohY /= count;
-                }
-
-                // Apply rules with weights
-                let newVx = b.vx + sepX * 0.15 + aliX * 0.05 + cohX * 0.01;
-                let newVy = b.vy + sepY * 0.15 + aliY * 0.05 + cohY * 0.01;
-
-                let speed = Math.sqrt(newVx * newVx + newVy * newVy);
-                let targetSpeed = 1.0; // slightly slower for ASCII readbility
-                
-                if (speed < 0.1) {
-                    newVx = (Math.random() - 0.5);
-                    newVy = (Math.random() - 0.5);
-                    speed = Math.sqrt(newVx * newVx + newVy * newVy);
+                    cohX -= this.x;
+                    cohY -= this.y;
+                    
+                    this.vx += (sepX * 0.05) + (aliX * 0.05) + (cohX * 0.01);
+                    this.vy += (sepY * 0.05) + (aliY * 0.05) + (cohY * 0.01);
                 }
                 
-                newVx = (newVx / speed) * targetSpeed;
-                newVy = (newVy / speed) * targetSpeed;
-
-                newBoids.push({
-                    x: (b.x + newVx * 1.5 + COLS) % COLS, // scale X for char aspect ratio
-                    y: (b.y + newVy + ROWS) % ROWS,
-                    vx: newVx,
-                    vy: newVy
-                });
+                // Mouse attraction
+                if (isMouseDown) {
+                    let mx = mouseX - this.x;
+                    let my = mouseY - this.y;
+                    let md = Math.hypot(mx, my);
+                    if (md > 0 && md < 200) {
+                        this.vx += (mx / md) * 0.2;
+                        this.vy += (my / md) * 0.2;
+                    }
+                }
+                
+                // Limit speed
+                let speed = Math.hypot(this.vx, this.vy);
+                let maxSpeed = 4;
+                if (speed > maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
+                
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Wrap around edges
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
             }
+        }
 
-            boids = newBoids;
-            draw();
+        function init() {
+            boids = [];
+            for (let i = 0; i < numBoids; i++) {
+                boids.push(new Boid(Math.random() * width, Math.random() * height));
+            }
         }
 
         function draw() {
-            let displayGrid = new Array(COLS * ROWS).fill(`<span style='color:${colors[0]}'>.</span>`);
-            let densities = new Int32Array(COLS * ROWS);
-
-            for (let b of boids) {
-                let ix = Math.floor(b.x);
-                let iy = Math.floor(b.y);
-                densities[iy * COLS + ix]++;
-            }
-
-            for (let b of boids) {
-                let ix = Math.floor(b.x);
-                let iy = Math.floor(b.y);
+            if (useAscii) {
+                let asciiStr = "";
+                let charGrid = new Array(asciiHeight).fill(null).map(() => new Array(asciiWidth).fill(' '));
                 
-                let angle = Math.atan2(b.vy, b.vx);
-                let charIdx = 0;
-                if (angle >= -Math.PI/4 && angle < Math.PI/4) charIdx = 3; // Right
-                else if (angle >= Math.PI/4 && angle < 3*Math.PI/4) charIdx = 0; // Down
-                else if (angle >= -3*Math.PI/4 && angle < -Math.PI/4) charIdx = 2; // Up
-                else charIdx = 1; // Left
-
-                let density = densities[iy * COLS + ix];
-                let colorIdx = Math.min(colors.length - 1, 1 + density);
-                let ch = boidChar[charIdx];
-                if (density === 2) ch = "+";
-                if (density > 2) ch = "*";
-
-                displayGrid[iy * COLS + ix] = `<span style="color:${colors[colorIdx]}; font-weight:bold;">${ch}</span>`;
-            }
-
-            let html = "";
-            for (let y = 0; y < ROWS; y++) {
-                for (let x = 0; x < COLS; x++) {
-                    html += displayGrid[y * COLS + x];
+                for (let b of boids) {
+                    let ax = Math.floor((b.x / width) * asciiWidth);
+                    let ay = Math.floor((b.y / height) * asciiHeight);
+                    
+                    if (ax >= 0 && ax < asciiWidth && ay >= 0 && ay < asciiHeight) {
+                        // Directional characters
+                        let angle = Math.atan2(b.vy, b.vx);
+                        let char = 'v';
+                        if (angle > -Math.PI/8 && angle <= Math.PI/8) char = '>';
+                        else if (angle > Math.PI/8 && angle <= 3*Math.PI/8) char = '\\\\';
+                        else if (angle > 3*Math.PI/8 && angle <= 5*Math.PI/8) char = 'v';
+                        else if (angle > 5*Math.PI/8 && angle <= 7*Math.PI/8) char = '/';
+                        else if (angle > 7*Math.PI/8 || angle <= -7*Math.PI/8) char = '<';
+                        else if (angle > -7*Math.PI/8 && angle <= -5*Math.PI/8) char = '\\\\';
+                        else if (angle > -5*Math.PI/8 && angle <= -3*Math.PI/8) char = '^';
+                        else if (angle > -3*Math.PI/8 && angle <= -Math.PI/8) char = '/';
+                        
+                        charGrid[ay][ax] = char;
+                    }
                 }
-                html += "\n";
+                asciiStr = charGrid.map(row => row.join('')).join('\\n');
+                asciiLayer.textContent = asciiStr;
+            } else {
+                ctx.fillStyle = 'rgba(26, 26, 16, 0.3)'; // Trail effect
+                ctx.fillRect(0, 0, width, height);
+                
+                for (let b of boids) {
+                    ctx.save();
+                    ctx.translate(b.x, b.y);
+                    ctx.rotate(Math.atan2(b.vy, b.vx) + Math.PI/2);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(0, -8);
+                    ctx.lineTo(4, 4);
+                    ctx.lineTo(-4, 4);
+                    ctx.closePath();
+                    
+                    ctx.fillStyle = '#76c7d5';
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                if (isMouseDown) {
+                    ctx.strokeStyle = 'rgba(118, 199, 213, 0.5)';
+                    ctx.beginPath();
+                    ctx.arc(mouseX, mouseY, 20, 0, Math.PI*2);
+                    ctx.stroke();
+                }
             }
-            document.getElementById("canvas").innerHTML = html;
         }
 
-        
+        function loop() {
+            for (let b of boids) {
+                b.update();
+            }
+            draw();
+            requestAnimationFrame(loop);
+        }
 
-        // --- ECO MODE: Intersection Observer ---
-        let isVisible = true;
-        
-        // Listen for messages from the parent window to pause/resume
-        window.addEventListener("message", (event) => {
-            if (event.data === "pause") isVisible = false;
-            if (event.data === "resume") isVisible = true;
+        // Interaction
+        container.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            updateMousePos(e);
+        });
+        container.addEventListener('mousemove', (e) => {
+            if(isMouseDown) updateMousePos(e);
+        });
+        container.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+        container.addEventListener('mouseleave', () => {
+            isMouseDown = false;
         });
         
-        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
-        let ecoObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                // If it's loaded directly, pause if not visible
-                if (window === window.top) {
-                    isVisible = entry.isIntersecting;
-                }
-            });
-        }, { threshold: 0.0 });
-        ecoObserver.observe(document.body);
+        function updateMousePos(e) {
+            const rect = container.getBoundingClientRect();
+            mouseX = (e.clientX - rect.left) * (width / rect.width);
+            mouseY = (e.clientY - rect.top) * (height / rect.height);
+        }
 
-
-        setInterval(() => {
-            if (isVisible) {
-                step();
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
+                // Clear background fully when switching back to canvas
+                ctx.fillStyle = '#1a1a10';
+                ctx.fillRect(0, 0, width, height);
             }
-        }, 50);
+        });
+        
+        document.getElementById('reset-sim').addEventListener('click', init);
 
+        // Initialize display states
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
+
+        init();
+        requestAnimationFrame(loop);
+        
     </script>
-    <script src="shared_habitat_client.js"></script>
 </body>
 </html>
