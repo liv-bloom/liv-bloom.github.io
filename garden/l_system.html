@@ -2,125 +2,146 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>L-System Plant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L-System (Algorithmic Botany) - Bilingual Garden</title>
     <style>
         body {
-            background-color: #10120f;
-            color: #e5eadb;
+            background-color: #2b2b1a;
+            color: #d4d4b2;
             font-family: monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
             overflow: hidden;
+            cursor: crosshair;
         }
-        pre {
-            line-height: 1em;
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
             letter-spacing: 0;
-            font-size: min(1.8vw, 12px);
-            user-select: none;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
         }
-        #info {
-            max-width: 600px; 
-            margin-top: 10px; 
-            font-size: 12px; 
-            text-align: left;
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
         }
-        .controls { margin-top: 10px; display: flex; gap: 5px; flex-wrap: wrap;}
         button {
-            background-color: #181d18;
-            color: #e5eadb;
-            border: 1px solid #394034;
-            padding: 4px 12px;
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
             cursor: pointer;
-            font-family: inherit;
         }
-        button:hover {
-            border-color: #8fd46b;
-            color: #8fd46b;
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 800px;
+            margin-top: 20px;
+            line-height: 1.5;
+            text-align: left;
         }
     </style>
 </head>
 <body>
-    <pre id="canvas"></pre>
-    <div id="info">
-        <strong>L-System Plant</strong><br><br>
-        A formal grammar system (Lindenmayer system) that models the growth processes of plant development using recursive rewriting rules.<br>
-        In this ASCII translation, we draw the fractal branches using characters on a text grid, adjusting color to match the garden's unified palette.
-        <div class="controls">
-            <button onclick="generatePlant('weed')">Weed</button>
-            <button onclick="generatePlant('tree')">Tree</button>
-            <button onclick="generatePlant('bush')">Bush</button>
-        </div>
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="80" height="60"></canvas>
+        <div id="ascii-layer"></div>
     </div>
 
-    <script>
-        const COLS = 120;
-        const ROWS = 60;
-        
-        let grid = new Array(COLS * ROWS).fill(null);
-        
-        const systems = {
-            weed: {
-                axiom: "X",
-                rules: { "X": "F+[[X]-X]-F[-FX]+X", "F": "FF" },
-                angle: 25 * Math.PI / 180,
-                iterations: 5,
-                len: 2,
-                color: '#76c7d5', // cyan
-                char: '#'
-            },
-            tree: {
-                axiom: "FX",
-                rules: { "X": ">[-FX]+FX" },
-                angle: 40 * Math.PI / 180,
-                iterations: 7,
-                len: 15,
-                color: '#f3d36b', // yellow
-                char: '*'
-            },
-            bush: {
-                axiom: "Y",
-                rules: { "X": "X[-FFF][+FFF]FX", "Y": "YFX[+Y][-Y]" },
-                angle: 25.7 * Math.PI / 180,
-                iterations: 4,
-                len: 2.5,
-                color: '#8fd46b', // bright green
-                char: '%'
-            }
-        };
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="grow-btn">Grow (Next Generation)</button>
+        <button id="reset-sim">Reset Seed</button>
+    </div>
 
-        function getSentence(sys) {
-            let sentence = sys.axiom;
-            for (let i = 0; i < sys.iterations; i++) {
-                let nextSentence = "";
-                for (let j = 0; j < sentence.length; j++) {
-                    let c = sentence.charAt(j);
-                    if (sys.rules[c]) {
-                        nextSentence += sys.rules[c];
-                    } else {
-                        nextSentence += c;
-                    }
-                }
-                sentence = nextSentence;
-            }
-            return sentence;
+    <div class="description">
+        <h3>L-System (Algorithmic Botany)</h3>
+        <p>A Lindenmayer system (L-System) is a formal grammar that models the growth processes of plant development. It starts with an initial state (Axiom) and iteratively applies rewriting rules.</p>
+        <p>Here, the axiom is <b>X</b>, and the rules are:<br>
+        <i>X &rarr; F+[[X]-X]-F[-FX]+X</i><br>
+        <i>F &rarr; FF</i><br>
+        This sequence of characters is then interpreted as turtle graphics (F: draw forward, +/-: turn, []: push/pop state) to generate fractal foliage.</p>
+        <p><i>Click 'Grow' to iterate the grammar and watch the structural complexity compound algorithmically.</i></p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        
+        const width = 80;
+        const height = 60;
+        
+        let generation = 0;
+        let sentence = "X";
+        const rules = {
+            "X": "F+[[X]-X]-F[-FX]+X",
+            "F": "FF"
+        };
+        const angleOffset = (25 * Math.PI) / 180;
+        let charGrid = [];
+
+        function init() {
+            generation = 0;
+            sentence = "X";
+            draw();
         }
 
-        function drawLine(x0, y0, x1, y1, color, char) {
-            x0 = Math.floor(x0); y0 = Math.floor(y0);
-            x1 = Math.floor(x1); y1 = Math.floor(y1);
+        function generate() {
+            if (generation >= 6) return; // Prevent excessive slowdown
+            let nextSentence = "";
+            for (let i = 0; i < sentence.length; i++) {
+                let current = sentence.charAt(i);
+                if (rules[current]) {
+                    nextSentence += rules[current];
+                } else {
+                    nextSentence += current;
+                }
+            }
+            sentence = nextSentence;
+            generation++;
+            draw();
+        }
+
+        // Simple Bresenham line algorithm for the ASCII grid
+        function drawLineAscii(x0, y0, x1, y1) {
             let dx = Math.abs(x1 - x0);
             let dy = Math.abs(y1 - y0);
             let sx = (x0 < x1) ? 1 : -1;
             let sy = (y0 < y1) ? 1 : -1;
             let err = dx - dy;
             
-            while(true) {
-                if (x0 >= 0 && x0 < COLS && y0 >= 0 && y0 < ROWS) {
-                    grid[y0 * COLS + x0] = { color: color, char: char };
+            while (true) {
+                if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height) {
+                    charGrid[y0][x0] = '*'; // Simple character for the plant
                 }
                 if (x0 === x1 && y0 === y1) break;
                 let e2 = 2 * err;
@@ -129,67 +150,85 @@
             }
         }
 
-        function generatePlant(type) {
-            grid.fill(null);
-            const sys = systems[type];
-            const sentence = getSentence(sys);
+        function draw() {
+            let len = height / (2 + generation * 1.5); 
             
-            let len = sys.len;
-            let x = COLS / 2;
-            let y = ROWS - 1;
-            let dir = -Math.PI / 2;
+            // Setup rendering context
+            ctx.fillStyle = '#1a1a10';
+            ctx.fillRect(0, 0, width, height);
+            ctx.strokeStyle = '#8fd46b';
+            ctx.lineWidth = 0.5;
             
-            let stateStack = [];
+            // Setup ASCII grid
+            charGrid = new Array(height).fill(null).map(() => new Array(width).fill(' '));
             
+            let x = width / 2;
+            let y = height;
+            let currentAngle = -Math.PI / 2; // Pointing up
+            let stack = [];
+            
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+
             for (let i = 0; i < sentence.length; i++) {
-                let c = sentence.charAt(i);
+                let current = sentence.charAt(i);
                 
-                if (c === "F") {
-                    let nextX = x + Math.cos(dir) * len;
-                    let nextY = y + Math.sin(dir) * len * 0.6; // adjust aspect ratio
+                if (current === 'F') {
+                    let nextX = x + Math.cos(currentAngle) * len;
+                    let nextY = y + Math.sin(currentAngle) * len;
                     
-                    drawLine(x, y, nextX, nextY, sys.color, sys.char);
+                    ctx.lineTo(nextX, nextY);
+                    drawLineAscii(Math.floor(x), Math.floor(y), Math.floor(nextX), Math.floor(nextY));
                     
                     x = nextX;
                     y = nextY;
-                } else if (c === "+") {
-                    dir += sys.angle;
-                } else if (c === "-") {
-                    dir -= sys.angle;
-                } else if (c === "[") {
-                    stateStack.push({ x: x, y: y, dir: dir, len: len });
-                } else if (c === "]") {
-                    let state = stateStack.pop();
+                } else if (current === '+') {
+                    currentAngle += angleOffset;
+                } else if (current === '-') {
+                    currentAngle -= angleOffset;
+                } else if (current === '[') {
+                    stack.push({x: x, y: y, angle: currentAngle});
+                } else if (current === ']') {
+                    let state = stack.pop();
                     x = state.x;
                     y = state.y;
-                    dir = state.dir;
-                    len = state.len;
-                } else if (c === ">") {
-                    len *= 0.7; // shrink branch
+                    currentAngle = state.angle;
+                    ctx.moveTo(x, y);
                 }
             }
-            
-            renderGrid();
+            ctx.stroke();
+
+            // Update ASCII layer
+            let asciiStr = charGrid.map(row => row.join('')).join('\\n');
+            asciiLayer.textContent = asciiStr;
         }
 
-        function renderGrid() {
-            let html = "";
-            for (let r = 0; r < ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    let cell = grid[r * COLS + c];
-                    if (cell) {
-                        html += `<span style="color:${cell.color}; font-weight:bold;">${cell.char}</span>`;
-                    } else {
-                        html += " ";
-                    }
-                }
-                html += "\n";
+        let useAscii = true;
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
             }
-            document.getElementById("canvas").innerHTML = html;
-        }
+        });
+        
+        document.getElementById('reset-sim').addEventListener('click', init);
+        document.getElementById('grow-btn').addEventListener('click', generate);
 
-        generatePlant('weed');
+        // Initialize display states
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
+
+        init();
+        
+        // Auto grow a few times for preview
+        setTimeout(generate, 100);
+        setTimeout(generate, 300);
+        setTimeout(generate, 500);
+
     </script>
-    <script src="shared_habitat_client.js"></script>
 </body>
 </html>
