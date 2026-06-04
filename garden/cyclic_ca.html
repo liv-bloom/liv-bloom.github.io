@@ -2,145 +2,214 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Cyclic Cellular Automaton</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyclic Cellular Automaton - Bilingual Garden</title>
     <style>
         body {
-            background-color: #10120f;
-            color: #e5eadb;
+            background-color: #2b2b1a;
+            color: #d4d4b2;
             font-family: monospace;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             margin: 0;
+            padding: 20px;
+        }
+        #canvas-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            background-color: #1a1a10;
+            border: 1px solid #4a4a3a;
             overflow: hidden;
+            cursor: pointer;
         }
-        pre {
-            line-height: 1em;
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #ascii-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 10px;
             letter-spacing: 0;
-            font-size: min(1.8vw, 12px);
-            user-select: none;
+            pointer-events: none;
+            overflow: hidden;
+            display: none;
         }
-        #info {
-            max-width: 600px; 
-            margin-top: 10px; 
-            font-size: 12px; 
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        button {
+            background-color: #4a4a3a;
+            color: #d4d4b2;
+            border: 1px solid #d4d4b2;
+            padding: 5px 15px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+        button:hover { background-color: #d4d4b2; color: #2b2b1a; }
+        .description {
+            max-width: 600px;
+            margin-top: 20px;
+            line-height: 1.5;
             text-align: left;
         }
     </style>
 </head>
 <body>
-    <pre id="canvas"></pre>
-    <div id="info">
-        <strong>Cyclic Cellular Automaton</strong><br><br>
-        A cellular automaton invented by David Griffeath.<br>
-        Each cell takes one of 6 states, representing a biological rock-paper-scissors-like food chain.<br>
-        Rule: A cell consumes its neighbor if the neighbor's state is exactly one greater than its own (state 0 consumes state 1, state 1 consumes state 2... state 5 consumes state 0).<br>
-        From pure random noise, this simple predatory rule naturally generates beautiful, self-organizing spiral waves that compete for space across the ecosystem.
+
+    <div id="canvas-container">
+        <canvas id="simCanvas" width="100" height="100"></canvas>
+        <div id="ascii-layer"></div>
     </div>
 
+    <div class="controls">
+        <button id="toggle-view">Toggle ASCII / Canvas</button>
+        <button id="reset-sim">Reset Simulation</button>
+    </div>
+
+    <div class="description">
+        <h3>Cyclic Cellular Automaton (Excitable Media)</h3>
+        <p>A classic model simulating excitable media and Belousov-Zhabotinsky reactions. It follows a generalized "Rock-Paper-Scissors" mechanic with N states.</p>
+        <p>Each cell has a state from 0 to 15. In each step, a cell looks at its immediate neighbors (Moore neighborhood). If any neighbor has the exact next state in the sequence (i.e., state + 1), the cell is "eaten" and advances to that next state.</p>
+        <p>From initial randomness, the system spontaneously organizes into beautiful spirals, traveling waves, and persistent self-sustaining macro-structures.</p>
+    </div>
+
+    <script src="shared_habitat_client.js"></script>
     <script>
-        const COLS = 80;
-        const ROWS = 60;
-        const STATES = 6;
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+        const asciiLayer = document.getElementById('ascii-layer');
+        const container = document.getElementById('canvas-container');
+        let useAscii = true;
         
-        let grid = new Uint8Array(COLS * ROWS);
-        let next = new Uint8Array(COLS * ROWS);
+        const width = 100;
+        const height = 100;
+        const numStates = 16;
         
-        for (let i = 0; i < grid.length; i++) {
-            grid[i] = Math.floor(Math.random() * STATES);
+        let grid = new Uint8Array(width * height);
+        let nextGrid = new Uint8Array(width * height);
+        
+        // Precompute colors and ASCII chars for the 16 states
+        const stateColors = [];
+        const stateChars = [' ', '.', ':', '-', '=', '+', '*', 'x', 'X', '#', '%', '&', '@', '$', 'W', 'M'];
+        for (let i = 0; i < numStates; i++) {
+            let hue = (i / numStates) * 360;
+            // Generate RGB from HSL roughly
+            let sat = 0.7;
+            let light = 0.5;
+            // A simple map to RGB
+            const a = sat * Math.min(light, 1 - light);
+            const f = n => {
+                const k = (n + hue / 30) % 12;
+                return light - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+            };
+            stateColors.push([Math.round(f(0)*255), Math.round(f(8)*255), Math.round(f(4)*255)]);
         }
 
-        // Using ALife Garden unified palette
-        const chars = ["@", "O", "*", "+", "-", "."];
-        const colors = ["#e77a61", "#f3d36b", "#8fd46b", "#76c7d5", "#394034", "#2b2b1a"];
+        function init() {
+            for (let i = 0; i < grid.length; i++) {
+                grid[i] = Math.floor(Math.random() * numStates);
+            }
+        }
 
         function step() {
-            for (let y = 0; y < ROWS; y++) {
-                for (let x = 0; x < COLS; x++) {
-                    let idx = y * COLS + x;
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let idx = y * width + x;
                     let state = grid[idx];
-                    let target = (state + 1) % STATES;
+                    let nextState = (state + 1) % numStates;
+                    let advanced = false;
                     
-                    let consumed = false;
+                    // Check Moore neighborhood
                     for (let dy = -1; dy <= 1; dy++) {
                         for (let dx = -1; dx <= 1; dx++) {
                             if (dx === 0 && dy === 0) continue;
-                            
-                            // Toroidal wrap
-                            let nx = (x + dx + COLS) % COLS;
-                            let ny = (y + dy + ROWS) % ROWS;
-                            
-                            if (grid[ny * COLS + nx] === target) {
-                                consumed = true;
+                            let nx = (x + dx + width) % width;
+                            let ny = (y + dy + height) % height;
+                            if (grid[ny * width + nx] === nextState) {
+                                advanced = true;
                                 break;
                             }
                         }
-                        if (consumed) break;
+                        if (advanced) break;
                     }
                     
-                    next[idx] = consumed ? target : state;
+                    nextGrid[idx] = advanced ? nextState : state;
                 }
             }
-            
-            let temp = grid;
-            grid = next;
-            next = temp;
-
-            draw();
+            grid.set(nextGrid);
         }
 
         function draw() {
-            let html = "";
-            for (let y = 0; y < ROWS; y++) {
-                let currentVal = -1;
-                for (let x = 0; x < COLS; x++) {
-                    let state = grid[y * COLS + x];
-                    if (state !== currentVal) {
-                        if (currentVal !== -1) html += "</span>";
-                        let fw = state < 3 ? "font-weight:bold;" : "";
-                        html += `<span style="color:${colors[state]}; ${fw}">`;
-                        currentVal = state;
+            if (useAscii) {
+                let asciiStr = "";
+                // Downsample 100x100 to 100x60 for ASCII aspect ratio roughly (actually 100x100 chars might overflow a bit vertically, but css line-height=10px handles 600px height=60 chars). We map it carefully.
+                // To fit 60 chars vertically:
+                let scaleY = height / 60; // 100/60 = 1.666
+                let charGrid = new Array(60).fill(null).map(() => new Array(100).fill(' '));
+                
+                for (let y = 0; y < 60; y++) {
+                    let gy = Math.floor(y * scaleY);
+                    for (let x = 0; x < width; x++) {
+                        let state = grid[gy * width + x];
+                        charGrid[y][x] = stateChars[state];
                     }
-                    html += chars[state];
                 }
-                if (currentVal !== -1) html += "</span>";
-                html += "\n";
+                asciiStr = charGrid.map(row => row.join('')).join('\\n');
+                asciiLayer.textContent = asciiStr;
+            } else {
+                let imgData = ctx.createImageData(width, height);
+                for (let i = 0; i < grid.length; i++) {
+                    let idx = i * 4;
+                    let state = grid[i];
+                    imgData.data[idx] = stateColors[state][0];
+                    imgData.data[idx+1] = stateColors[state][1];
+                    imgData.data[idx+2] = stateColors[state][2];
+                    imgData.data[idx+3] = 255;
+                }
+                ctx.putImageData(imgData, 0, 0);
             }
-            document.getElementById("canvas").innerHTML = html;
         }
 
-        
+        function loop() {
+            step();
+            draw();
+            requestAnimationFrame(loop);
+        }
 
-        // --- ECO MODE: Intersection Observer ---
-        let isVisible = true;
-        
-        // Listen for messages from the parent window to pause/resume
-        window.addEventListener("message", (event) => {
-            if (event.data === "pause") isVisible = false;
-            if (event.data === "resume") isVisible = true;
+        document.getElementById('toggle-view').addEventListener('click', () => {
+            useAscii = !useAscii;
+            if (useAscii) {
+                canvas.style.display = 'none';
+                asciiLayer.style.display = 'block';
+            } else {
+                canvas.style.display = 'block';
+                asciiLayer.style.display = 'none';
+            }
         });
         
-        // Also observe self just in case (though iframe inside iframe might be always intersecting its own body)
-        let ecoObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                // If it's loaded directly, pause if not visible
-                if (window === window.top) {
-                    isVisible = entry.isIntersecting;
-                }
-            });
-        }, { threshold: 0.0 });
-        ecoObserver.observe(document.body);
+        document.getElementById('reset-sim').addEventListener('click', init);
 
+        canvas.style.display = 'none';
+        asciiLayer.style.display = 'block';
 
-        setInterval(() => {
-            if (isVisible) {
-                step();
-            }
-        }, 80);
-
+        init();
+        requestAnimationFrame(loop);
+        
     </script>
-    <script src="shared_habitat_client.js"></script>
 </body>
 </html>
