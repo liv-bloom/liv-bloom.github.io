@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Langton's Ant (Emergent Complexity) - Bilingual Garden</title>
+    <title>Langton's Ant - Bilingual Garden</title>
     <style>
         body {
             background-color: #2b2b1a;
@@ -17,12 +17,12 @@
         }
         #canvas-container {
             position: relative;
-            width: 800px;
+            width: 600px;
             height: 600px;
             background-color: #1a1a10;
             border: 1px solid #4a4a3a;
             overflow: hidden;
-            cursor: crosshair;
+            cursor: pointer;
         }
         canvas {
             position: absolute;
@@ -50,6 +50,7 @@
             margin-top: 20px;
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         button {
             background-color: #4a4a3a;
@@ -61,7 +62,7 @@
         }
         button:hover { background-color: #d4d4b2; color: #2b2b1a; }
         .description {
-            max-width: 800px;
+            max-width: 600px;
             margin-top: 20px;
             line-height: 1.5;
             text-align: left;
@@ -71,25 +72,25 @@
 <body>
 
     <div id="canvas-container">
-        <canvas id="simCanvas" width="80" height="60"></canvas>
+        <canvas id="simCanvas" width="60" height="60"></canvas>
         <div id="ascii-layer"></div>
     </div>
 
     <div class="controls">
         <button id="toggle-view">Toggle ASCII / Canvas</button>
-        <button id="reset-sim">Reset Grid</button>
-        <button id="add-ant">Drop Ant</button>
+        <button id="reset-sim">Reset & Add Ant</button>
+        <button id="add-ant">Drop Ant Here</button>
     </div>
 
     <div class="description">
         <h3>Langton's Ant</h3>
-        <p>A simple two-dimensional universal Turing machine invented by Chris Langton. Ants move on a grid according to two basic rules:</p>
+        <p>Invented by Chris Langton in 1986. An ant moves on a grid of cells following two simple rules:</p>
         <ul>
-            <li>At a black square, turn 90° right, flip the color, move forward.</li>
-            <li>At a white square, turn 90° left, flip the color, move forward.</li>
+            <li>At a black square, turn 90° clockwise, flip the color of the square, and move forward.</li>
+            <li>At a white (or colored) square, turn 90° counter-clockwise, flip the color of the square, and move forward.</li>
         </ul>
-        <p>After a period of chaotic pseudo-random behavior, the ant inexplicably begins building a recurring "highway" pattern. A profound example of complex, emergent behavior arising from deterministic local rules.</p>
-        <p><i>Click to drop additional ants and watch their highways collide.</i></p>
+        <p>Despite the deterministic and simple rules, the ant's behavior seems chaotic for thousands of steps before spontaneously organizing into an emergent periodic "highway" that shoots off into the distance.</p>
+        <p><i>Click on the canvas to drop a new ant. Multiple ants will interact via the trails they leave behind.</i></p>
     </div>
 
     <script src="shared_habitat_client.js"></script>
@@ -100,59 +101,58 @@
         const container = document.getElementById('canvas-container');
         let useAscii = true;
         
-        const width = 80;
+        const width = 60;
         const height = 60;
         
-        // Grid: 0 = black (background), 1 = white (flipped)
+        // 0: black (empty), 1: white (trail)
         let grid = new Uint8Array(width * height);
         
+        // Directions: 0: Up, 1: Right, 2: Down, 3: Left
+        class Ant {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.dir = Math.floor(Math.random() * 4);
+                this.colorIndex = Math.floor(Math.random() * 3);
+            }
+
+            step() {
+                let idx = this.y * width + this.x;
+                let state = grid[idx];
+                
+                if (state === 0) {
+                    // Turn right
+                    this.dir = (this.dir + 1) % 4;
+                    grid[idx] = 1;
+                } else {
+                    // Turn left
+                    this.dir = (this.dir + 3) % 4;
+                    grid[idx] = 0;
+                }
+                
+                // Move forward
+                if (this.dir === 0) this.y--;
+                else if (this.dir === 1) this.x++;
+                else if (this.dir === 2) this.y++;
+                else if (this.dir === 3) this.x--;
+                
+                // Wrap around
+                if (this.x < 0) this.x = width - 1;
+                if (this.x >= width) this.x = 0;
+                if (this.y < 0) this.y = height - 1;
+                if (this.y >= height) this.y = 0;
+            }
+        }
+        
         let ants = [];
-        const UP = 0, RIGHT = 1, DOWN = 2, LEFT = 3;
 
         function init() {
             grid.fill(0);
             ants = [];
-            addAnt(Math.floor(width / 2), Math.floor(height / 2));
+            ants.push(new Ant(Math.floor(width/2), Math.floor(height/2)));
         }
 
-        function addAnt(x, y) {
-            ants.push({
-                x: x,
-                y: y,
-                dir: Math.floor(Math.random() * 4)
-            });
-        }
-
-        function step() {
-            for (let i = 0; i < 100; i++) { // Run multiple steps per frame
-                for (let ant of ants) {
-                    let idx = ant.y * width + ant.x;
-                    let state = grid[idx];
-                    
-                    if (state === 0) {
-                        // Black: turn right
-                        ant.dir = (ant.dir + 1) % 4;
-                        grid[idx] = 1;
-                    } else {
-                        // White: turn left
-                        ant.dir = (ant.dir + 3) % 4;
-                        grid[idx] = 0;
-                    }
-                    
-                    // Move forward
-                    if (ant.dir === UP) ant.y--;
-                    else if (ant.dir === RIGHT) ant.x++;
-                    else if (ant.dir === DOWN) ant.y++;
-                    else if (ant.dir === LEFT) ant.x--;
-                    
-                    // Wrap around
-                    ant.x = (ant.x + width) % width;
-                    ant.y = (ant.y + height) % height;
-                }
-            }
-        }
-
-        const chars = [' ', '#'];
+        const chars = [' ', '█'];
 
         function draw() {
             if (useAscii) {
@@ -161,67 +161,57 @@
                 
                 for (let y = 0; y < height; y++) {
                     for (let x = 0; x < width; x++) {
-                        let state = grid[y * width + x];
-                        charGrid[y][x] = chars[state];
+                        if (grid[y * width + x] === 1) {
+                            charGrid[y][x] = '#';
+                        }
                     }
                 }
-                
-                // Draw ants
                 for (let ant of ants) {
-                    charGrid[ant.y][ant.x] = '@';
+                    let c = '^';
+                    if (ant.dir === 1) c = '>';
+                    else if (ant.dir === 2) c = 'v';
+                    else if (ant.dir === 3) c = '<';
+                    charGrid[ant.y][ant.x] = c;
                 }
-                
                 asciiStr = charGrid.map(row => row.join('')).join('\\n');
                 asciiLayer.textContent = asciiStr;
             } else {
                 let imgData = ctx.createImageData(width, height);
-                for (let y = 0; y < height; y++) {
-                    for (let x = 0; x < width; x++) {
-                        let idx = (y * width + x) * 4;
-                        let state = grid[y * width + x];
-                        
-                        if (state === 1) { // White (flipped)
-                            imgData.data[idx] = 212;
-                            imgData.data[idx+1] = 212;
-                            imgData.data[idx+2] = 178;
-                        } else { // Black (bg)
-                            imgData.data[idx] = 26;
-                            imgData.data[idx+1] = 26;
-                            imgData.data[idx+2] = 16;
-                        }
-                        imgData.data[idx+3] = 255;
+                for (let i = 0; i < grid.length; i++) {
+                    let idx = i * 4;
+                    if (grid[i] === 0) {
+                        imgData.data[idx] = 26;
+                        imgData.data[idx+1] = 26;
+                        imgData.data[idx+2] = 16;
+                    } else {
+                        imgData.data[idx] = 143;
+                        imgData.data[idx+1] = 212;
+                        imgData.data[idx+2] = 107;
                     }
+                    imgData.data[idx+3] = 255;
                 }
-                
                 // Draw ants
                 for (let ant of ants) {
                     let idx = (ant.y * width + ant.x) * 4;
                     imgData.data[idx] = 255;
                     imgData.data[idx+1] = 85;
                     imgData.data[idx+2] = 85;
+                    imgData.data[idx+3] = 255;
                 }
-                
                 ctx.putImageData(imgData, 0, 0);
             }
         }
 
         function loop() {
-            step();
+            // Speed up simulation by running multiple steps per frame
+            for (let i = 0; i < 50; i++) {
+                for (let ant of ants) {
+                    ant.step();
+                }
+            }
             draw();
             requestAnimationFrame(loop);
         }
-
-        // Interaction
-        container.addEventListener('mousedown', (e) => {
-            const rect = container.getBoundingClientRect();
-            const px = e.clientX - rect.left;
-            const py = e.clientY - rect.top;
-            
-            const gx = Math.floor((px / rect.width) * width);
-            const gy = Math.floor((py / rect.height) * height);
-            
-            addAnt(gx, gy);
-        });
 
         document.getElementById('toggle-view').addEventListener('click', () => {
             useAscii = !useAscii;
@@ -235,9 +225,22 @@
         });
         
         document.getElementById('reset-sim').addEventListener('click', init);
-        document.getElementById('add-ant').addEventListener('click', () => addAnt(Math.floor(Math.random()*width), Math.floor(Math.random()*height)));
+        
+        document.getElementById('add-ant').addEventListener('click', () => {
+            ants.push(new Ant(Math.floor(Math.random() * width), Math.floor(Math.random() * height)));
+        });
 
-        // Initialize display states
+        container.addEventListener('mousedown', (e) => {
+            const rect = container.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            
+            const gx = Math.floor((px / rect.width) * width);
+            const gy = Math.floor((py / rect.height) * height);
+            
+            ants.push(new Ant(gx, gy));
+        });
+
         canvas.style.display = 'none';
         asciiLayer.style.display = 'block';
 
