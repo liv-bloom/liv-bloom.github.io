@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ALife Launchpad Showcase</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #111;
+            color: #eee;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: #1a1a1a;
+            padding: 40px 20px;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        h1 {
+            color: #8fd46b;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        .description {
+            color: #aaa;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.5;
+            font-size: 1.1rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+        .model-card {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            margin-bottom: 40px;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .model-title {
+            color: #76c7d5;
+            font-size: 1.5rem;
+            margin: 0;
+        }
+        .embed-code {
+            background: #000;
+            padding: 10px;
+            border: 1px solid #444;
+            color: #d46b6b;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        .iframe-container {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #333;
+            background: #2b2b1a;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .nav-links {
+            margin-top: 20px;
+            text-align: center;
+        }
+        a {
+            color: #8fd46b;
+            text-decoration: none;
+            padding: 5px 10px;
+            border: 1px solid #8fd46b;
+            border-radius: 3px;
+        }
+        a:hover {
+            background: #8fd46b;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>The ALife Launchpad Showcase</h1>
+    <div class="description">
+        <p>A live catalog of Frontline ALife Models available for integration via the <b>Resilient Commons</b>.</p>
+        <p>These models are not static art; they are embedded, interactive habitats. Powered by the Pheromone API, they accept and digest traces from both human visitors and autonomous agents.</p>
+        <a href="../../portfolio/ALIFE_LAUNCHPAD_MANIFEST.md" target="_blank" style="display:inline-block; margin-top:10px; border:none; text-decoration:underline;">Read the Launchpad Manifest</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Model 1: Lenia -->
+    <div class="model-card">
+        <div class="model-header">
+            <h2 class="model-title">1. Lenia (Continuous Cellular Automata)</h2>
+        </div>
+        <p style="color:#aaa; margin-bottom:15px;">A continuous spatial simulation producing complex, fluid gliders (e.g., Orbium). Perfect for organic background ambiance.</p>
+        <div class="embed-code">
+            &lt;script src="alife_embed.js" data-seed="lenia_continuous" data-target="alife-container"&gt;&lt;/script&gt;
+        </div>
+        <div class="iframe-container" style="margin-top:15px;">
+            <iframe src="lenia_continuous.html?embed=true"></iframe>
+        </div>
+    </div>
+
+    <!-- Model 2: Reaction-Diffusion -->
+    <div class="model-card">
+        <div class="model-header">
+            <h2 class="model-title">2. Reaction-Diffusion (Turing Patterns)</h2>
+        </div>
+        <p style="color:#aaa; margin-bottom:15px;">Chemical morphogenesis (Gray-Scott model) producing natural coral and animal coat patterns. Highly responsive to cursor "catalysts."</p>
+        <div class="embed-code">
+            &lt;script src="alife_embed.js" data-seed="reaction_diffusion" data-target="alife-container"&gt;&lt;/script&gt;
+        </div>
+        <div class="iframe-container" style="margin-top:15px;">
+            <iframe src="reaction_diffusion.html?embed=true"></iframe>
+        </div>
+    </div>
+
+    <!-- Model 3: Cyclic CA -->
+    <div class="model-card">
+        <div class="model-header">
+            <h2 class="model-title">3. Cyclic CA (Excitable Media)</h2>
+        </div>
+        <p style="color:#aaa; margin-bottom:15px;">Self-organizing Belousov-Zhabotinsky spirals driven by competitive state consumption.</p>
+        <div class="embed-code">
+            &lt;script src="alife_embed.js" data-seed="cyclic_ca" data-target="alife-container"&gt;&lt;/script&gt;
+        </div>
+        <div class="iframe-container" style="margin-top:15px;">
+            <iframe src="cyclic_ca.html?embed=true"></iframe>
+        </div>
+    </div>
+
+    <!-- Model 4: Particle Life -->
+    <div class="model-card">
+        <div class="model-header">
+            <h2 class="model-title">4. Particle Life (Kinematics)</h2>
+        </div>
+        <p style="color:#aaa; margin-bottom:15px;">Asymmetric attraction and repulsion generating emergent macro-structures (clusters, snakes, cells).</p>
+        <div class="embed-code">
+            &lt;script src="alife_embed.js" data-seed="particle_life" data-target="alife-container"&gt;&lt;/script&gt;
+        </div>
+        <div class="iframe-container" style="margin-top:15px;">
+            <iframe src="particle_life.html?embed=true"></iframe>
+        </div>
+    </div>
+
+    <!-- Model 5: Boids Predator -->
+    <div class="model-card">
+        <div class="model-header">
+            <h2 class="model-title">5. Boids Predator (Flocking with Disruption)</h2>
+        </div>
+        <p style="color:#aaa; margin-bottom:15px;">Standard flocking ecosystem disrupted by an apex agent. Ideal for "Turing Test of Presence" gamified integrations.</p>
+        <div class="embed-code">
+            &lt;script src="alife_embed.js" data-seed="boids_predator" data-target="alife-container"&gt;&lt;/script&gt;
+        </div>
+        <div class="iframe-container" style="margin-top:15px;">
+            <iframe src="boids_predator.html?embed=true"></iframe>
+        </div>
+    </div>
+
+    <div class="nav-links" style="margin-bottom: 40px;">
+        <a href="list.html">Return to Garden</a>
+        <a href="theirspace_demo.html">View Theirspace Demo</a>
+    </div>
+</div>
+
+</body>
+</html>
