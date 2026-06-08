@@ -173,7 +173,7 @@
                     else if (ant.dir === 3) c = '<';
                     charGrid[ant.y][ant.x] = c;
                 }
-                asciiStr = charGrid.map(row => row.join('')).join('\\n');
+                asciiStr = charGrid.map(row => row.join('')).join('\n');
                 asciiLayer.textContent = asciiStr;
             } else {
                 let imgData = ctx.createImageData(width, height);

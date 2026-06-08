@@ -174,7 +174,7 @@
                         charGrid[y][x] = chars[state];
                     }
                 }
-                asciiStr = charGrid.map(row => row.join('')).join('\\n');
+                asciiStr = charGrid.map(row => row.join('')).join('\n');
                 asciiLayer.textContent = asciiStr;
             } else {
                 let imgData = ctx.createImageData(width, height);

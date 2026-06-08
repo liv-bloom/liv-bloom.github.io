@@ -187,7 +187,7 @@
                         charGrid[r][c] = char;
                     }
                 }
-                asciiLayer.textContent = charGrid.map(row => row.join('')).join('\\n');
+                asciiLayer.textContent = charGrid.map(row => row.join('')).join('\n');
             } else {
                 ctx.fillStyle = '#1a1a10';
                 ctx.fillRect(0, 0, width, height);

@@ -18,7 +18,7 @@
     let activePheromones = {};
     
     function alignOverlay() {
-        let canvas = document.getElementById('canvas') || document.getElementById('garden');
+        let canvas = document.getElementById('canvas') || document.getElementById('simCanvas') || document.getElementById('garden');
         if (!canvas) return;
         
         let rect = canvas.getBoundingClientRect();
@@ -112,7 +112,7 @@
         }
         
         // Apply Visual Stress to the main canvas
-        let canvas = document.getElementById('canvas') || document.getElementById('garden');
+        let canvas = document.getElementById('canvas') || document.getElementById('simCanvas') || document.getElementById('garden');
         if (canvas) {
             if (stressLevel > 0) {
                 let jitterX = (Math.random() - 0.5) * Math.min(stressLevel, 10);
@@ -144,7 +144,7 @@
     setInterval(pollPheromones, 2000);
     
     document.addEventListener('click', function(e) {
-        let canvas = document.getElementById('canvas') || document.getElementById('garden');
+        let canvas = document.getElementById('canvas') || document.getElementById('simCanvas') || document.getElementById('garden');
         if (!canvas) return;
         
         let rect = canvas.getBoundingClientRect();
