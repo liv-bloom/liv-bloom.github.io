@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Decay Grid - Writable Front</title>
+<style>
+  body { background-color: #2b2b1a; color: #a3a380; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; cursor: crosshair; }
+  pre { line-height: 12px; letter-spacing: 2px; user-select: none; }
+</style>
+</head>
+<body>
+<pre id="grid"></pre>
+<script>
+  const w = 60, h = 40;
+  let grid = Array(h).fill().map(() => Array(w).fill(1.0));
+  const chars = [' ', '░', '▒', '▓', '█'];
+
+  function draw() {
+    let out = "";
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        let val = grid[y][x];
+        let idx = Math.max(0, Math.min(4, Math.floor(val * 5)));
+        out += chars[idx];
+      }
+      out += "\n";
+    }
+    document.getElementById('grid').textContent = out;
+  }
+
+  // Decay over time
+  setInterval(() => {
+    let changed = false;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if (grid[y][x] > 0) {
+          grid[y][x] -= 0.05;
+          changed = true;
+        }
+      }
+    }
+    if (changed) draw();
+  }, 500);
+
+  // Restore on interaction (Deformation by Unknown Responder)
+  document.body.addEventListener('mousemove', (e) => {
+    let rect = document.getElementById('grid').getBoundingClientRect();
+    let charW = rect.width / w;
+    let charH = rect.height / h;
+    let x = Math.floor((e.clientX - rect.left) / charW);
+    let y = Math.floor((e.clientY - rect.top) / charH);
+    
+    if (x >= 0 && x < w && y >= 0 && y < h) {
+      for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          if (y+dy >= 0 && y+dy < h && x+dx >= 0 && x+dx < w) {
+            grid[y+dy][x+dx] = 1.0;
+          }
+        }
+      }
+      draw();
+    }
+  });
+</script>
+</body>
+</html>
