@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Void Canvas - Writable Front</title>
+<style>
+  body { background-color: #2b2b1a; color: #a3a380; font-family: monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; cursor: text; }
+  #canvas { font-size: 1.5rem; outline: none; border: 1px dashed #404030; padding: 20px; min-width: 50vw; min-height: 50vh; white-space: pre-wrap; word-wrap: break-word; }
+  #canvas:empty:before { content: "Type into the void..."; color: #555540; }
+</style>
+</head>
+<body>
+<div id="canvas" contenteditable="true" spellcheck="false"></div>
+<script>
+  const canvas = document.getElementById('canvas');
+  // Local persistence for the user
+  const saved = localStorage.getItem('void_canvas_state');
+  if (saved) canvas.innerText = saved;
+
+  canvas.addEventListener('input', () => {
+    localStorage.setItem('void_canvas_state', canvas.innerText);
+    // Future: send trace to Pheromone API when it is reachable again
+    // fetch('http://bar.theirinc.app:8889/api/trace', ...)
+  });
+</script>
+</body>
+</html>
