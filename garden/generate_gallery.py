@@ -3,7 +3,7 @@ import glob
 import re
 
 def main():
-    files = glob.glob('projects/alife_web/*.html')
+    files = glob.glob('*.html')
     models = []
     
     # skip index, gallery, list etc
@@ -251,7 +251,7 @@ def main():
     });
   </script>\n</body>\n</html>\n"""
         
-        filepath = os.path.join('projects/alife_web', filename)
+        filepath = filename
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(html_content)
         print(f"Generated {filename}")
