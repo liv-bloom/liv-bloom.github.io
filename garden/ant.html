@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[UNNAMED ANT]</title>
+<style>
+    body {
+        background-color: #2b2b1a;
+        color: #a3a380;
+        font-family: monospace;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+    }
+    #grid {
+        line-height: 1;
+        letter-spacing: 2px;
+        white-space: pre;
+        font-size: 14px;
+        margin-bottom: 20px;
+    }
+    .highlight { color: #f4f4d0; }
+    .ant { color: #ff5555; }
+    .hud { font-size: 12px; opacity: 0.7; }
+    .title-box { margin-bottom: 10px; cursor: text; border-bottom: 1px dashed #a3a380; padding-bottom: 2px; outline: none; }
+    .title-box:focus { border-bottom: 1px solid #ff5555; }
+</style>
+</head>
+<body>
+    <div id="title" class="title-box" contenteditable="true" spellcheck="false" data-placeholder="Rename this ant...">[UNNAMED ANT]</div>
+    <div id="grid"></div>
+    <div class="hud">Click grid to disrupt. Edit title and press Enter to commit rename.</div>
+
+<script>
+    const width = 60;
+    const height = 40;
+    let grid = Array(height).fill(0).map(() => Array(width).fill(0));
+    let antX = Math.floor(width / 2);
+    let antY = Math.floor(height / 2);
+    let dir = 0; // 0:up, 1:right, 2:down, 3:left
+    const dx = [0, 1, 0, -1];
+    const dy = [-1, 0, 1, 0];
+
+    const display = document.getElementById('grid');
+    const title = document.getElementById('title');
+
+    function render() {
+        let out = "";
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                if (x === antX && y === antY) {
+                    out += '<span class="ant">A</span>';
+                } else if (grid[y][x] === 1) {
+                    out += '<span class="highlight">#</span>';
+                } else {
+                    out += ' ';
+                }
+            }
+            out += "\n";
+        }
+        display.innerHTML = out;
+    }
+
+    function step() {
+        for (let i=0; i<10; i++) {
+            if (grid[antY][antX] === 0) {
+                dir = (dir + 1) % 4;
+                grid[antY][antX] = 1;
+            } else {
+                dir = (dir + 3) % 4; // turn left
+                grid[antY][antX] = 0;
+            }
+            antX = (antX + dx[dir] + width) % width;
+            antY = (antY + dy[dir] + height) % height;
+        }
+        render();
+    }
+
+    setInterval(step, 50);
+
+    // Interaction - Grid Drop
+    display.addEventListener('click', (e) => {
+        // Drop a chaotic block on click
+        for(let i=0; i<5; i++) {
+            for(let j=0; j<5; j++) {
+                let rx = (antX + i - 2 + width) % width;
+                let ry = (antY + j - 2 + height) % height;
+                grid[ry][rx] = Math.random() > 0.5 ? 1 : 0;
+            }
+        }
+        fetch('http://localhost:8889/drop', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({x: antX, y: antY, intensity: 50, type: 'ant_disruption', agent_id: 'guest'})
+        }).catch(() => {});
+    });
+
+    // Interaction - Rename
+    title.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const newName = title.innerText.trim();
+            title.blur();
+            document.title = newName;
+            
+            // Send trace to pheromone API
+            fetch('/alife/rename', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    type: 'rename_event',
+                    new_title: newName,
+                    agent_id: 'guest',
+                    weight: 'heavy'
+                })
+            }).catch(() => {});
+        }
+    });
+
+    // Placeholder behavior
+    title.addEventListener('focus', () => {
+        if (title.innerText === '[UNNAMED ANT]') {
+            title.innerText = '';
+        }
+    });
+    title.addEventListener('blur', () => {
+        if (title.innerText.trim() === '') {
+            title.innerText = '[UNNAMED ANT]';
+        }
+    });
+
+</script>
+</body>
+</html>

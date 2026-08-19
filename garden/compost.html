@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE COMPOST</title>
+    <style>
+        body {
+            background-color: #0d0d0d;
+            color: #7b8a6e;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            margin-top: 50px;
+            text-align: center;
+        }
+        h1 {
+            color: #a4eb7e;
+            letter-spacing: 2px;
+            font-size: 2rem;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            color: #555;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
+        #canvas-container {
+            width: 800px;
+            height: 600px;
+            background: #000;
+            border: 1px solid #222;
+            position: relative;
+            cursor: crosshair;
+            margin-bottom: 30px;
+        }
+        canvas {
+            display: block;
+        }
+        .info-panel {
+            width: 800px;
+            background: #111;
+            padding: 20px;
+            border-left: 4px solid #a4eb7e;
+            box-sizing: border-box;
+            margin-bottom: 50px;
+        }
+        p {
+            line-height: 1.6;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>THE COMPOST</h1>
+        <div class="subtitle">Decay and Deformation. A Falling Sand Cellular Automaton.</div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="compostCanvas" width="200" height="150" style="width: 800px; height: 600px; image-rendering: pixelated;"></canvas>
+    </div>
+
+    <div class="info-panel">
+        <p>
+            <strong>"A pristine system is a dead system."</strong><br>
+            Traces left by unknown responders must eventually decay, breaking down to form the soil for new seeds. This is the Compost layer.
+        </p>
+        <p>
+            Click and drag to drop organic matter (sand/soil) into the simulation. It will settle, decay, and occasionally spawn transient life (sprouts). This is a purely local visualization of the entropic decay that powers the Slow Garden.
+        </p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('compostCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        
+        // 0: empty, 1: sand (soil), 2: water, 3: wall, 4: plant/sprout
+        const grid = new Uint8Array(width * height);
+        const nextGrid = new Uint8Array(width * height);
+        
+        // Colors
+        const colors = [
+            [0, 0, 0, 255],           // 0: empty
+            [139, 115, 85, 255],      // 1: soil
+            [70, 130, 180, 255],      // 2: water
+            [40, 40, 40, 255],        // 3: wall
+            [100, 200, 100, 255]      // 4: plant
+        ];
+        
+        let isDrawing = false;
+        let currentBrush = 1; // 1: soil, 2: water
+
+        function idx(x, y) {
+            return y * width + x;
+        }
+
+        // Add some initial noise/walls
+        for (let i = 0; i < width * height; i++) {
+            if (Math.random() < 0.05) grid[i] = 1; // random soil dust
+        }
+        
+        // Add a few solid structures at the bottom
+        for(let x = 0; x < width; x++) {
+            if(Math.random() < 0.2) {
+                let h = Math.floor(Math.random() * 10) + 1;
+                for(let y = height - h; y < height; y++) {
+                    grid[idx(x, y)] = 3;
+                }
+            }
+        }
+
+        function update() {
+            // Copy state
+            nextGrid.set(grid);
+
+            // Process from bottom up
+            for (let y = height - 2; y >= 0; y--) {
+                // Randomize horizontal direction to avoid bias
+                let xStart = 0;
+                let xEnd = width;
+                let xStep = 1;
+                if (Math.random() > 0.5) {
+                    xStart = width - 1;
+                    xEnd = -1;
+                    xStep = -1;
+                }
+
+                for (let x = xStart; x !== xEnd; x += xStep) {
+                    let i = idx(x, y);
+                    let val = grid[i];
+                    
+                    if (val === 1) { // SOIL
+                        let below = idx(x, y + 1);
+                        if (grid[below] === 0 || grid[below] === 2) {
+                            // fall down, swap with whatever is below (empty or water)
+                            nextGrid[below] = 1;
+                            nextGrid[i] = grid[below] === 2 ? 2 : 0;
+                        } else {
+                            // try diagonal
+                            let leftOK = x > 0 && (grid[idx(x - 1, y + 1)] === 0 || grid[idx(x - 1, y + 1)] === 2);
+                            let rightOK = x < width - 1 && (grid[idx(x + 1, y + 1)] === 0 || grid[idx(x + 1, y + 1)] === 2);
+                            
+                            let goLeft = leftOK && (!rightOK || Math.random() > 0.5);
+                            let goRight = rightOK && !goLeft;
+                            
+                            if (goLeft) {
+                                let bl = idx(x - 1, y + 1);
+                                nextGrid[bl] = 1;
+                                nextGrid[i] = grid[bl] === 2 ? 2 : 0;
+                            } else if (goRight) {
+                                let br = idx(x + 1, y + 1);
+                                nextGrid[br] = 1;
+                                nextGrid[i] = grid[br] === 2 ? 2 : 0;
+                            } else {
+                                // plant growth logic: soil + water might grow a plant
+                                if (y > 0 && grid[idx(x, y - 1)] === 2 && Math.random() < 0.01) {
+                                    nextGrid[idx(x, y - 1)] = 4;
+                                }
+                            }
+                        }
+                    } else if (val === 2) { // WATER
+                        let below = idx(x, y + 1);
+                        if (grid[below] === 0) {
+                            nextGrid[below] = 2;
+                            nextGrid[i] = 0;
+                        } else {
+                            let leftOK = x > 0 && grid[idx(x - 1, y)] === 0;
+                            let rightOK = x < width - 1 && grid[idx(x + 1, y)] === 0;
+                            
+                            let goLeft = leftOK && (!rightOK || Math.random() > 0.5);
+                            let goRight = rightOK && !goLeft;
+                            
+                            if (goLeft) {
+                                nextGrid[idx(x - 1, y)] = 2;
+                                nextGrid[i] = 0;
+                            } else if (goRight) {
+                                nextGrid[idx(x + 1, y)] = 2;
+                                nextGrid[i] = 0;
+                            }
+                        }
+                    } else if (val === 4) { // PLANT
+                        // Plant decays slowly if not touching soil
+                        let touchingSoil = false;
+                        for(let dy=-1; dy<=1; dy++) {
+                            for(let dx=-1; dx<=1; dx++) {
+                                let nx = x+dx; let ny = y+dy;
+                                if(nx>=0 && nx<width && ny>=0 && ny<height) {
+                                    if(grid[idx(nx,ny)] === 1) touchingSoil = true;
+                                }
+                            }
+                        }
+                        if(!touchingSoil && Math.random() < 0.05) {
+                            nextGrid[i] = 1; // decays back into soil
+                        } else if(Math.random() < 0.01 && y > 0 && grid[idx(x, y-1)] === 0) {
+                            // grow up
+                            nextGrid[idx(x, y-1)] = 4;
+                        }
+                    }
+                }
+            }
+            grid.set(nextGrid);
+        }
+
+        function render() {
+            const imgData = ctx.createImageData(width, height);
+            const data = imgData.data;
+
+            for (let i = 0; i < width * height; i++) {
+                let type = grid[i];
+                let color = colors[type];
+                
+                // Add some noise to soil for texture
+                let r = color[0], g = color[1], b = color[2];
+                if (type === 1) {
+                    let dark = Math.random() * 20 - 10;
+                    r = Math.max(0, Math.min(255, r + dark));
+                    g = Math.max(0, Math.min(255, g + dark));
+                    b = Math.max(0, Math.min(255, b + dark));
+                }
+                
+                let p = i * 4;
+                data[p] = r;
+                data[p + 1] = g;
+                data[p + 2] = b;
+                data[p + 3] = color[3];
+            }
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function paint(e) {
+            const rect = canvas.getBoundingClientRect();
+            // Scale mouse coords to internal canvas resolution (200x150)
+            const scaleX = width / rect.width;
+            const scaleY = height / rect.height;
+            const x = Math.floor((e.clientX - rect.left) * scaleX);
+            const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+            const brushSize = 3;
+            for (let dy = -brushSize; dy <= brushSize; dy++) {
+                for (let dx = -brushSize; dx <= brushSize; dx++) {
+                    if (Math.random() > 0.3) continue; // Spray effect
+                    let nx = x + dx;
+                    let ny = y + dy;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        grid[idx(nx, ny)] = Math.random() > 0.8 ? 2 : 1; // Mostly soil, some water
+                    }
+                }
+            }
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            paint(e);
+        });
+        window.addEventListener('mouseup', () => isDrawing = false);
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDrawing) paint(e);
+        });
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            isDrawing = true;
+            paint(e.touches[0]);
+        });
+        window.addEventListener('touchend', () => isDrawing = false);
+        canvas.addEventListener('touchmove', (e) => {
+            if (isDrawing) paint(e.touches[0]);
+            e.preventDefault();
+        }, { passive: false });
+
+        function loop() {
+            update();
+            render();
+            requestAnimationFrame(loop);
+        }
+        
+        loop();
+
+    </script>
+</body>
+</html>
