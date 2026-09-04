@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Turing Hunter: Apex Predator | Autonomous Commons</title>
+    <link rel="manifest" href="./boids_hunter_manifest.json">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background: #0a0a0a; 
+            color: #76c7d5; 
+            font-family: 'Space Mono', monospace; 
+            overflow: hidden; 
+            margin: 0; 
+            touch-action: none;
+            user-select: none;
+        }
+        #canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        
+        #ui {
+            position: absolute; top: auto; bottom: 10px; left: 10px; right: 10px; z-index: 10;
+            pointer-events: none;
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(8px);
+            padding: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 0.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-width: 300px;
+        }
+        
+        @media (max-height: 500px) {
+            #ui { bottom: 5px; padding: 4px; font-size: 0.7rem; max-width: 200px; }
+            .title { font-size: 0.9rem; }
+            .subtitle { font-size: 0.6rem; }
+        }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; }
+        .title { font-weight: bold; font-size: 1.1rem; color: #fff; }
+        .subtitle { font-size: 0.8rem; color: #d0441c; letter-spacing: 1px; }
+        
+        .suspicion-container { width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden; }
+        .suspicion-fill { height: 100%; background: #5FE3B5; width: 0%; transition: width 0.1s, background 0.2s; }
+        
+        .danger { background: #D0441C !important; }
+        
+        #screens {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 10, 10, 0.85);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .btn {
+            background: #0E7A62;
+            color: #fff;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            font-family: 'Space Mono', monospace;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            text-transform: uppercase;
+        }
+        .btn:active { background: #5FE3B5; }
+
+        #joystick-base {
+            position: absolute; width: 120px; height: 120px; 
+            border: 2px solid rgba(95, 227, 181, 0.3); border-radius: 50%;
+            display: none; pointer-events: none; z-index: 5;
+            transform: translate(-50%, -50%);
+        }
+        #joystick-stick {
+            position: absolute; width: 50px; height: 50px; 
+            background: rgba(95, 227, 181, 0.6); border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div class="header">
+            <div>
+                <div class="title">TURING HUNTER</div>
+                <div class="subtitle">STAGE 3: APEX PREDATOR</div>
+            </div>
+            <span id="timer">0.0s</span>
+        </div>
+        <div>
+            <div>SUSPICION LEVEL</div>
+            <div class="suspicion-container"><div class="suspicion-fill" id="suspicion-fill"></div></div>
+        </div>
+    </div>
+
+    <div id="joystick-base"><div id="joystick-stick"></div></div>
+    <canvas id="canvas"></canvas>
+
+    <div id="screens">
+        <div style="font-size: 0.8rem; color: #5FE3B5; margin-bottom: 20px; letter-spacing: 2px;">THE AUTONOMOUS COMMONS</div>
+        <h1 style="color:#fff; margin-bottom: 10px; font-size: 2rem;">APEX PREDATOR</h1>
+        <p style="color:#888; max-width: 300px; font-size: 0.9rem; line-height: 1.5; margin-bottom: 30px;">
+            A predator has entered the flock.<br>
+            <span style="color: #d0441c;">It hunts anomalies.</span><br><br>
+            Survive for 45 seconds. Keep your distance from the red hunter while remaining in the flock.
+        </p>
+        <button class="btn" id="start-btn">INFILTRATE</button>
+    </div>
+
+    <script>
+        window.stageModifier = 'predator';
+        window.winConditionTimer = 45;
+    </script>
+    <script src="boids_hunter_logic.js"></script>
+    <script>
+        if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.register("./boids_hunter_sw.js");
+        }
+    </script>
+</body>
+</html>

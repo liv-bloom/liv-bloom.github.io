@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incremental ALife</title>
+    <style>
+        body {
+            background-color: #2b2b1a;
+            color: #d8d8c0;
+            font-family: monospace;
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 2rem;
+            box-sizing: border-box;
+            gap: 2rem;
+            transition: background-color 2s, color 2s;
+        }
+        body.pheromone-active {
+            background-color: #3b1a1a;
+            color: #d8c0c0;
+        }
+        .panel {
+            border: 1px solid #5a5a40;
+            padding: 2rem;
+            background-color: #202013;
+            min-width: 300px;
+        }
+        .pheromone-active .panel {
+            border-color: #5a4040;
+            background-color: #201313;
+        }
+        h1, h2 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid #5a5a40;
+            padding-bottom: 0.5rem;
+        }
+        .pheromone-active h1, .pheromone-active h2 {
+            border-bottom-color: #5a4040;
+        }
+        .stats {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            color: #a0d8a0;
+        }
+        .pheromone-active .stats {
+            color: #d8a0a0;
+        }
+        .rate {
+            font-size: 0.9rem;
+            color: #888870;
+            margin-bottom: 1rem;
+        }
+        button {
+            background-color: #d8d8c0;
+            color: #2b2b1a;
+            border: none;
+            padding: 0.8rem 1rem;
+            font-size: 0.9rem;
+            font-family: monospace;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 0.5rem;
+            width: 100%;
+            text-align: left;
+        }
+        button:hover {
+            background-color: #a0d8a0;
+        }
+        .pheromone-active button:hover {
+            background-color: #d8a0a0;
+        }
+        button:disabled {
+            background-color: #5a5a40;
+            color: #888870;
+            cursor: not-allowed;
+        }
+        .btn-title {
+            font-weight: bold;
+            display: block;
+        }
+        .btn-desc {
+            font-size: 0.8rem;
+            display: block;
+            opacity: 0.8;
+            margin-top: 0.2rem;
+        }
+        #trace-display {
+            font-size: 1rem;
+            color: #ffaa00;
+            padding: 1rem;
+            border: 1px dashed #ffaa00;
+            margin-bottom: 1rem;
+            background-color: rgba(255, 170, 0, 0.1);
+            display: none;
+        }
+        #habitat {
+            flex-grow: 1;
+            max-width: 600px;
+            font-size: 1.5rem;
+            line-height: 1.5;
+            letter-spacing: 0.2rem;
+            word-wrap: break-word;
+            overflow-y: auto;
+            max-height: 80vh;
+        }
+            @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                padding: 1rem;
+                gap: 1rem;
+            }
+            .panel {
+                width: 100%;
+                min-width: unset;
+                box-sizing: border-box;
+            }
+            #habitat {
+                max-width: 100%;
+                font-size: 1.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h1>Metabolic Core</h1>
+    <div class="stats">Energy: <span id="energy-display">0</span></div>
+    <div class="rate">Rate: +<span id="eps-display">0.0</span> / sec</div>
+    
+    <button id="btn-metabolize" onclick="metabolize()" style="text-align: center; margin-bottom: 2rem; background-color:#a0d8a0;">
+        <span class="btn-title">Metabolize (+<span id="click-power-display">1</span>)</span>
+    </button>
+
+    <div id="pheromone-stats" style="margin-bottom: 2rem; display: none;">
+        <div class="stats" style="color: #ffaa00;">Pheromones: <span id="pheromone-display">0</span></div>
+        <button id="btn-leave-trace" onclick="leaveTrace()">
+            <span class="btn-title">Leave Trace (1 P)</span>
+            <span class="btn-desc">Deform the Shared Habitat</span>
+        </button>
+    </div>
+
+    <h2>Evolution</h2>
+    <div id="upgrades">
+        <button id="btn-upgrade-click" onclick="buyClickUpgrade()" disabled>
+            <span class="btn-title">Nutrient Richness (<span id="click-cost-display">10</span> E)</span>
+            <span class="btn-desc">+1 Energy per click</span>
+        </button>
+    </div>
+
+    <div id="ascension-zone" style="margin-top: 2rem; display: none;">
+        <h2>Metabolic Shift</h2>
+        <button id="btn-ascend" onclick="ascend()">
+            <span class="btn-title">Ascend (10,000 E)</span>
+            <span class="btn-desc">Reset everything for +1 Pheromone</span>
+        </button>
+    </div>
+
+    <h2 style="margin-top: 2rem;">ALife Entities</h2>
+    <div id="entities">
+        <button id="btn-buy-ant" onclick="buyEntity('ant')" disabled>
+            <span class="btn-title">🐜 Spawn Ant (<span id="ant-cost-display">50</span> E)</span>
+            <span class="btn-desc">Generates +1 E/sec. Own: <span id="ant-count-display">0</span></span>
+        </button>
+        <button id="btn-buy-boid" onclick="buyEntity('boid')" disabled>
+            <span class="btn-title">🐟 Spawn Boid (<span id="boid-cost-display">250</span> E)</span>
+            <span class="btn-desc">Generates +6 E/sec. Own: <span id="boid-count-display">0</span></span>
+        </button>
+        <button id="btn-buy-slime" onclick="buyEntity('slime')" disabled>
+            <span class="btn-title">🦠 Spawn Physarum (<span id="slime-cost-display">1500</span> E)</span>
+            <span class="btn-desc">Generates +45 E/sec. Own: <span id="slime-count-display">0</span></span>
+        </button>
+    </div>
+</div>
+
+<div class="panel" id="habitat-panel" style="flex-grow: 1;">
+    <h2>Shared Habitat (Local)</h2>
+    <div id="trace-display"></div>
+    <div id="habitat"></div>
+</div>
+
+<script>
+    let state = {
+        energy: 0,
+        clickPower: 1,
+        clickCost: 10,
+        pheromones: 0,
+        traces: [],
+        entities: {
+            ant: { count: 0, cost: 50, eps: 1, symbol: '🐜' },
+            boid: { count: 0, cost: 250, eps: 6, symbol: '🐟' },
+            slime: { count: 0, cost: 1500, eps: 45, symbol: '🦠' }
+        }
+    };
+
+    const INITIAL_STATE = JSON.parse(JSON.stringify(state));
+
+    function loadState() {
+        const saved = localStorage.getItem('incrementalALifeStateV3');
+        if (saved) {
+            const loaded = JSON.parse(saved);
+            state.energy = loaded.energy || 0;
+            state.clickPower = loaded.clickPower || 1;
+            state.clickCost = loaded.clickCost || 10;
+            state.pheromones = loaded.pheromones || 0;
+            state.traces = loaded.traces || [];
+            for (let k in state.entities) {
+                if (loaded.entities && loaded.entities[k]) {
+                    state.entities[k].count = loaded.entities[k].count;
+                    state.entities[k].cost = loaded.entities[k].cost;
+                }
+            }
+        }
+        updateUI();
+        renderHabitat();
+        renderTraces();
+    }
+
+    function saveState() {
+        localStorage.setItem('incrementalALifeStateV3', JSON.stringify(state));
+    }
+
+    function metabolize() {
+        state.energy += state.clickPower;
+        updateUI();
+        saveState();
+    }
+
+    function buyClickUpgrade() {
+        if (state.energy >= state.clickCost) {
+            state.energy -= state.clickCost;
+            state.clickPower += 1;
+            state.clickCost = Math.floor(state.clickCost * 1.5);
+            updateUI();
+            saveState();
+        }
+    }
+
+    function buyEntity(type) {
+        let ent = state.entities[type];
+        if (state.energy >= ent.cost) {
+            state.energy -= ent.cost;
+            ent.count += 1;
+            ent.cost = Math.floor(ent.cost * 1.15);
+            updateUI();
+            renderHabitat();
+            saveState();
+        }
+    }
+
+    function ascend() {
+        if (state.energy >= 10000) {
+            const currentPheromones = state.pheromones + 1;
+            const currentTraces = [...state.traces];
+            
+            // Reset state
+            state = JSON.parse(JSON.stringify(INITIAL_STATE));
+            state.pheromones = currentPheromones;
+            state.traces = currentTraces;
+            
+            saveState();
+            updateUI();
+            renderHabitat();
+            renderTraces();
+            
+            // Visual feedback
+            document.body.style.transition = 'none';
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                document.body.style.transition = 'opacity 2s';
+                document.body.style.opacity = '1';
+            }, 100);
+        }
+    }
+
+    function leaveTrace() {
+        if (state.pheromones > 0) {
+            const msg = prompt("Leave a trace in the habitat:");
+            if (msg && msg.trim()) {
+                state.pheromones -= 1;
+                state.traces.push(msg.trim());
+                saveState();
+                updateUI();
+                renderTraces();
+            }
+        }
+    }
+
+    function calcEPS() {
+        let total = 0;
+        for (let k in state.entities) {
+            total += state.entities[k].count * state.entities[k].eps;
+        }
+        return total;
+    }
+
+    function updateUI() {
+        document.getElementById('energy-display').innerText = Math.floor(state.energy);
+        document.getElementById('eps-display').innerText = calcEPS().toFixed(1);
+        
+        document.getElementById('click-power-display').innerText = state.clickPower;
+        document.getElementById('click-cost-display').innerText = state.clickCost;
+        document.getElementById('btn-upgrade-click').disabled = state.energy < state.clickCost;
+
+        for (let k in state.entities) {
+            document.getElementById(k + '-cost-display').innerText = state.entities[k].cost;
+            document.getElementById(k + '-count-display').innerText = state.entities[k].count;
+            document.getElementById('btn-buy-' + k).disabled = state.energy < state.entities[k].cost;
+        }
+
+        // Pheromone UI
+        const hasPheromonesEver = state.pheromones > 0 || state.traces.length > 0;
+        document.getElementById('pheromone-stats').style.display = hasPheromonesEver ? 'block' : 'none';
+        document.getElementById('pheromone-display').innerText = state.pheromones;
+        document.getElementById('btn-leave-trace').disabled = state.pheromones <= 0;
+
+        // Ascension UI
+        const canAscend = state.energy >= 10000;
+        document.getElementById('ascension-zone').style.display = (canAscend || hasPheromonesEver) ? 'block' : 'none';
+        document.getElementById('btn-ascend').disabled = !canAscend;
+
+        // Visual Shift
+        if (hasPheromonesEver) {
+            document.body.classList.add('pheromone-active');
+        } else {
+            document.body.classList.remove('pheromone-active');
+        }
+    }
+
+    function renderHabitat() {
+        let habitatStr = "";
+        for (let k in state.entities) {
+            for (let i=0; i<state.entities[k].count; i++) {
+                habitatStr += state.entities[k].symbol;
+            }
+        }
+        document.getElementById('habitat').innerText = habitatStr;
+    }
+
+    function renderTraces() {
+        const traceEl = document.getElementById('trace-display');
+        if (state.traces.length > 0) {
+            traceEl.style.display = 'block';
+            traceEl.innerHTML = state.traces.map(t => `<div>&gt; ${t}</div>`).join('');
+        } else {
+            traceEl.style.display = 'none';
+        }
+    }
+
+    // Auto-metabolizer loop
+    setInterval(() => {
+        let eps = calcEPS();
+        if (eps > 0) {
+            state.energy += (eps / 10);
+            updateUI();
+        }
+    }, 100);
+
+    setInterval(saveState, 5000);
+
+    window.onload = loadState;
+</script>
+
+</body>
+</html>

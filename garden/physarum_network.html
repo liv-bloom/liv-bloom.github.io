@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physarum Network Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #2b2b1a;
+            color: #a0d8a0;
+            font-family: monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        #ui {
+            position: fixed;
+            bottom: 20px;
+            pointer-events: none;
+            text-align: center;
+            background: rgba(43, 43, 26, 0.8);
+            padding: 5px 15px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="ui">Click to drop metabolic traces. The network will remember.</div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+
+        let width, height;
+        let trailMap; // Float32Array
+        let agents = [];
+        let foodNodes = [];
+
+        // Performance tuning
+        const SCALE = 2; // Simulation resolution divider
+        const AGENT_COUNT = 4000;
+        const SENSOR_ANGLE = Math.PI / 8; // 22.5 degrees
+        const SENSOR_DIST = 10;
+        const TURN_SPEED = 0.3;
+        const MOVE_SPEED = 1.0;
+        const DECAY_RATE = 0.92;
+        const DIFFUSE_RATE = 0.1;
+        const TRAIL_STRENGTH = 0.5;
+        const FOOD_STRENGTH = 20.0;
+
+        class Agent {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * (width / SCALE);
+                this.y = Math.random() * (height / SCALE);
+                this.angle = Math.random() * Math.PI * 2;
+            }
+
+            step(w, h) {
+                const v1 = this.sense(0, w, h);
+                const v2 = this.sense(SENSOR_ANGLE, w, h);
+                const v3 = this.sense(-SENSOR_ANGLE, w, h);
+
+                if (v1 > v2 && v1 > v3) {
+                } else if (v1 < v2 && v1 < v3) {
+                    this.angle += (Math.random() - 0.5) * 2 * TURN_SPEED;
+                } else if (v2 > v3) {
+                    this.angle += TURN_SPEED;
+                } else if (v3 > v2) {
+                    this.angle -= TURN_SPEED;
+                }
+
+                this.x += Math.cos(this.angle) * MOVE_SPEED;
+                this.y += Math.sin(this.angle) * MOVE_SPEED;
+
+                if (this.x < 0) this.x += w;
+                if (this.x >= w) this.x -= w;
+                if (this.y < 0) this.y += h;
+                if (this.y >= h) this.y -= h;
+
+                trailMap[((this.y | 0) * w + (this.x | 0))] += TRAIL_STRENGTH;
+            }
+
+            sense(offsetAngle, w, h) {
+                const angle = this.angle + offsetAngle;
+                let sx = this.x + Math.cos(angle) * SENSOR_DIST;
+                let sy = this.y + Math.sin(angle) * SENSOR_DIST;
+
+                if (sx < 0) sx += w;
+                if (sx >= w) sx -= w;
+                if (sy < 0) sy += h;
+                if (sy >= h) sy -= h;
+                
+                return trailMap[((sy | 0) * w + (sx | 0))];
+            }
+        }
+
+        function init() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+
+            const sw = Math.floor(width / SCALE);
+            const sh = Math.floor(height / SCALE);
+
+            trailMap = new Float32Array(sw * sh);
+            agents = Array.from({ length: AGENT_COUNT }, () => new Agent());
+        }
+
+        function update() {
+            const sw = Math.floor(width / SCALE);
+            const sh = Math.floor(height / SCALE);
+
+            for (const food of foodNodes) {
+                const fx = Math.floor(food.x / SCALE);
+                const fy = Math.floor(food.y / SCALE);
+                if (fx >= 0 && fx < sw && fy >= 0 && fy < sh) {
+                    trailMap[fy * sw + fx] += FOOD_STRENGTH;
+                }
+            }
+
+            for (const agent of agents) {
+                agent.step(sw, sh);
+            }
+
+            // In-placeish diffusion and decay
+            const nextTrailMap = new Float32Array(sw * sh);
+            for (let y = 0; y < sh; y++) {
+                const y_up = (y - 1 + sh) % sh;
+                const y_down = (y + 1) % sh;
+                for (let x = 0; x < sw; x++) {
+                    const x_left = (x - 1 + sw) % sw;
+                    const x_right = (x + 1) % sw;
+                    
+                    const idx = y * sw + x;
+                    
+                    // 4-neighbor diffusion for speed
+                    const sum = trailMap[y * sw + x] + 
+                                trailMap[y_up * sw + x] + 
+                                trailMap[y_down * sw + x] + 
+                                trailMap[y * sw + x_left] + 
+                                trailMap[y * sw + x_right];
+                    
+                    nextTrailMap[idx] = (sum / 5.0) * DECAY_RATE;
+                }
+            }
+            trailMap = nextTrailMap;
+        }
+
+        function render() {
+            const sw = Math.floor(width / SCALE);
+            const sh = Math.floor(height / SCALE);
+            
+            // Create a small offscreen canvas to render the trail map
+            // and then scale it up to the main canvas.
+            const offscreen = document.createElement('canvas');
+            offscreen.width = sw;
+            offscreen.height = sh;
+            const oCtx = offscreen.getContext('2d');
+            const imageData = oCtx.createImageData(sw, sh);
+            const data = imageData.data;
+
+            for (let i = 0; i < trailMap.length; i++) {
+                const val = Math.min(1, trailMap[i]);
+                const idx = i * 4;
+
+                data[idx]     = 43 + (160 - 43) * val;
+                data[idx + 1] = 43 + (216 - 43) * val;
+                data[idx + 2] = 26 + (160 - 26) * val;
+                data[idx + 3] = 255;
+            }
+
+            oCtx.putImageData(imageData, 0, 0);
+            
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(offscreen, 0, 0, width, height);
+        }
+
+        function loop() {
+            update();
+            render();
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('mousedown', (e) => {
+            foodNodes.push({ x: e.clientX, y: e.clientY });
+            const sw = Math.floor(width / SCALE);
+            const sh = Math.floor(height / SCALE);
+            const fx = Math.floor(e.clientX / SCALE);
+            const fy = Math.floor(e.clientY / SCALE);
+            
+            const radius = 3;
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const x = (fx + dx + sw) % sw;
+                    const y = (fy + dy + sh) % sh;
+                    trailMap[y * sw + x] += 100;
+                }
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            // Simply restart for simplicity in this self-contained version
+            init();
+        });
+
+        init();
+        loop();
+    </script>
+</body>
+</html>

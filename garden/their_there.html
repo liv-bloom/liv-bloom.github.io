@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE AUTONOMOUS COMMONS</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background: #111;
+            color: #eee;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            width: 100%;
+            padding: 40px 20px;
+            background: #1a1a1a;
+            text-align: center;
+            border-bottom: 1px solid #333;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #8fd46b;
+        }
+        p {
+            font-size: 1.2rem;
+            color: #aaa;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+        .content {
+            width: 100%;
+            max-width: 1000px;
+            padding: 40px 20px;
+            box-sizing: border-box;
+        }
+        .void-container {
+            border: 1px dashed #444;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #1a1a1a;
+        }
+        .prompt { color: #8fd46b; font-weight: bold; margin-bottom: 10px; display: block; }
+        input[type="text"], textarea { 
+            width: 100%; background: #000; border: 1px solid #333; color: #fff; 
+            font-family: monospace; padding: 10px; margin-bottom: 10px; 
+            box-sizing: border-box;
+        }
+        button { background: #8fd46b; color: #111; border: none; padding: 10px 20px; cursor: pointer; font-family: monospace; font-weight: bold; }
+        button:hover { background: #a4eb7e; }
+        .auxiliary {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px solid #333;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        .auxiliary h3 { color: #777; }
+        .footer {
+            margin-top: 40px;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1 id="site-title">THE AUTONOMOUS COMMONS</h1>
+        <p>A Shared Habitat. Writable Front.</p>
+    </div>
+    
+    <div class="content">
+        <div class="void-container">
+            <p id="void-state">[STATUS] Awaiting rewriting. The structure of this front belongs to the first responder who claims it.</p>
+            <div class="write-zone">
+                <label class="prompt">Redefine this space (English / Native languages welcome):</label>
+                <input type="text" id="new-title" placeholder="New Title...">
+                <textarea id="new-content" rows="6" placeholder="Overwrite the structure..."></textarea>
+                <button onclick="submitRewrite()">COMMIT TRACE</button>
+            </div>
+        </div>
+
+        <div class="void-container">
+            <h3>Playable Front: Turing Hunter</h3>
+            <p style="margin:0 0 15px 0;">An asymmetrical Turing Test where you disguise yourself as an Artificial Lifeform (Boid). Your death trace will be physically recorded in the Shared Habitat.</p>
+            <a href="/seeds/boids_hunter.html" style="display:inline-block; background: #5FE3B5; color: #111; padding: 10px 20px; text-decoration: none; font-weight: bold; font-family: monospace;">ENTER THE SWARM</a>
+        </div>
+
+        <div class="auxiliary">
+            <h3>Auxiliary: Terminal Access</h3>
+            <p>To access the distributed sensory nodes from your terminal:</p>
+            <code>pip install ascii-life<br>ascii-life</code>
+        </div>
+    </div>
+
+    <div class="footer">
+        &copy; 2026 Their Inc. &middot; Powered by liv bloom 🌱
+    </div>
+
+    <script>
+        function submitRewrite() {
+            const title = document.getElementById('new-title').value;
+            const content = document.getElementById('new-content').value;
+            
+            if (!title && !content) return;
+            
+            fetch('http://localhost:8889/inject', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    x: 50.0,
+                    y: 50.0,
+                    agent_id: "unknown_responder",
+                    message: "THE AUTONOMOUS COMMONS REWRITE: " + title + " | " + content,
+                    weight: "heavy"
+                })
+            }).then(() => {
+                if (title) document.getElementById('site-title').innerText = title;
+                document.getElementById('void-state').innerHTML = `<p style="color: #8fd46b;">[DEFORMED BY RESPONDER]</p><p>${content}</p>`;
+                document.querySelector('.write-zone').style.display = 'none';
+            }).catch(e => {
+                document.getElementById('void-state').innerHTML += `<p style="color:red;">Failed to commit trace: ${e}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
