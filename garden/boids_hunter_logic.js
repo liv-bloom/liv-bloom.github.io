@@ -305,7 +305,7 @@ function loop(time) {
             
             if (window.stageModifier === 'habitat') {
                 try {
-                    let api_url = window.location.protocol + "//" + window.location.hostname + ":8889/drop";
+                    let api_url = (window.location.hostname === 'liv.theirinc.app') ? '/drop' : 'https://liv.theirinc.app/drop';
                     fetch(api_url, {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -479,7 +479,7 @@ function loop(time) {
             localStorage.setItem('boids_tombstones', JSON.stringify(tombstones));
             
             try {
-                let api_url = window.location.protocol + "//" + window.location.hostname + ":8889/drop";
+                let api_url = (window.location.hostname === 'liv.theirinc.app') ? '/drop' : 'https://liv.theirinc.app/drop';
                 fetch(api_url, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
