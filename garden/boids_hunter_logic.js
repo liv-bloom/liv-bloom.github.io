@@ -231,7 +231,7 @@ function initGame() {
     window.boidCfg = { maxSpeed: 3.5, perception: 80, sepDist: 25, alignW: 0.05, cohW: 0.01, sepW: 0.05, wander: 0.2, scale: 1 };
     
     if (window.stageModifier === 'mosquito') {
-        window.boidCfg = { maxSpeed: 4.5, perception: 65, sepDist: 18, alignW: 0.03, cohW: 0.08, sepW: 0.1, wander: 1.2, scale: 0.6 };
+        window.boidCfg = { maxSpeed: 5.0, perception: 55, sepDist: 16, alignW: 0.04, cohW: 0.1, sepW: 0.1, wander: 2.0, scale: 0.55 };
     } else if (window.stageModifier === 'nervous') {
         window.boidCfg = { maxSpeed: 3.8, perception: 120, sepDist: 45, alignW: 0.03, cohW: 0.005, sepW: 0.12, wander: 0.4, scale: 1.0 };
     } else if (window.stageModifier === 'predator') {
@@ -447,21 +447,21 @@ function loop(time) {
             
         } else {
             // High penalty for isolation (not being in a flock)
-            targetSuspicion = (window.stageModifier === 'mosquito' ? 0.4 : 0.8); 
+            targetSuspicion = (window.stageModifier === 'mosquito' ? 0.6 : 0.8); 
         }
         
         let playerSpeed = Math.hypot(player.vx, player.vy);
         if (playerSpeed < 1.0) {
-            targetSuspicion += (window.stageModifier === 'mosquito' ? 0.4 : 1.0);
+            targetSuspicion += (window.stageModifier === 'mosquito' ? 0.6 : 1.0);
         }
         
         if (!hasMoved) targetSuspicion = 0;
         let suspicionRate = 0.08;
         if (window.stageModifier === 'nervous') suspicionRate = 0.12;
-        if (window.stageModifier === 'mosquito') suspicionRate = 0.04;
+        if (window.stageModifier === 'mosquito') suspicionRate = 0.06;
         suspicion += (targetSuspicion - suspicion) * suspicionRate;
         
-        suspicion -= (window.stageModifier === 'mosquito' ? 0.015 : 0.008);
+        suspicion -= (window.stageModifier === 'mosquito' ? 0.010 : 0.008);
         if (suspicion < 0) suspicion = 0;
         if (suspicion > 1) suspicion = 1;
         

@@ -107,31 +107,22 @@
     <canvas id="canvas"></canvas>
 
     <div id="screens">
-        <div style="font-size: 0.8rem; color: #5FE3B5; margin-bottom: 20px; letter-spacing: 2px;">THE AUTONOMOUS COMMONS</div>
+        <div style="font-size: 0.8rem; color: #5FE3B5; margin-bottom: 20px; letter-spacing: 2px;">STAGE 3: NERVOUS FLOCK</div>
         <h1 style="color:#fff; margin-bottom: 10px; font-size: 2rem;">NERVOUS FLOCK</h1>
         <p style="color:#888; max-width: 300px; font-size: 0.9rem; line-height: 1.5; margin-bottom: 30px;">
             The swarm is highly sensitive to proximity.<br>
             <span style="color: #d0441c;">Separation instinct is amplified 4x.</span><br><br>
-            If you get too close to others, they will scatter, exposing you instantly. Keep your distance.
+            If you get too close to others, they will scatter, exposing you instantly. Keep your distance.<br><br>
+            <span style="color: #76c7d5;">Survive 30 seconds to clear.</span>
         </p>
         <button class="btn" id="start-btn">INFILTRATE</button>
     </div>
 
-    <script src="boids_hunter_logic.js"></script>
     <script>
-        // Override boids parameters for Stage 2
-        window.addEventListener('load', () => {
-            // Wait for logic.js to initialize, then hook in
-            const originalInit = window.initGame;
-            window.initGame = function() {
-                originalInit();
-                // We inject a parameter override flag that boids_hunter_logic.js will look for
-                window.stageModifier = 'nervous';
-                // Spawn 5 food items for Stage 2 requirement
-                window.spawnFood(5);
-            };
-        });
+        window.stageModifier = 'nervous';
+        window.winConditionTimer = 30;
     </script>
+    <script src="boids_hunter_logic.js?v=20260908b"></script>
     <script>
         if ("serviceWorker" in navigator) {
             navigator.serviceWorker.register("./boids_hunter_sw.js");

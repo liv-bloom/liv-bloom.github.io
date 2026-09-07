@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Boids Hunter | Autonomous Commons</title>
+    <title>Turing Hunter: Mosquito Swarm | Autonomous Commons</title>
     <link rel="manifest" href="./boids_hunter_manifest.json">
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
     <style>
@@ -104,20 +104,23 @@
     <canvas id="canvas"></canvas>
 
     <div id="screens">
-        <div style="font-size: 0.8rem; color: #5FE3B5; margin-bottom: 20px; letter-spacing: 2px;">THE AUTONOMOUS COMMONS</div>
-        <h1 style="color:#fff; margin-bottom: 10px; font-size: 2rem;">TURING HUNTER</h1>
+        <div style="font-size: 0.8rem; color: #5FE3B5; margin-bottom: 20px; letter-spacing: 2px;">STAGE 2: MOSQUITO SWARM</div>
+        <h1 style="color:#fff; margin-bottom: 10px; font-size: 2rem;">MOSQUITO SWARM</h1>
         <p style="color:#888; max-width: 300px; font-size: 0.9rem; line-height: 1.5; margin-bottom: 30px;">
-            You are a boid. Drag to steer.<br>
-            Do not make sudden turns.<br>
-            Do not swim against the flow.<br>
-            Do not isolate yourself.<br><br>
-            <span style="color: #76c7d5;">If the AI detects human-like movement, you will be eliminated.</span>
+            The swarm has become erratic and erratic.<br>
+            Mosquitoes dart rapidly in bursts.<br>
+            Match their jittery flight without isolating yourself.<br><br>
+            <span style="color: #76c7d5;">Survive 20 seconds to clear.</span>
         </p>
         <button class="btn" id="start-btn">INFILTRATE</button>
         <div style="margin-top: 40px; font-size: 0.7rem; color: #444;">A SHARED HABITAT EXPERIMENT</div>
     </div>
 
-    <script src="boids_hunter_logic.js"></script>
+    <script>
+        window.stageModifier = 'mosquito';
+        window.winConditionTimer = 20;
+    </script>
+    <script src="boids_hunter_logic.js?v=20260908b"></script>
 
     <script>
         if ('serviceWorker' in navigator) {
