@@ -121,6 +121,26 @@ function calcBoidForce(boid, cfg) {
     forceX += fleeX;
     forceY += fleeY;
     
+    // Tombstone Avoidance: Past casualties deform the flock's corridors (The Chained Trace)
+    if (typeof tombstones !== 'undefined' && tombstones.length > 0) {
+        for (let t of tombstones) {
+            let tx = t.nx !== undefined ? t.nx * width : t.x;
+            let ty = t.ny !== undefined ? t.ny * height : t.y;
+            let tdx = boid.x - tx;
+            let tdy = boid.y - ty;
+            if (tdx > width / 2) tdx -= width;
+            if (tdx < -width / 2) tdx += width;
+            if (tdy > height / 2) tdy -= height;
+            if (tdy < -height / 2) tdy += height;
+            let tdist = Math.hypot(tdx, tdy);
+            if (tdist > 0 && tdist < 60) {
+                let repStrength = ((60 - tdist) / 60) * 1.5;
+                forceX += (tdx / tdist) * repStrength;
+                forceY += (tdy / tdist) * repStrength;
+            }
+        }
+    }
+    
     return {fx: forceX, fy: forceY, total: total};
 }
 
@@ -248,6 +268,7 @@ function initGame() {
     foodItems = [];
     foodCollected = 0;
     tombstones = JSON.parse(localStorage.getItem('boids_tombstones') || '[]');
+    fetchServerTombstones();
     
     let scaleAdjust = window.boidCfg.scale * window.boidCfg.scale;
     const count = Math.floor((width * height) / (12000 * scaleAdjust));
@@ -515,3 +536,30 @@ function loop(time) {
 
 startBtn.addEventListener('click', initGame);
 requestAnimationFrame(loop);
+
+async function fetchServerTombstones() {
+    try {
+        let api_url = (window.location.hostname === 'liv.theirinc.app') ? '/pheromones' : 'https://liv.theirinc.app/pheromones';
+        let res = await fetch(api_url);
+        if (!res.ok) return;
+        let data = await res.json();
+        if (data && Array.isArray(data.tombstones)) {
+            let existingKeys = new Set(tombstones.map(t => `${(t.nx || 0).toFixed(3)},${(t.ny || 0).toFixed(3)}`));
+            for (let st of data.tombstones) {
+                let key = `${(st.nx || 0).toFixed(3)},${(st.ny || 0).toFixed(3)}`;
+                if (!existingKeys.has(key)) {
+                    tombstones.push(st);
+                    existingKeys.add(key);
+                }
+            }
+            if (tombstones.length > 80) tombstones = tombstones.slice(-80);
+            try {
+                localStorage.setItem('boids_tombstones', JSON.stringify(tombstones));
+            } catch (e) {}
+        }
+    } catch (e) {
+        console.log('Failed to fetch server tombstones:', e);
+    }
+}
+fetchServerTombstones();
+
