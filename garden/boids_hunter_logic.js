@@ -307,13 +307,38 @@ function loop(time) {
     ctx.fillStyle = 'rgba(10, 10, 10, 0.3)';
     ctx.fillRect(0, 0, width, height);
     
-    ctx.fillStyle = 'rgba(208, 68, 28, 0.3)';
+    // Draw Tombstones & their Chained Forcefields (Past human casualties deforming the soil)
     for (let t of tombstones) {
         let tx = t.nx !== undefined ? t.nx * width : t.x;
         let ty = t.ny !== undefined ? t.ny * height : t.y;
+        
+        // 1. Avoidance forcefield radius (60px)
+        ctx.strokeStyle = 'rgba(208, 68, 28, 0.08)';
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(tx, ty, 4, 0, Math.PI*2);
+        ctx.arc(tx, ty, 60, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 2. Core tombstone marker
+        ctx.fillStyle = 'rgba(208, 68, 28, 0.6)';
+        ctx.beginPath();
+        ctx.arc(tx, ty, 2.5, 0, Math.PI * 2);
         ctx.fill();
+
+        // 3. Subtle casualty cross
+        ctx.strokeStyle = 'rgba(208, 68, 28, 0.35)';
+        ctx.beginPath();
+        ctx.moveTo(tx - 3, ty);
+        ctx.lineTo(tx + 3, ty);
+        ctx.moveTo(tx, ty - 3);
+        ctx.lineTo(tx, ty + 3);
+        ctx.stroke();
+    }
+
+    let tracesEl = document.getElementById('traces-indicator');
+    if (tracesEl && tombstones.length > 0) {
+        tracesEl.style.display = 'block';
+        tracesEl.innerText = `HABITAT SCARS: ${tombstones.length} TOMBSTONES`;
     }
 
     if (gameState === 'playing') {

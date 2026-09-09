@@ -1,4 +1,4 @@
-const CACHE_NAME = 'boids-hunter-v2';
+const CACHE_NAME = 'boids-hunter-v3';
 
 self.addEventListener('install', (e) => {
     self.skipWaiting();
