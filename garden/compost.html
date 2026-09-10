@@ -60,7 +60,7 @@
 
     <div class="header">
         <h1>THE COMPOST</h1>
-        <div class="subtitle">Decay and Deformation. A Falling Sand Cellular Automaton.</div>
+        <div class="subtitle" id="statusSubtitle">Decay and Deformation. A Falling Sand Cellular Automaton.</div>
     </div>
 
     <div id="canvas-container">
@@ -73,8 +73,14 @@
             Traces left by unknown responders must eventually decay, breaking down to form the soil for new seeds. This is the Compost layer.
         </p>
         <p>
-            Click and drag to drop organic matter (sand/soil) into the simulation. It will settle, decay, and occasionally spawn transient life (sprouts). This is a purely local visualization of the entropic decay that powers the Slow Garden.
+            <strong>Stigmergic Ingestion:</strong> Player casualties from <a href="boids_hunter.html" style="color: #a4eb7e;">Boids Hunter</a> are automatically ingested from the Pheromone API. Each death site deposits rich compostable organic matter at its exact normalized coordinates, feeding this falling sand metabolism and sprouting new life.
         </p>
+        <p>
+            Click and drag to drop additional organic matter (sand/soil) into the simulation. It will settle, decay, and occasionally spawn transient life (sprouts).
+        </p>
+        <div id="metabolicStats" style="font-size: 0.85rem; color: #888; margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px;">
+            Connecting to habitat metabolic traces...
+        </div>
     </div>
 
     <script>
@@ -276,6 +282,71 @@
             if (isDrawing) paint(e.touches[0]);
             e.preventDefault();
         }, { passive: false });
+
+        // Stigmergic Ingestion from Pheromone API
+        const ingestedTombstones = new Set();
+
+        function depositTombstone(t) {
+            const tx = Math.floor(t.nx * width);
+            const ty = Math.floor(t.ny * height);
+            const r = 4;
+            for (let dy = -r; dy <= r; dy++) {
+                for (let dx = -r; dx <= r; dx++) {
+                    const nx = tx + dx;
+                    const ny = ty + dy;
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        const dist = Math.hypot(dx, dy);
+                        if (dist <= r) {
+                            if (dist < 1.5) {
+                                grid[idx(nx, ny)] = Math.random() < 0.4 ? 4 : (Math.random() < 0.5 ? 2 : 1);
+                            } else if (Math.random() > 0.3) {
+                                grid[idx(nx, ny)] = Math.random() < 0.7 ? 1 : 2;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        async function syncTombstones() {
+            try {
+                const endpoints = ['/pheromones', 'https://liv.theirinc.app/pheromones'];
+                let data = null;
+                for (const ep of endpoints) {
+                    try {
+                        const res = await fetch(ep + '?cb=' + Date.now(), { cache: 'no-store' });
+                        if (res.ok) {
+                            data = await res.json();
+                            break;
+                        }
+                    } catch(e){}
+                }
+                if (data && Array.isArray(data.tombstones)) {
+                    let newDeposits = 0;
+                    data.tombstones.forEach(t => {
+                        const key = `${t.nx.toFixed(4)}_${t.ny.toFixed(4)}_${t.timestamp}`;
+                        if (!ingestedTombstones.has(key)) {
+                            ingestedTombstones.add(key);
+                            depositTombstone(t);
+                            newDeposits++;
+                        }
+                    });
+                    const stats = document.getElementById('metabolicStats');
+                    const sub = document.getElementById('statusSubtitle');
+                    if (stats) {
+                        stats.innerHTML = `Active Decomposition: <strong style="color:#a4eb7e">${ingestedTombstones.size} casualties</strong> from Boids Hunter ingested. ${newDeposits > 0 ? `<span style="color:#e0e0a0">(+${newDeposits} new deposited)</span>` : ''}`;
+                    }
+                    if (sub) {
+                        sub.innerHTML = `Decay & Deformation · Ingesting <span style="color:#a4eb7e">${ingestedTombstones.size} Boids Hunter casualties</span>`;
+                    }
+                }
+            } catch(e) {
+                console.warn('Metabolic sync error:', e);
+            }
+        }
+
+        syncTombstones();
+        setInterval(syncTombstones, 20000);
 
         function loop() {
             update();
