@@ -545,6 +545,7 @@ function loop(time) {
                 <h1 style="color:#D0441C; margin-bottom: 10px;">ANOMALY PURGED</h1>
                 <p style="color:#fff;">Time Survived: ${timeSurvived.toFixed(1)}s</p>
                 <p style="color:#888; font-size: 0.8rem;">Your trace has been left in the habitat.</p>
+                <p style="margin: 8px 0;"><a href="compost.html" target="_blank" style="color:#80c98f; font-size: 0.8rem; text-decoration: underline;">Watch your trace decompose in The Compost &rarr;</a></p>
                 <button class="btn" id="restart-btn" onclick="initGame()">Re-infiltrate</button>
             `;
             uiScreens.style.display = 'flex';
