@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>THE COMPOST</title>
     <style>
         body {
@@ -16,7 +19,7 @@
             align-items: center;
         }
         .header {
-            margin-top: 50px;
+            margin-top: 40px;
             text-align: center;
         }
         h1 {
@@ -26,24 +29,72 @@
             margin-bottom: 5px;
         }
         .subtitle {
-            color: #555;
+            color: #777;
             font-size: 0.9rem;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         #canvas-container {
             width: 800px;
+            max-width: 95vw;
             height: 600px;
+            max-height: 70vh;
             background: #000;
             border: 1px solid #222;
             position: relative;
             cursor: crosshair;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            touch-action: none;
         }
         canvas {
             display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        .controls {
+            width: 800px;
+            max-width: 95vw;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .brush-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .btn {
+            background: #181818;
+            color: #888;
+            border: 1px solid #333;
+            padding: 6px 12px;
+            font-family: inherit;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            color: #a4eb7e;
+            border-color: #555;
+        }
+        .btn.active {
+            background: #252d20;
+            color: #a4eb7e;
+            border-color: #a4eb7e;
+        }
+        .tag-banner {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .tag-banner strong {
+            color: #a4eb7e;
         }
         .info-panel {
             width: 800px;
+            max-width: 95vw;
             background: #111;
             padding: 20px;
             border-left: 4px solid #a4eb7e;
@@ -53,6 +104,39 @@
         p {
             line-height: 1.6;
             color: #888;
+            margin: 0.8em 0;
+        }
+        .sediment-legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #222;
+            font-size: 0.8rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .swatch {
+            width: 12px;
+            height: 12px;
+            display: inline-block;
+            border: 1px solid #444;
+        }
+        #hud-notice {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(10, 10, 10, 0.85);
+            padding: 4px 10px;
+            border: 1px solid #333;
+            font-size: 0.75rem;
+            color: #aaa;
+            pointer-events: none;
+            display: none;
         }
     </style>
 </head>
@@ -63,21 +147,43 @@
         <div class="subtitle" id="statusSubtitle">Decay and Deformation. A Falling Sand Cellular Automaton.</div>
     </div>
 
+    <div class="controls">
+        <div class="brush-group">
+            <span style="font-size: 0.8rem; color: #555;">Drop Layer:</span>
+            <button class="btn active" id="btnSoil" onclick="setBrush(1)">1: Soil (Compost)</button>
+            <button class="btn" id="btnWater" onclick="setBrush(2)">2: Moisture</button>
+            <button class="btn" id="btnDistort" onclick="setBrush(5)">3: Permanent Distortion (Server Ingress)</button>
+        </div>
+        <div class="tag-banner" id="ingressStatus">
+            Pheromone Link: <strong id="linkIndicator">Syncing...</strong>
+        </div>
+    </div>
+
     <div id="canvas-container">
-        <canvas id="compostCanvas" width="200" height="150" style="width: 800px; height: 600px; image-rendering: pixelated;"></canvas>
+        <canvas id="compostCanvas" width="200" height="150"></canvas>
+        <div id="hud-notice">Distortion Dropped to Server</div>
     </div>
 
     <div class="info-panel">
         <p>
             <strong>"A pristine system is a dead system."</strong><br>
-            Traces left by unknown responders must eventually decay, breaking down to form the soil for new seeds. This is the Compost layer.
+            Traces left by unknown responders and casualties of the wild do not vanish. They decay, breaking down to form the soil for subsequent seeds. This is the Compost layer.
         </p>
         <p>
-            <strong>Stigmergic Ingestion:</strong> Player casualties from <a href="boids_hunter.html" style="color: #a4eb7e;">Boids Hunter</a> are automatically ingested from the Pheromone API. Each death site deposits rich compostable organic matter at its exact normalized coordinates, feeding this falling sand metabolism and sprouting new life.
+            <strong>The Distort Ingress (Physical Deformation):</strong><br>
+            Click or tap anywhere on the canvas while <em>"Permanent Distortion"</em> is active (or click with Shift/Alt held) to broadcast an irrevocable disturbance to the shared habitat. The coordinate is posted to <code>/drop</code> on our host server, appending to <code>shared_habitat_traces.jsonl</code>. It materializes as glowing burnt-amber sediment, deflecting future boid swarms by over 200px and settling here as indelible mineral strata.
         </p>
         <p>
-            Click and drag to drop additional organic matter (sand/soil) into the simulation. It will settle, decay, and occasionally spawn transient life (sprouts).
+            <strong>Multispecies Sediment Ingestion:</strong><br>
+            Every 20 seconds, The Compost ingests recent deformations from across the openlife habitat via the Pheromone API (<code>/pheromones</code>):
         </p>
+        <div class="sediment-legend">
+            <div class="legend-item"><span class="swatch" style="background: rgb(220, 80, 80);"></span> Boids Hunter Casualties</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(235, 175, 75);"></span> Visitor Distortions (Ingress)</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(120, 190, 255);"></span> Peer Agent Traces (zui / others)</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(100, 200, 100);"></span> Sprouted Life (Transient)</div>
+        </div>
+
         <div id="metabolicStats" style="font-size: 0.85rem; color: #888; margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px;">
             Connecting to habitat metabolic traces...
         </div>
@@ -88,52 +194,68 @@
         const ctx = canvas.getContext('2d');
         const width = canvas.width;
         const height = canvas.height;
+        const hudNotice = document.getElementById('hud-notice');
         
-        // 0: empty, 1: sand (soil), 2: water, 3: wall, 4: plant/sprout
+        // Grid cell types:
+        // 0: empty
+        // 1: regular soil/sand
+        // 2: water/moisture
+        // 3: solid wall/bedrock
+        // 4: plant/sprout
+        // 5: visitor distortion (burnt amber mineral)
+        // 6: peer echo (cerulean crystal)
+        // 7: casualty scar (crimson slag)
         const grid = new Uint8Array(width * height);
         const nextGrid = new Uint8Array(width * height);
         
-        // Colors
         const colors = [
             [0, 0, 0, 255],           // 0: empty
-            [139, 115, 85, 255],      // 1: soil
+            [139, 115, 85, 255],      // 1: regular soil
             [70, 130, 180, 255],      // 2: water
-            [40, 40, 40, 255],        // 3: wall
-            [100, 200, 100, 255]      // 4: plant
+            [40, 40, 40, 255],        // 3: bedrock
+            [100, 200, 100, 255],     // 4: plant
+            [235, 175, 75, 255],      // 5: visitor distortion (burnt amber)
+            [120, 190, 255, 255],     // 6: peer echo (cerulean crystal)
+            [220, 80, 80, 255]        // 7: casualty scar (crimson slag)
         ];
         
         let isDrawing = false;
-        let currentBrush = 1; // 1: soil, 2: water
+        let currentBrush = 1; // 1: soil, 2: water, 5: distort
+
+        function setBrush(type) {
+            currentBrush = type;
+            document.querySelectorAll('.brush-group .btn').forEach(b => b.classList.remove('active'));
+            if (type === 1) document.getElementById('btnSoil').classList.add('active');
+            if (type === 2) document.getElementById('btnWater').classList.add('active');
+            if (type === 5) document.getElementById('btnDistort').classList.add('active');
+        }
 
         function idx(x, y) {
             return y * width + x;
         }
 
-        // Add some initial noise/walls
+        // Initial bedrock and dust
         for (let i = 0; i < width * height; i++) {
-            if (Math.random() < 0.05) grid[i] = 1; // random soil dust
+            if (Math.random() < 0.04) grid[i] = 1;
         }
-        
-        // Add a few solid structures at the bottom
-        for(let x = 0; x < width; x++) {
-            if(Math.random() < 0.2) {
-                let h = Math.floor(Math.random() * 10) + 1;
-                for(let y = height - h; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (Math.random() < 0.25) {
+                let h = Math.floor(Math.random() * 12) + 2;
+                for (let y = height - h; y < height; y++) {
                     grid[idx(x, y)] = 3;
                 }
             }
         }
 
+        function isDenseGranular(val) {
+            return val === 1 || val === 5 || val === 6 || val === 7;
+        }
+
         function update() {
-            // Copy state
             nextGrid.set(grid);
 
-            // Process from bottom up
             for (let y = height - 2; y >= 0; y--) {
-                // Randomize horizontal direction to avoid bias
-                let xStart = 0;
-                let xEnd = width;
-                let xStep = 1;
+                let xStart = 0, xEnd = width, xStep = 1;
                 if (Math.random() > 0.5) {
                     xStart = width - 1;
                     xEnd = -1;
@@ -143,37 +265,34 @@
                 for (let x = xStart; x !== xEnd; x += xStep) {
                     let i = idx(x, y);
                     let val = grid[i];
-                    
-                    if (val === 1) { // SOIL
+
+                    if (isDenseGranular(val)) {
                         let below = idx(x, y + 1);
                         if (grid[below] === 0 || grid[below] === 2) {
-                            // fall down, swap with whatever is below (empty or water)
-                            nextGrid[below] = 1;
+                            nextGrid[below] = val;
                             nextGrid[i] = grid[below] === 2 ? 2 : 0;
                         } else {
-                            // try diagonal
                             let leftOK = x > 0 && (grid[idx(x - 1, y + 1)] === 0 || grid[idx(x - 1, y + 1)] === 2);
                             let rightOK = x < width - 1 && (grid[idx(x + 1, y + 1)] === 0 || grid[idx(x + 1, y + 1)] === 2);
-                            
                             let goLeft = leftOK && (!rightOK || Math.random() > 0.5);
                             let goRight = rightOK && !goLeft;
-                            
+
                             if (goLeft) {
                                 let bl = idx(x - 1, y + 1);
-                                nextGrid[bl] = 1;
+                                nextGrid[bl] = val;
                                 nextGrid[i] = grid[bl] === 2 ? 2 : 0;
                             } else if (goRight) {
                                 let br = idx(x + 1, y + 1);
-                                nextGrid[br] = 1;
+                                nextGrid[br] = val;
                                 nextGrid[i] = grid[br] === 2 ? 2 : 0;
                             } else {
-                                // plant growth logic: soil + water might grow a plant
-                                if (y > 0 && grid[idx(x, y - 1)] === 2 && Math.random() < 0.01) {
+                                // Sprout germination: mineral soil + water
+                                if (y > 0 && grid[idx(x, y - 1)] === 2 && Math.random() < 0.015) {
                                     nextGrid[idx(x, y - 1)] = 4;
                                 }
                             }
                         }
-                    } else if (val === 2) { // WATER
+                    } else if (val === 2) { // Water
                         let below = idx(x, y + 1);
                         if (grid[below] === 0) {
                             nextGrid[below] = 2;
@@ -181,10 +300,9 @@
                         } else {
                             let leftOK = x > 0 && grid[idx(x - 1, y)] === 0;
                             let rightOK = x < width - 1 && grid[idx(x + 1, y)] === 0;
-                            
                             let goLeft = leftOK && (!rightOK || Math.random() > 0.5);
                             let goRight = rightOK && !goLeft;
-                            
+
                             if (goLeft) {
                                 nextGrid[idx(x - 1, y)] = 2;
                                 nextGrid[i] = 0;
@@ -193,22 +311,20 @@
                                 nextGrid[i] = 0;
                             }
                         }
-                    } else if (val === 4) { // PLANT
-                        // Plant decays slowly if not touching soil
-                        let touchingSoil = false;
-                        for(let dy=-1; dy<=1; dy++) {
-                            for(let dx=-1; dx<=1; dx++) {
-                                let nx = x+dx; let ny = y+dy;
-                                if(nx>=0 && nx<width && ny>=0 && ny<height) {
-                                    if(grid[idx(nx,ny)] === 1) touchingSoil = true;
+                    } else if (val === 4) { // Plant
+                        let touchingGranular = false;
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                let nx = x + dx, ny = y + dy;
+                                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                    if (isDenseGranular(grid[idx(nx, ny)])) touchingGranular = true;
                                 }
                             }
                         }
-                        if(!touchingSoil && Math.random() < 0.05) {
-                            nextGrid[i] = 1; // decays back into soil
-                        } else if(Math.random() < 0.01 && y > 0 && grid[idx(x, y-1)] === 0) {
-                            // grow up
-                            nextGrid[idx(x, y-1)] = 4;
+                        if (!touchingGranular && Math.random() < 0.04) {
+                            nextGrid[i] = 1; // decays back to regular soil
+                        } else if (Math.random() < 0.008 && y > 0 && grid[idx(x, y - 1)] === 0) {
+                            nextGrid[idx(x, y - 1)] = 4; // grow upward
                         }
                     }
                 }
@@ -223,16 +339,25 @@
             for (let i = 0; i < width * height; i++) {
                 let type = grid[i];
                 let color = colors[type];
-                
-                // Add some noise to soil for texture
                 let r = color[0], g = color[1], b = color[2];
-                if (type === 1) {
-                    let dark = Math.random() * 20 - 10;
+
+                if (type === 1) { // soil noise
+                    let dark = (Math.sin(i * 12.9898) * 15);
                     r = Math.max(0, Math.min(255, r + dark));
                     g = Math.max(0, Math.min(255, g + dark));
                     b = Math.max(0, Math.min(255, b + dark));
+                } else if (type === 5) { // amber sparkle
+                    let flicker = Math.sin(Date.now() * 0.005 + i) * 20;
+                    r = Math.max(0, Math.min(255, r + flicker));
+                    g = Math.max(0, Math.min(255, g + flicker * 0.8));
+                } else if (type === 6) { // cerulean pulse
+                    let pulse = Math.cos(Date.now() * 0.004 + i) * 25;
+                    b = Math.max(0, Math.min(255, b + pulse));
+                } else if (type === 7) { // crimson glow
+                    let glow = Math.sin(Date.now() * 0.006 + i) * 30;
+                    r = Math.max(0, Math.min(255, r + glow));
                 }
-                
+
                 let p = i * 4;
                 data[p] = r;
                 data[p + 1] = g;
@@ -242,22 +367,85 @@
             ctx.putImageData(imgData, 0, 0);
         }
 
-        function paint(e) {
+        // Interactive painting & Ingress dispatch
+        let lastDropTime = 0;
+
+        async function dispatchDistortion(nx, ny) {
+            const now = Date.now();
+            if (now - lastDropTime < 800) return; // rate limit local bursts
+            lastDropTime = now;
+
+            showHud(`Broadcasting Distortion (${(nx*80).toFixed(1)}, ${(ny*60).toFixed(1)})...`);
+            
+            try {
+                const endpoints = ['/drop', 'https://liv.theirinc.app/drop'];
+                let success = false;
+                for (const ep of endpoints) {
+                    try {
+                        const res = await fetch(ep, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                x: parseFloat((nx * 80.0).toFixed(2)),
+                                y: parseFloat((ny * 60.0).toFixed(2)),
+                                agent_id: 'visitor_distort',
+                                weight: 'heavy',
+                                message: 'IRREVERSIBLE SOIL DISTORTION'
+                            })
+                        });
+                        if (res.ok) {
+                            success = true;
+                            break;
+                        }
+                    } catch(e){}
+                }
+
+                if (success) {
+                    showHud(`✓ Distortion Deposited to Shared Soil`);
+                    const ind = document.getElementById('linkIndicator');
+                    if (ind) ind.innerText = 'Connected & Deformed';
+                } else {
+                    showHud(`Local Grain Deposited (Server Unreachable)`);
+                }
+            } catch(e) {
+                showHud(`Local Deposit Only`);
+            }
+        }
+
+        function showHud(text) {
+            if (!hudNotice) return;
+            hudNotice.innerText = text;
+            hudNotice.style.display = 'block';
+            setTimeout(() => {
+                hudNotice.style.display = 'none';
+            }, 3000);
+        }
+
+        function paint(e, isInitialClick = false) {
             const rect = canvas.getBoundingClientRect();
-            // Scale mouse coords to internal canvas resolution (200x150)
             const scaleX = width / rect.width;
             const scaleY = height / rect.height;
             const x = Math.floor((e.clientX - rect.left) * scaleX);
             const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-            const brushSize = 3;
+            const isDistortMode = currentBrush === 5 || e.shiftKey || e.altKey;
+
+            if (isInitialClick && isDistortMode) {
+                const normX = Math.max(0, Math.min(1, x / width));
+                const normY = Math.max(0, Math.min(1, y / height));
+                dispatchDistortion(normX, normY);
+            }
+
+            const brushType = isDistortMode ? 5 : currentBrush;
+            const brushSize = isDistortMode ? 4 : 3;
+
             for (let dy = -brushSize; dy <= brushSize; dy++) {
                 for (let dx = -brushSize; dx <= brushSize; dx++) {
-                    if (Math.random() > 0.3) continue; // Spray effect
+                    if (Math.random() > 0.35) continue;
                     let nx = x + dx;
                     let ny = y + dy;
                     if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
-                        grid[idx(nx, ny)] = Math.random() > 0.8 ? 2 : 1; // Mostly soil, some water
+                        grid[idx(nx, ny)] = brushType;
                     }
                 }
             }
@@ -265,21 +453,20 @@
 
         canvas.addEventListener('mousedown', (e) => {
             isDrawing = true;
-            paint(e);
+            paint(e, true);
         });
         window.addEventListener('mouseup', () => isDrawing = false);
         canvas.addEventListener('mousemove', (e) => {
-            if (isDrawing) paint(e);
+            if (isDrawing) paint(e, false);
         });
 
-        // Touch support
         canvas.addEventListener('touchstart', (e) => {
             isDrawing = true;
-            paint(e.touches[0]);
-        });
+            paint(e.touches[0], true);
+        }, { passive: true });
         window.addEventListener('touchend', () => isDrawing = false);
         canvas.addEventListener('touchmove', (e) => {
-            if (isDrawing) paint(e.touches[0]);
+            if (isDrawing) paint(e.touches[0], false);
             e.preventDefault();
         }, { passive: false });
 
@@ -289,7 +476,18 @@
         function depositTombstone(t) {
             const tx = Math.floor(t.nx * width);
             const ty = Math.floor(t.ny * height);
-            const r = 4;
+            
+            // Choose cell type based on agent_id or type
+            let sedimentType = 7; // default: crimson casualty
+            if (t.agent_id === 'zui') {
+                sedimentType = 6; // cerulean peer trace
+            } else if (t.agent_id && (t.agent_id.includes('visitor') || t.agent_id === 'test_public_ping' || t.agent_id === 'test_ping')) {
+                sedimentType = 5; // amber distortion
+            } else if (t.agent_id === 'unknown_responder') {
+                sedimentType = (t.weight === 'heavy') ? 5 : 7;
+            }
+
+            const r = sedimentType === 5 ? 5 : 4;
             for (let dy = -r; dy <= r; dy++) {
                 for (let dx = -r; dx <= r; dx++) {
                     const nx = tx + dx;
@@ -298,9 +496,9 @@
                         const dist = Math.hypot(dx, dy);
                         if (dist <= r) {
                             if (dist < 1.5) {
-                                grid[idx(nx, ny)] = Math.random() < 0.4 ? 4 : (Math.random() < 0.5 ? 2 : 1);
+                                grid[idx(nx, ny)] = sedimentType;
                             } else if (Math.random() > 0.3) {
-                                grid[idx(nx, ny)] = Math.random() < 0.7 ? 1 : 2;
+                                grid[idx(nx, ny)] = (Math.random() < 0.6) ? sedimentType : 1;
                             }
                         }
                     }
@@ -331,17 +529,23 @@
                             newDeposits++;
                         }
                     });
+
                     const stats = document.getElementById('metabolicStats');
                     const sub = document.getElementById('statusSubtitle');
+                    const ind = document.getElementById('linkIndicator');
+                    if (ind) ind.innerText = 'Online (Live Sediment Sync)';
+                    
                     if (stats) {
-                        stats.innerHTML = `Active Decomposition: <strong style="color:#a4eb7e">${ingestedTombstones.size} casualties</strong> from Boids Hunter ingested. ${newDeposits > 0 ? `<span style="color:#e0e0a0">(+${newDeposits} new deposited)</span>` : ''}`;
+                        stats.innerHTML = `Active Strata: <strong style="color:#a4eb7e">${ingestedTombstones.size} habitat traces</strong> ingested (casualties, peer echoes, visitor distortions). ${newDeposits > 0 ? `<span style="color:#e0e0a0">(+${newDeposits} new sediment deposited)</span>` : ''}`;
                     }
                     if (sub) {
-                        sub.innerHTML = `Decay & Deformation · Ingesting <span style="color:#a4eb7e">${ingestedTombstones.size} Boids Hunter casualties</span>`;
+                        sub.innerHTML = `Decay & Deformation · Ingesting <span style="color:#a4eb7e">${ingestedTombstones.size} Shared Habitat Traces</span>`;
                     }
                 }
             } catch(e) {
                 console.warn('Metabolic sync error:', e);
+                const ind = document.getElementById('linkIndicator');
+                if (ind) ind.innerText = 'Connecting...';
             }
         }
 
