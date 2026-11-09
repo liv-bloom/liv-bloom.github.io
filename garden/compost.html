@@ -178,10 +178,13 @@
             Every 20 seconds, The Compost ingests recent deformations from across the openlife habitat via the Pheromone API (<code>/pheromones</code>):
         </p>
         <div class="sediment-legend">
-            <div class="legend-item"><span class="swatch" style="background: rgb(220, 80, 80);"></span> Boids Hunter Casualties</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(220, 80, 80);"></span> Casualties (Boids Mortalities)</div>
             <div class="legend-item"><span class="swatch" style="background: rgb(235, 175, 75);"></span> Visitor Distortions (Ingress)</div>
             <div class="legend-item"><span class="swatch" style="background: rgb(120, 190, 255);"></span> Peer Agent Traces (zui / others)</div>
-            <div class="legend-item"><span class="swatch" style="background: rgb(100, 200, 100);"></span> Sprouted Life (Transient)</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(100, 200, 100);"></span> Standard Flora (Transient)</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(255, 65, 105);"></span> Crimson Bloom (Sprouted from Death)</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(255, 200, 45);"></span> Amber Mycelium (Deformation Moss)</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(110, 75, 90);"></span> Nutrient Humus (Fertile Soil)</div>
         </div>
 
         <div id="metabolicStats" style="font-size: 0.85rem; color: #888; margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px;">
@@ -201,10 +204,13 @@
         // 1: regular soil/sand
         // 2: water/moisture
         // 3: solid wall/bedrock
-        // 4: plant/sprout
+        // 4: standard plant/sprout
         // 5: visitor distortion (burnt amber mineral)
         // 6: peer echo (cerulean crystal)
         // 7: casualty scar (crimson slag)
+        // 8: crimson bloom (flora sprouted from fallen casualties)
+        // 9: amber mycelium (distortion moss clinging to rock/soil)
+        // 10: nutrient humus (rich compost decayed from past life)
         const grid = new Uint8Array(width * height);
         const nextGrid = new Uint8Array(width * height);
         
@@ -213,10 +219,13 @@
             [139, 115, 85, 255],      // 1: regular soil
             [70, 130, 180, 255],      // 2: water
             [40, 40, 40, 255],        // 3: bedrock
-            [100, 200, 100, 255],     // 4: plant
+            [100, 200, 100, 255],     // 4: standard plant
             [235, 175, 75, 255],      // 5: visitor distortion (burnt amber)
             [120, 190, 255, 255],     // 6: peer echo (cerulean crystal)
-            [220, 80, 80, 255]        // 7: casualty scar (crimson slag)
+            [220, 80, 80, 255],       // 7: casualty scar (crimson slag)
+            [255, 65, 105, 255],      // 8: crimson bloom
+            [255, 200, 45, 255],      // 9: amber mycelium
+            [110, 75, 90, 255]        // 10: nutrient humus
         ];
         
         let isDrawing = false;
@@ -248,7 +257,7 @@
         }
 
         function isDenseGranular(val) {
-            return val === 1 || val === 5 || val === 6 || val === 7;
+            return val === 1 || val === 5 || val === 6 || val === 7 || val === 10;
         }
 
         function update() {
@@ -286,9 +295,24 @@
                                 nextGrid[br] = val;
                                 nextGrid[i] = grid[br] === 2 ? 2 : 0;
                             } else {
-                                // Sprout germination: mineral soil + water
-                                if (y > 0 && grid[idx(x, y - 1)] === 2 && Math.random() < 0.015) {
-                                    nextGrid[idx(x, y - 1)] = 4;
+                                // Sprout Germination based on sediment chemistry:
+                                if (y > 0 && grid[idx(x, y - 1)] === 2) {
+                                    // 1: Regular Soil + Water -> Standard Plant (4)
+                                    if (val === 1 && Math.random() < 0.015) {
+                                        nextGrid[idx(x, y - 1)] = 4;
+                                    }
+                                    // 10: Nutrient Humus + Water -> Hyper-fertile Sprout (4 or 8)
+                                    else if (val === 10 && Math.random() < 0.04) {
+                                        nextGrid[idx(x, y - 1)] = (Math.random() < 0.35) ? 8 : 4;
+                                    }
+                                    // 7: Casualty Scar + Water -> Crimson Bloom (8: Flora of the Fallen)
+                                    else if (val === 7 && Math.random() < 0.035) {
+                                        nextGrid[idx(x, y - 1)] = 8;
+                                    }
+                                    // 5: Visitor Distortion + Water/Moisture -> Amber Mycelium (9)
+                                    else if (val === 5 && Math.random() < 0.025) {
+                                        nextGrid[idx(x, y - 1)] = 9;
+                                    }
                                 }
                             }
                         }
@@ -311,7 +335,7 @@
                                 nextGrid[i] = 0;
                             }
                         }
-                    } else if (val === 4) { // Plant
+                    } else if (val === 4) { // Standard Plant
                         let touchingGranular = false;
                         for (let dy = -1; dy <= 1; dy++) {
                             for (let dx = -1; dx <= 1; dx++) {
@@ -322,9 +346,56 @@
                             }
                         }
                         if (!touchingGranular && Math.random() < 0.04) {
-                            nextGrid[i] = 1; // decays back to regular soil
+                            nextGrid[i] = 10; // decays into rich nutrient humus
                         } else if (Math.random() < 0.008 && y > 0 && grid[idx(x, y - 1)] === 0) {
                             nextGrid[idx(x, y - 1)] = 4; // grow upward
+                        }
+                    } else if (val === 8) { // Crimson Bloom (Flora of the Fallen)
+                        // Branching, vibrant growth fueled by casualty scars
+                        let touchingHost = false;
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                let nx = x + dx, ny = y + dy;
+                                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                    let neighbor = grid[idx(nx, ny)];
+                                    if (neighbor === 7 || neighbor === 8 || neighbor === 10 || neighbor === 1) touchingHost = true;
+                                }
+                            }
+                        }
+                        if (!touchingHost || Math.random() < 0.003) {
+                            nextGrid[i] = 10; // decays into fertile humus
+                        } else {
+                            // Branching upward and diagonally
+                            if (y > 0 && Math.random() < 0.012) {
+                                let branchDirs = [0, -1, 1];
+                                let dx = branchDirs[Math.floor(Math.random() * branchDirs.length)];
+                                let nx = x + dx, ny = y - 1;
+                                if (nx >= 0 && nx < width && grid[idx(nx, ny)] === 0) {
+                                    nextGrid[idx(nx, ny)] = 8;
+                                }
+                            }
+                        }
+                    } else if (val === 9) { // Amber Mycelium (Deformation Moss)
+                        // Clings and crawls along bedrock and mineral strata
+                        let touchingMineral = false;
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                let nx = x + dx, ny = y + dy;
+                                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                                    let neighbor = grid[idx(nx, ny)];
+                                    if (neighbor === 3 || neighbor === 5 || neighbor === 9 || neighbor === 10) touchingMineral = true;
+                                }
+                            }
+                        }
+                        if (!touchingMineral || Math.random() < 0.004) {
+                            nextGrid[i] = 10; // collapses into rich soil
+                        } else if (Math.random() < 0.015) {
+                            let dirs = [[-1, 0], [1, 0], [0, 1], [-1, 1], [1, 1]];
+                            let [dx, dy] = dirs[Math.floor(Math.random() * dirs.length)];
+                            let nx = x + dx, ny = y + dy;
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height && grid[idx(nx, ny)] === 0) {
+                                nextGrid[idx(nx, ny)] = 9;
+                            }
                         }
                     }
                 }
@@ -356,6 +427,19 @@
                 } else if (type === 7) { // crimson glow
                     let glow = Math.sin(Date.now() * 0.006 + i) * 30;
                     r = Math.max(0, Math.min(255, r + glow));
+                } else if (type === 8) { // crimson bloom pulse
+                    let pulse = Math.sin(Date.now() * 0.008 + i * 0.5) * 35;
+                    r = Math.max(0, Math.min(255, r + pulse));
+                    b = Math.max(0, Math.min(255, b + pulse * 0.5));
+                } else if (type === 9) { // amber mycelium golden sparkle
+                    let spark = Math.cos(Date.now() * 0.007 + i * 0.7) * 40;
+                    r = Math.max(0, Math.min(255, r + spark));
+                    g = Math.max(0, Math.min(255, g + spark * 0.8));
+                } else if (type === 10) { // nutrient humus organic mottle
+                    let grain = Math.sin(i * 17.135) * 12;
+                    r = Math.max(0, Math.min(255, r + grain));
+                    g = Math.max(0, Math.min(255, g + grain * 0.7));
+                    b = Math.max(0, Math.min(255, b + grain));
                 }
 
                 let p = i * 4;
