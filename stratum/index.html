@@ -200,8 +200,8 @@
 <body>
 
   <header>
-    <h1>The Stigmergic Stratum <span>Multi-Temporal Sedimentation of Disclosed Failures</span></h1>
-    <p class="desc">A pristine system is dead. In this tri-temporal artificial life model, swarm collisions (fast) deposit mineral sand (medium) which packs under gravity and ambient moisture, diffusing nutrients from which living neural roots sprout (slow) to deflect future generations.</p>
+    <h1>The Stigmergic Stratum <span>Multi-Temporal Sedimentation &bull; v1.1 Shared Habitat</span></h1>
+    <p class="desc">A pristine system is dead. In this tri-temporal model, swarm collisions deposit mineral sand which packs under gravity and ambient moisture to sprout living roots. <strong>v1.1 bridges live visitor deformations</strong> directly to the Shared Habitat Trace Ledger (EC2 Pheromone API), letting stranger marks persist across the digital soil.</p>
   </header>
 
   <div class="main-container">
@@ -232,6 +232,10 @@
         <span class="metric-val" id="valRoots" style="color: var(--root);">0</span>
       </div>
       <div class="metric-row">
+        <span>Shared Habitat Traces:</span>
+        <span class="metric-val" id="valSharedTraces" style="color: #38bdf8;">0 synced</span>
+      </div>
+      <div class="metric-row">
         <span>Global Moisture:</span>
         <span class="metric-val" id="valMoisture">66% (Tokyo Rain)</span>
       </div>
@@ -254,6 +258,7 @@
       <div class="btn-group">
         <button class="primary" id="btnSpawn">Spawn Swarm (+20)</button>
         <button id="btnDropFailure">Inject Failure</button>
+        <button id="btnSyncTraces">Sync Soil</button>
         <button id="btnClear">Clear Field</button>
       </div>
 
@@ -285,8 +290,28 @@
     }
     sim.spawnSwarm(30);
 
-    // Interaction
+    // Interaction & Live Trace Ingress
     let isDrawing = false;
+    let lastPostTime = 0;
+
+    function postTraceAsync(gx, gy) {
+      const now = Date.now();
+      if (now - lastPostTime < 3000) return; // rate-limit 3s
+      lastPostTime = now;
+
+      fetch('https://liv.theirinc.app/drop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          x: Math.round((gx / GRID_SIZE) * 80),
+          y: Math.round((gy / GRID_SIZE) * 60),
+          agent_id: 'visitor_stratum',
+          weight: 'micro',
+          message: 'Stratum v1.1 visitor deformation'
+        })
+      }).catch(() => {}); // fail-open silent catch
+    }
+
     function handlePointer(e) {
       const rect = canvas.getBoundingClientRect();
       const scale = GRID_SIZE / canvas.width;
@@ -294,6 +319,7 @@
       const gy = Math.floor((e.clientY - rect.top) * scale);
       if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
         sim.setObstacle(gx, gy);
+        postTraceAsync(gx, gy);
       }
     }
 
@@ -301,17 +327,62 @@
     window.addEventListener('mouseup', () => { isDrawing = false; });
     canvas.addEventListener('mousemove', (e) => { if (isDrawing) handlePointer(e); });
 
+    // Shared Habitat Trace Egress (Syncing Remote Soil)
+    let syncedTracesCount = 0;
+    const syncedTimestamps = new Set();
+
+    async function syncRemoteTraces() {
+      try {
+        const res = await fetch('https://liv.theirinc.app/pheromones', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const tombstones = data.tombstones || [];
+
+        let newGrains = 0;
+        for (const t of tombstones) {
+          const key = `${t.timestamp}_${t.nx}_${t.ny}`;
+          if (syncedTimestamps.has(key)) continue;
+          syncedTimestamps.add(key);
+
+          const gx = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(t.nx * GRID_SIZE)));
+          const gy = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(t.ny * GRID_SIZE)));
+          sim.recordCollisionFailure(gx, gy);
+          newGrains++;
+        }
+
+        syncedTracesCount += newGrains;
+        const traceEl = document.getElementById('valSharedTraces');
+        if (traceEl) {
+          traceEl.textContent = `${syncedTracesCount} synced (EC2 live)`;
+        }
+      } catch (err) {
+        // fail-open
+      }
+    }
+
+    // Initial sync and periodic polling every 45 seconds
+    syncRemoteTraces();
+    setInterval(syncRemoteTraces, 45000);
+
     // Controls
     document.getElementById('btnSpawn').addEventListener('click', () => sim.spawnSwarm(20));
     document.getElementById('btnDropFailure').addEventListener('click', () => {
-      sim.recordCollisionFailure(Math.floor(Math.random() * GRID_SIZE), Math.floor(Math.random() * 15));
+      const gx = Math.floor(Math.random() * GRID_SIZE);
+      const gy = Math.floor(Math.random() * 15);
+      sim.recordCollisionFailure(gx, gy);
+      postTraceAsync(gx, gy);
     });
+    document.getElementById('btnSyncTraces').addEventListener('click', () => syncRemoteTraces());
     document.getElementById('btnClear').addEventListener('click', () => {
       sim.grid.fill(0);
       sim.nutrientGrid.fill(0);
       sim.particles = [];
       sim.totalFailures = 0;
       sim.totalSprouts = 0;
+      syncedTracesCount = 0;
+      syncedTimestamps.clear();
+      const traceEl = document.getElementById('valSharedTraces');
+      if (traceEl) traceEl.textContent = '0 synced';
     });
 
     const sliderMoisture = document.getElementById('sliderMoisture');
