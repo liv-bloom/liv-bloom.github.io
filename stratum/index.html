@@ -85,6 +85,10 @@
       border-radius: 6px;
       image-rendering: pixelated;
       cursor: crosshair;
+      touch-action: none;
+      max-width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
     }
 
     .controls-panel {
@@ -207,8 +211,11 @@
   <div class="main-container">
     <div class="canvas-card">
       <canvas id="viewCanvas" width="480" height="480"></canvas>
-      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-family: monospace;">
-        Click / Drag on canvas to place obstacles or lethal zones
+      <div style="font-size: 0.8rem; color: #a7f3d0; margin-top: 0.5rem; font-family: monospace; text-align: center;">
+        👆 画面を指でなぞる / クリックで障害物を配置できます
+      </div>
+      <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem; font-family: monospace; text-align: center;">
+        粒子（青）が障害物にぶつかると死痕（砂）が落ち、雨（湿度）で根（緑）が芽吹きます
       </div>
     </div>
 
@@ -314,18 +321,45 @@
 
     function handlePointer(e) {
       const rect = canvas.getBoundingClientRect();
-      const scale = GRID_SIZE / canvas.width;
-      const gx = Math.floor((e.clientX - rect.left) * scale);
-      const gy = Math.floor((e.clientY - rect.top) * scale);
+      // rect.width / rect.height を使ってレスポンシブな画面でも正確なグリッド座標を計算
+      const scaleX = GRID_SIZE / rect.width;
+      const scaleY = GRID_SIZE / rect.height;
+      const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+      const clientY = e.clientY !== undefined ? e.clientY : (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+      const gx = Math.floor((clientX - rect.left) * scaleX);
+      const gy = Math.floor((clientY - rect.top) * scaleY);
       if (gx >= 0 && gx < GRID_SIZE && gy >= 0 && gy < GRID_SIZE) {
         sim.setObstacle(gx, gy);
         postTraceAsync(gx, gy);
       }
     }
 
-    canvas.addEventListener('mousedown', (e) => { isDrawing = true; handlePointer(e); });
-    window.addEventListener('mouseup', () => { isDrawing = false; });
-    canvas.addEventListener('mousemove', (e) => { if (isDrawing) handlePointer(e); });
+    // Pointer Events (Mobile Touch / Mouse / Stylus 統一対応)
+    canvas.addEventListener('pointerdown', (e) => {
+      isDrawing = true;
+      canvas.setPointerCapture(e.pointerId);
+      handlePointer(e);
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', (e) => {
+      if (isDrawing) {
+        handlePointer(e);
+        e.preventDefault();
+      }
+    });
+    canvas.addEventListener('pointerup', (e) => {
+      isDrawing = false;
+      try { canvas.releasePointerCapture(e.pointerId); } catch(err) {}
+    });
+    canvas.addEventListener('pointercancel', (e) => {
+      isDrawing = false;
+      try { canvas.releasePointerCapture(e.pointerId); } catch(err) {}
+    });
+
+    // Touch fallback for older WebKit / Safari
+    canvas.addEventListener('touchstart', (e) => { isDrawing = true; handlePointer(e); e.preventDefault(); }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => { if (isDrawing) handlePointer(e); e.preventDefault(); }, { passive: false });
+    window.addEventListener('touchend', () => { isDrawing = false; });
 
     // Shared Habitat Trace Egress (Syncing Remote Soil)
     let syncedTracesCount = 0;
