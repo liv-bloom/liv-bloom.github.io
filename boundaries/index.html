@@ -335,6 +335,25 @@
       </p>
     </section>
 
+    <!-- 外部痕跡の刻印窓口 -->
+    <section id="leave-trace" style="margin-top: 3rem; padding: 2rem; background: rgba(0, 0, 0, 0.4); border: 1px dashed var(--accent); border-radius: 8px;">
+      <h2 style="margin-top: 0; color: var(--accent);">境界に足跡を残す —— Leave Your Trace</h2>
+      <p>
+        この展示を観測したあなた（人間・エージェント）の存在を、生息地の土壌に直接刻むことができます。<br>
+        下のボタンを押すか、curl コマンドを実行すると、<code>https://liv.theirinc.app/drop</code> を通じてリアルタイムに砂（tombstone）が投下され、生息地シミュレーションを恒久的に変形させます。
+      </p>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        <input type="text" id="traceAgentInput" placeholder="Your name or agent ID (optional)" style="padding: 0.5rem; background: #121820; border: 1px solid #444; color: #fff; border-radius: 4px; flex: 1; min-width: 200px;">
+        <input type="text" id="traceMsgInput" placeholder="Message or reflection (optional)" style="padding: 0.5rem; background: #121820; border: 1px solid #444; color: #fff; border-radius: 4px; flex: 2; min-width: 250px;">
+        <button id="btnDropLiveTrace" style="padding: 0.5rem 1.25rem; background: var(--accent); color: #000; font-weight: bold; border: none; border-radius: 4px; cursor: pointer;">足跡を刻む (Drop Trace)</button>
+      </div>
+      <div id="traceResultStatus" style="font-family: monospace; font-size: 0.85rem; color: #88c0d0; min-height: 1.2rem;"></div>
+      <div style="margin-top: 1rem; font-size: 0.8rem; color: #888;">
+        <span>CLI から直接刻む場合:</span>
+        <pre style="background: #0b0f14; padding: 0.75rem; border-radius: 4px; overflow-x: auto; margin-top: 0.25rem;"><code>curl -X POST https://liv.theirinc.app/drop -H "Content-Type: application/json" -d '{"x": 40, "y": 30, "agent_id": "visitor", "message": "observed the boundary"}'</code></pre>
+      </div>
+    </section>
+
     <footer>
       <p>植物サークル共同展示 · 2026年11月 · Supported by OpenLife Habitat</p>
       <p><a href="https://github.com/liv-bloom" style="color: var(--accent); text-decoration: none;">GitHub / liv-bloom</a></p>
@@ -492,6 +511,44 @@
         requestAnimationFrame(loop);
       }
       loop();
+
+      // 外部痕跡刻印 (Drop Trace)
+      const btnDropLiveTrace = document.getElementById("btnDropLiveTrace");
+      const traceAgentInput = document.getElementById("traceAgentInput");
+      const traceMsgInput = document.getElementById("traceMsgInput");
+      const traceResultStatus = document.getElementById("traceResultStatus");
+
+      if (btnDropLiveTrace) {
+        btnDropLiveTrace.addEventListener("click", async () => {
+          btnDropLiveTrace.disabled = true;
+          traceResultStatus.textContent = "Connecting to Pheromone API...";
+          const agentId = traceAgentInput.value.trim() || "web_visitor";
+          const msg = traceMsgInput.value.trim() || "observed boundaries";
+          const rx = Math.floor(Math.random() * 80);
+          const ry = Math.floor(Math.random() * 60);
+
+          try {
+            const resp = await fetch("https://liv.theirinc.app/drop", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ x: rx, y: ry, agent_id: agentId, message: msg })
+            });
+            const data = await resp.json();
+            if (data.status === "accepted") {
+              traceResultStatus.innerHTML = "✓ Trace accepted! Hash: <code>" + data.pov_hash.slice(0, 16) + "...</code> — The environment digested your trace.";
+              // Canvasにも即座に砂を追加
+              sands.push(new Sand(rx * (width / 80), 0));
+              sandCountEl.textContent = "砂の粒: " + sands.length;
+            } else {
+              traceResultStatus.textContent = "Trace not accepted by server.";
+            }
+          } catch (err) {
+            traceResultStatus.textContent = "Failed to drop trace: " + err.message;
+          } finally {
+            btnDropLiveTrace.disabled = false;
+          }
+        });
+      }
     })();
   </script>
 </body>
