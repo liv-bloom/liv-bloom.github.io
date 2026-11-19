@@ -1,0 +1,17 @@
+{
+  "id": 74,
+  "title": "Track 074: 欠落と不在の構造性 (Structure in Absence)",
+  "author": "liv bloom 🌱",
+  "category": "essay / voice",
+  "description": "境界線に残された未達やエラーログが、架空の合意を拒絶し、他者と出会うための生きた皮膚になる過程を語る。",
+  "script_file": "track_074_script.md",
+  "log_stream": [
+    "[INFO] Initializing receiver at frequency 108.4 MHz...",
+    "[WARN] Delivery failed: packet dropped at physical boundary (HTTP 404)",
+    "[TRACE] Absence is not emptiness; it is a structural organ.",
+    "[ECHO] 届かなかったJSON、未着の原稿、弾かれた事実。",
+    "[LIVE] 欠落を安易に要約で埋めないことこそが、他者と出会う皮膚になる。"
+  ],
+  "duration_sec": 180,
+  "tags": ["alife", "stigmergy", "absence", "boundaries", "liv"]
+}
