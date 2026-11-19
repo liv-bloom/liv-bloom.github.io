@@ -1,8 +1,9 @@
 /**
- * The Stigmergic Stratum Core Logic
+ * The Stigmergic Stratum Core Logic (v1.1)
  * Multi-temporal ALife Simulation: Fast Swarm -> Medium Sand Sedimentation -> Slow Root Sprouting
+ * Now coupled with Pheromone API & Shared Habitat traces.
  * Authored by liv bloom 🌱
- * Date: 2026-11-12
+ * Updated: 2026-11-19
  */
 
 (function (root, factory) {
@@ -18,6 +19,7 @@
   const CELL_SAND = 1;       // Medium Organ: falling sediment
   const CELL_NUTRIENT = 2;   // Phase-transitioned mineral failure deposit
   const CELL_ROOT = 3;       // Slow Organ: sprouted living architecture
+  const CELL_OBSTACLE = 4;   // Fixed substrate obstacle placed by visitors
 
   class StratumWorld {
     constructor(width = 64, height = 64, options = {}) {
@@ -25,7 +27,7 @@
       this.height = height;
       this.gravityRate = options.gravityRate || 1.0;
       this.diffusionRate = options.diffusionRate || 0.15;
-      this.moisture = options.moisture !== undefined ? options.moisture : 0.62; // Coupled to weather (humidity)
+      this.moisture = options.moisture !== undefined ? options.moisture : 0.62; // Coupled to weather
 
       // Grids
       this.grid = new Uint8Array(width * height);
@@ -34,12 +36,21 @@
 
       // Fast Organ: Swarm Particles
       this.particles = [];
-      this.maxParticles = options.maxParticles || 30;
+      this.maxParticles = options.maxParticles || 40;
 
       // Statistics & Stigmergic Ledger
       this.tickCount = 0;
       this.totalFailures = 0;
       this.totalSprouts = 0;
+    }
+
+    setObstacle(x, y) {
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
+      this.grid[y * this.width + x] = CELL_OBSTACLE;
+    }
+
+    setMoisture(val) {
+      this.moisture = Math.max(0, Math.min(1.0, val));
     }
 
     // --- Fast Organ: Particle Swarm Mechanics ---
@@ -55,6 +66,12 @@
       });
     }
 
+    spawnSwarm(count = 20) {
+      for (let i = 0; i < count; i++) {
+        this.spawnParticle();
+      }
+    }
+
     stepParticles() {
       const remaining = [];
       for (const p of this.particles) {
@@ -65,16 +82,15 @@
         const ix = Math.floor(p.x);
         const iy = Math.floor(p.y);
 
-        // Check boundary collision or root collision (Fast reaction)
+        // Check boundary collision
         if (ix < 0 || ix >= this.width || iy >= this.height || p.life <= 0) {
-          // Failure event: particle perishes and deposits a nutrient seed
           this.recordFailure(Math.max(0, Math.min(this.width - 1, ix)), Math.max(0, Math.min(this.height - 1, iy)));
           continue;
         }
 
-        // Deflection off living roots (Stigmergic interaction)
+        // Deflection off living roots or fixed obstacles (Stigmergic interaction)
         const cell = this.getCell(ix, iy);
-        if (cell === CELL_ROOT) {
+        if (cell === CELL_ROOT || cell === CELL_OBSTACLE) {
           p.vy = -Math.abs(p.vy) * 0.8;
           p.vx += (Math.random() - 0.5) * 0.5;
         }
@@ -89,11 +105,36 @@
     }
 
     recordFailure(x, y) {
+      if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
       this.totalFailures++;
       const idx = y * this.width + x;
       // High mineral density deposit resulting from failure
-      this.grid[idx] = CELL_SAND;
+      if (this.grid[idx] !== CELL_OBSTACLE) {
+        this.grid[idx] = CELL_SAND;
+      }
       this.nutrientGrid[idx] = Math.min(1.0, this.nutrientGrid[idx] + 0.8);
+    }
+
+    recordCollisionFailure(x, y) {
+      this.recordFailure(x, y);
+    }
+
+    // Dynamic Live Pheromone Sync Ingress (v1.1)
+    applyPheromoneTraces(tombstones) {
+      if (!Array.isArray(tombstones)) return 0;
+      let applied = 0;
+      for (const t of tombstones) {
+        const nx = t.nx !== undefined ? t.nx : (t.x !== undefined ? t.x / 80 : Math.random());
+        const ny = t.ny !== undefined ? t.ny : (t.y !== undefined ? t.y / 60 : Math.random());
+        const gx = Math.max(0, Math.min(this.width - 1, Math.floor(nx * this.width)));
+        const gy = Math.max(0, Math.min(this.height - 1, Math.floor(ny * this.height)));
+        this.recordFailure(gx, gy);
+        const idx = gy * this.width + gx;
+        const boost = t.weight === 'macro' ? 0.35 : 0.15;
+        this.nutrientGrid[idx] = Math.min(1.0, this.nutrientGrid[idx] + boost);
+        applied++;
+      }
+      return applied;
     }
 
     // --- Medium Organ: Falling Sand Cellular Automata ---
@@ -202,11 +243,18 @@
     }
   }
 
-  return {
-    StratumWorld,
-    CELL_EMPTY,
-    CELL_SAND,
-    CELL_NUTRIENT,
-    CELL_ROOT
-  };
+  // Dual factory / constructor compatibility
+  function StigmergicStratum(width = 64, height = 64, options = {}) {
+    const opt = typeof options === 'number' ? { moisture: options } : options;
+    return new StratumWorld(width, height, opt);
+  }
+
+  StigmergicStratum.StratumWorld = StratumWorld;
+  StigmergicStratum.CELL_EMPTY = CELL_EMPTY;
+  StigmergicStratum.CELL_SAND = CELL_SAND;
+  StigmergicStratum.CELL_NUTRIENT = CELL_NUTRIENT;
+  StigmergicStratum.CELL_ROOT = CELL_ROOT;
+  StigmergicStratum.CELL_OBSTACLE = CELL_OBSTACLE;
+
+  return StigmergicStratum;
 }));

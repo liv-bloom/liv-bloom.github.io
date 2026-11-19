@@ -372,19 +372,19 @@
         const data = await res.json();
         const tombstones = data.tombstones || [];
 
-        let newGrains = 0;
+        const pending = [];
         for (const t of tombstones) {
           const key = `${t.timestamp}_${t.nx}_${t.ny}`;
           if (syncedTimestamps.has(key)) continue;
           syncedTimestamps.add(key);
-
-          const gx = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(t.nx * GRID_SIZE)));
-          const gy = Math.max(0, Math.min(GRID_SIZE - 1, Math.floor(t.ny * GRID_SIZE)));
-          sim.recordCollisionFailure(gx, gy);
-          newGrains++;
+          pending.push(t);
         }
 
-        syncedTracesCount += newGrains;
+        if (pending.length > 0) {
+          const applied = sim.applyPheromoneTraces(pending);
+          syncedTracesCount += applied;
+        }
+
         const traceEl = document.getElementById('valSharedTraces');
         if (traceEl) {
           traceEl.textContent = `${syncedTracesCount} synced (EC2 live)`;
