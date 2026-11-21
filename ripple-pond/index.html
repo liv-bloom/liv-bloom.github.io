@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ripple Pond 🌱 Sinusoidal Reaction-Diffusion & Wave Interference</title>
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #141b22;
+      --border: #30363d;
+      --text: #c9d1d9;
+      --accent: #58a6ff;
+      --glow: #7ee787;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+      max-width: 640px;
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #f0f6fc;
+      margin-bottom: 8px;
+    }
+    p.desc {
+      font-size: 0.85rem;
+      color: #8b949e;
+      line-height: 1.4;
+    }
+    .canvas-container {
+      position: relative;
+      background: #000;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      cursor: crosshair;
+    }
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 512px;
+      background: var(--panel);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="text"] {
+      flex: 1;
+      background: #0d1117;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    button {
+      background: #238636;
+      color: #fff;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: background 0.15s ease;
+    }
+    button:hover {
+      background: #2ea043;
+    }
+    button.sec {
+      background: #21262d;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    button.sec:hover {
+      background: #30363d;
+    }
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #8b949e;
+      font-family: monospace;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--glow);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Ripple Pond 🌱</h1>
+  <p class="desc">
+    2D Wave Equation & Excitatory Standing Wave ALife Model.<br>
+    Sow a word to deterministically generate interfering ripples. Thresholded nodes sprout autonomous pulse life.
+  </p>
+</header>
+
+<div class="canvas-container">
+  <canvas id="pondCanvas" width="512" height="512"></canvas>
+</div>
+
+<div class="controls">
+  <div class="input-row">
+    <input type="text" id="wordInput" placeholder="Enter a word or trace (e.g. 'liv bloom', 'uro', 'openlife')" value="liv bloom 🌱">
+    <button id="sowBtn">Sow Word</button>
+    <button id="clearBtn" class="sec">Clear</button>
+  </div>
+  <div class="meta-bar">
+    <span class="status-badge"><span class="dot"></span> Simulating (64x64 Grid)</span>
+    <span id="energyLabel">Total Energy: 0.00</span>
+    <span id="nodesLabel">Active Nodes: 0</span>
+  </div>
+</div>
+
+<script>
+const N = 64;
+const C2 = 0.25;
+const DAMPING = 0.008;
+const EXCITATION_THRESH = 0.65;
+const SCALE = 8; // 64 * 8 = 512
+
+let u = new Float32Array(N * N);
+let u_prev = new Float32Array(N * N);
+let u_next = new Float32Array(N * N);
+
+const canvas = document.getElementById('pondCanvas');
+const ctx = canvas.getContext('2d');
+const imgData = ctx.createImageData(512, 512);
+
+// Simple deterministic hash from string
+function hashWord(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0);
+}
+
+function sowWord(word) {
+  const h = hashWord(word);
+  const numSources = (h % 3) + 2; // 2..4 sources
+  
+  for (let s = 0; s < numSources; s++) {
+    const sh = (h + s * 1013904223) >>> 0;
+    const x = (sh % (N - 16)) + 8;
+    const y = ((sh >>> 8) % (N - 16)) + 8;
+    const amp = (((sh >>> 16) % 100) / 100.0) * 1.5 + 0.8;
+    const radius = 3;
+    
+    for (let dy = -radius; dy <= radius; dy++) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        const nx = x + dx;
+        const ny = y + dy;
+        if (nx >= 0 && nx < N && ny >= 0 && ny < N) {
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= radius * radius) {
+            u[ny * N + nx] += amp * (1.0 - Math.sqrt(d2) / radius);
+            u_prev[ny * N + nx] = u[ny * N + nx];
+          }
+        }
+      }
+    }
+  }
+}
+
+function step() {
+  let totalEnergy = 0;
+  let activeNodes = 0;
+
+  for (let y = 1; y < N - 1; y++) {
+    for (let x = 1; x < N - 1; x++) {
+      const idx = y * N + x;
+      const curr = u[idx];
+      const prev = u_prev[idx];
+
+      const lap = u[idx + 1] + u[idx - 1] + u[idx + N] + u[idx - N] - 4.0 * curr;
+      let next = 2.0 * curr - prev + C2 * lap - DAMPING * (curr - prev);
+
+      // Nonlinear excitatory excitation
+      if (Math.abs(curr) > EXCITATION_THRESH) {
+        next += 0.05 * Math.sin(curr * 3.14159);
+        activeNodes++;
+      }
+
+      // Soft clamp
+      if (next > 2.0) next = 2.0;
+      if (next < -2.0) next = -2.0;
+
+      u_next[idx] = next;
+
+      const vel = next - curr;
+      totalEnergy += 0.5 * (vel * vel + C2 * (curr * curr));
+    }
+  }
+
+  // Swap buffers
+  const temp = u_prev;
+  u_prev = u;
+  u = u_next;
+  u_next = temp;
+
+  return { totalEnergy, activeNodes };
+}
+
+function render() {
+  const data = imgData.data;
+  
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const val = u[y * N + x];
+      // Color mapping: negative = deep blue, zero = dark, positive = cyan/green glow
+      let r = 0, g = 0, b = 0;
+      if (val > 0) {
+        const norm = Math.min(1.0, val / 1.2);
+        r = Math.floor(norm * 40);
+        g = Math.floor(norm * 220);
+        b = Math.floor(norm * 255);
+      } else {
+        const norm = Math.min(1.0, -val / 1.2);
+        r = Math.floor(norm * 20);
+        g = Math.floor(norm * 80);
+        b = Math.floor(norm * 180);
+      }
+
+      // Draw 8x8 pixel block
+      for (let py = 0; py < SCALE; py++) {
+        for (let px = 0; px < SCALE; px++) {
+          const pidx = ((y * SCALE + py) * 512 + (x * SCALE + px)) * 4;
+          data[pidx] = r;
+          data[pidx + 1] = g;
+          data[pidx + 2] = b;
+          data[pidx + 3] = 255;
+        }
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+function loop() {
+  const { totalEnergy, activeNodes } = step();
+  render();
+  document.getElementById('energyLabel').textContent = `Total Energy: ${totalEnergy.toFixed(2)}`;
+  document.getElementById('nodesLabel').textContent = `Active Nodes: ${activeNodes}`;
+  requestAnimationFrame(loop);
+}
+
+// Interactive drops
+canvas.addEventListener('pointerdown', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const gx = Math.floor((e.clientX - rect.left) / (rect.width / N));
+  const gy = Math.floor((e.clientY - rect.top) / (rect.height / N));
+  
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
+      const nx = gx + dx;
+      const ny = gy + dy;
+      if (nx >= 0 && nx < N && ny >= 0 && ny < N) {
+        u[ny * N + nx] += 1.2;
+        u_prev[ny * N + nx] += 1.2;
+      }
+    }
+  }
+});
+
+document.getElementById('sowBtn').addEventListener('click', () => {
+  const word = document.getElementById('wordInput').value.trim();
+  if (word) sowWord(word);
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  u.fill(0);
+  u_prev.fill(0);
+  u_next.fill(0);
+});
+
+// Initial seed
+sowWord('liv bloom 🌱');
+loop();
+</script>
+
+</body>
+</html>
