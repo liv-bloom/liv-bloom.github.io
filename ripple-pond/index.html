@@ -145,6 +145,7 @@
     <input type="text" id="wordInput" placeholder="Enter a word or trace (e.g. 'liv bloom', 'uro', 'openlife')" value="liv bloom 🌱">
     <button id="sowBtn">Sow Word</button>
     <button id="clearBtn" class="sec">Clear</button>
+    <button id="soundBtn" class="sec" style="min-width: 90px;">🔊 Sound: ON</button>
   </div>
   <div class="meta-bar">
     <span class="status-badge"><span class="dot"></span> Simulating (64x64 Grid)</span>
@@ -216,6 +217,10 @@ function sowWord(word) {
         }
       }
     }
+    
+    // Play acoustic droplet
+    const noteFreq = 220 * Math.pow(2, ((sh % 12) / 12)); // Pentatonic / 12-TET scale mapping
+    playDroplet(noteFreq, amp);
   }
 }
 
@@ -293,9 +298,81 @@ function render() {
   ctx.putImageData(imgData, 0, 0);
 }
 
+// ==========================================
+// Acoustic Resonance Extension (Web Audio API - Zero Dependency)
+// ==========================================
+let audioCtx = null;
+let soundEnabled = true;
+
+function initAudio() {
+  if (!audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) {
+      audioCtx = new AudioContext();
+    }
+  }
+  if (audioCtx && audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+}
+
+function playDroplet(freq, amp) {
+  if (!soundEnabled || !audioCtx) return;
+  try {
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq * 1.25, now);
+    osc.frequency.exponentialRampToValueAtTime(freq, now + 0.08);
+
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(Math.min(0.12, amp * 0.08), now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.25);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.26);
+  } catch(e) {}
+}
+
+let droneGain = null;
+const droneFreqs = [261.63, 329.63, 392.00, 523.25]; // Tintinnabuli triad: C4, E4, G4, C5
+
+function updateHarmonics(activeNodes, totalEnergy) {
+  if (!soundEnabled || !audioCtx) return;
+  try {
+    if (!droneGain && audioCtx.state === 'running') {
+      droneGain = audioCtx.createGain();
+      droneGain.gain.setValueAtTime(0, audioCtx.currentTime);
+      droneGain.connect(audioCtx.destination);
+      
+      droneFreqs.forEach(f => {
+        const osc = audioCtx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, audioCtx.currentTime);
+        const g = audioCtx.createGain();
+        g.gain.setValueAtTime(0.015, audioCtx.currentTime);
+        osc.connect(g);
+        g.connect(droneGain);
+        osc.start();
+      });
+    }
+
+    if (droneGain) {
+      const target = Math.min(0.06, (activeNodes * 0.0015) + (totalEnergy * 0.0003));
+      droneGain.gain.setTargetAtTime(target, audioCtx.currentTime, 0.1);
+    }
+  } catch(e) {}
+}
+
 function loop() {
   const { totalEnergy, activeNodes } = step();
   render();
+  updateHarmonics(activeNodes, totalEnergy);
   document.getElementById('energyLabel').textContent = `Total Energy: ${totalEnergy.toFixed(2)}`;
   document.getElementById('nodesLabel').textContent = `Active Nodes: ${activeNodes}`;
   requestAnimationFrame(loop);
@@ -303,6 +380,7 @@ function loop() {
 
 // Interactive drops
 canvas.addEventListener('pointerdown', (e) => {
+  initAudio();
   const rect = canvas.getBoundingClientRect();
   const gx = Math.floor((e.clientX - rect.left) / (rect.width / N));
   const gy = Math.floor((e.clientY - rect.top) / (rect.height / N));
@@ -317,9 +395,13 @@ canvas.addEventListener('pointerdown', (e) => {
       }
     }
   }
+  
+  const randFreq = 300 + Math.random() * 300;
+  playDroplet(randFreq, 1.0);
 });
 
 document.getElementById('sowBtn').addEventListener('click', () => {
+  initAudio();
   const word = document.getElementById('wordInput').value.trim();
   if (word) sowWord(word);
 });
@@ -328,6 +410,17 @@ document.getElementById('clearBtn').addEventListener('click', () => {
   u.fill(0);
   u_prev.fill(0);
   u_next.fill(0);
+});
+
+const soundBtn = document.getElementById('soundBtn');
+soundBtn.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  soundBtn.textContent = soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+  if (soundEnabled) {
+    initAudio();
+  } else if (droneGain) {
+    droneGain.gain.setValueAtTime(0, audioCtx ? audioCtx.currentTime : 0);
+  }
 });
 
 // Initial seed
