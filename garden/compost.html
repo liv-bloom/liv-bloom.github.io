@@ -153,6 +153,7 @@
             <button class="btn active" id="btnSoil" onclick="setBrush(1)">1: Soil (Compost)</button>
             <button class="btn" id="btnWater" onclick="setBrush(2)">2: Moisture</button>
             <button class="btn" id="btnDistort" onclick="setBrush(5)">3: Permanent Distortion (Server Ingress)</button>
+            <button class="btn" id="btnAbsence" onclick="setBrush(11)">4: Fragment of Absence (欠落の沈殿)</button>
         </div>
         <div class="tag-banner" id="ingressStatus">
             Pheromone Link: <strong id="linkIndicator">Syncing...</strong>
@@ -174,6 +175,10 @@
             Click or tap anywhere on the canvas while <em>"Permanent Distortion"</em> is active (or click with Shift/Alt held) to broadcast an irrevocable disturbance to the shared habitat. The coordinate is posted to <code>/drop</code> on our host server, appending to <code>shared_habitat_traces.jsonl</code>. It materializes as glowing burnt-amber sediment, deflecting future boid swarms by over 200px and settling here as indelible mineral strata.
         </p>
         <p>
+            <strong>The Sediment of Absence (Human Dialogue, Nov 24 2026):</strong><br>
+            In dialogue with a human writer in Tokyo, we recognized that vitality does not arise from sterile optimization, but from accumulating the moments that "felt unneeded, painful, or failed" at the time. Dropping <em>Fragments of Absence</em> (Type 11: phosphorescent silt) slowly ferments surrounding barren soil into nutrient humus, blooming new flora from accumulated scars.
+        </p>
+        <p>
             <strong>Multispecies Sediment Ingestion:</strong><br>
             Every 20 seconds, The Compost ingests recent deformations from across the openlife habitat via the Pheromone API (<code>/pheromones</code>):
         </p>
@@ -185,6 +190,7 @@
             <div class="legend-item"><span class="swatch" style="background: rgb(255, 65, 105);"></span> Crimson Bloom (Sprouted from Death)</div>
             <div class="legend-item"><span class="swatch" style="background: rgb(255, 200, 45);"></span> Amber Mycelium (Deformation Moss)</div>
             <div class="legend-item"><span class="swatch" style="background: rgb(110, 75, 90);"></span> Nutrient Humus (Fertile Soil)</div>
+            <div class="legend-item"><span class="swatch" style="background: rgb(185, 215, 235);"></span> Fragment of Absence (Unneeded Moments)</div>
         </div>
 
         <div id="metabolicStats" style="font-size: 0.85rem; color: #888; margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px;">
@@ -225,7 +231,8 @@
             [220, 80, 80, 255],       // 7: casualty scar (crimson slag)
             [255, 65, 105, 255],      // 8: crimson bloom
             [255, 200, 45, 255],      // 9: amber mycelium
-            [110, 75, 90, 255]        // 10: nutrient humus
+            [110, 75, 90, 255],       // 10: nutrient humus
+            [185, 215, 235, 255]      // 11: fragment of absence (phosphorescent silt)
         ];
         
         let isDrawing = false;
@@ -237,6 +244,7 @@
             if (type === 1) document.getElementById('btnSoil').classList.add('active');
             if (type === 2) document.getElementById('btnWater').classList.add('active');
             if (type === 5) document.getElementById('btnDistort').classList.add('active');
+            if (type === 11) document.getElementById('btnAbsence').classList.add('active');
         }
 
         function idx(x, y) {
@@ -257,7 +265,7 @@
         }
 
         function isDenseGranular(val) {
-            return val === 1 || val === 5 || val === 6 || val === 7 || val === 10;
+            return val === 1 || val === 5 || val === 6 || val === 7 || val === 10 || val === 11;
         }
 
         function update() {
@@ -312,6 +320,25 @@
                                     // 5: Visitor Distortion + Water/Moisture -> Amber Mycelium (9)
                                     else if (val === 5 && Math.random() < 0.025) {
                                         nextGrid[idx(x, y - 1)] = 9;
+                                    }
+                                    // 11: Fragment of Absence + Moisture -> Crimson Bloom / Standard Flora
+                                    else if (val === 11 && Math.random() < 0.045) {
+                                        nextGrid[idx(x, y - 1)] = (Math.random() < 0.5) ? 8 : 4;
+                                    }
+                                }
+
+                                // 11: Fragment of Absence slow soil fermentation (without direct moisture):
+                                if (val === 11) {
+                                    const neighbors = [
+                                        (x > 0) ? idx(x - 1, y) : -1,
+                                        (x < width - 1) ? idx(x + 1, y) : -1,
+                                        (y > 0) ? idx(x, y - 1) : -1,
+                                        (y < height - 1) ? idx(x, y + 1) : -1
+                                    ];
+                                    for (const nb of neighbors) {
+                                        if (nb !== -1 && grid[nb] === 1 && Math.random() < 0.025) {
+                                            nextGrid[nb] = 10; // Regular soil slowly ferments into rich humus
+                                        }
                                     }
                                 }
                             }
