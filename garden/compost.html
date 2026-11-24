@@ -283,6 +283,9 @@
                     let i = idx(x, y);
                     let val = grid[i];
 
+                    // If this cell was already transformed by a reaction from below, preserve it
+                    if (nextGrid[i] !== val) continue;
+
                     if (isDenseGranular(val)) {
                         let below = idx(x, y + 1);
                         if (grid[below] === 0 || grid[below] === 2) {
@@ -385,7 +388,7 @@
                                 let nx = x + dx, ny = y + dy;
                                 if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
                                     let neighbor = grid[idx(nx, ny)];
-                                    if (neighbor === 7 || neighbor === 8 || neighbor === 10 || neighbor === 1) touchingHost = true;
+                                    if (neighbor === 7 || neighbor === 8 || neighbor === 10 || neighbor === 1 || neighbor === 11) touchingHost = true;
                                 }
                             }
                         }
