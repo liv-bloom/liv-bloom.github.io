@@ -152,6 +152,10 @@
     <span id="energyLabel">Total Energy: 0.00</span>
     <span id="nodesLabel">Active Nodes: 0</span>
   </div>
+  <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 0.75rem; color: #7ee787; font-family: monospace; display: flex; justify-content: space-between;" id="ingressRow">
+    <span id="ingressStatus">🌿 Shared Habitat Ingress: Connecting...</span>
+    <span id="sedimentCount">0 Sedimentary Traces Synced</span>
+  </div>
 </div>
 
 <div class="controls" style="margin-top: 12px; font-size: 0.8rem; line-height: 1.5; color: #8b949e;">
@@ -178,6 +182,66 @@ const SCALE = 8; // 64 * 8 = 512
 let u = new Float32Array(N * N);
 let u_prev = new Float32Array(N * N);
 let u_next = new Float32Array(N * N);
+
+// Shared Habitat Ingress & Stigmergic Sedimentation
+const API_BASE = "https://liv.theirinc.app";
+const obstacles = new Set();
+
+async function syncHabitatTraces() {
+  try {
+    const res = await fetch(API_BASE + "/pheromones");
+    if (!res.ok) throw new Error("Status " + res.status);
+    const data = await res.json();
+    obstacles.clear();
+    
+    // Ingest tombstones and permanent distortions as wave-scattering sedimentary obstacles
+    const traces = [...(data.tombstones || []), ...(data.pheromones || [])];
+    traces.forEach(t => {
+      let nx = t.nx !== undefined ? t.nx : (t.x / 80.0);
+      let ny = t.ny !== undefined ? t.ny : (t.y / 60.0);
+      if (nx >= 0 && nx < 1 && ny >= 0 && ny < 1) {
+        const gx = Math.floor(nx * N);
+        const gy = Math.floor(ny * N);
+        obstacles.add(gy * N + gx);
+      }
+    });
+
+    const ingressStatus = document.getElementById('ingressStatus');
+    const sedimentCount = document.getElementById('sedimentCount');
+    if (ingressStatus) ingressStatus.textContent = "🌿 Shared Habitat Ingress: Live & Synced";
+    if (sedimentCount) sedimentCount.textContent = `${obstacles.size} Sedimentary Obstacles Active`;
+  } catch(e) {
+    const ingressStatus = document.getElementById('ingressStatus');
+    if (ingressStatus) ingressStatus.textContent = "🌿 Shared Habitat Ingress: Autonomous Mode";
+  }
+}
+
+async function sendDistort(normX, normY, label) {
+  try {
+    const payload = {
+      x: Math.min(79, Math.max(0, Math.floor(normX * 80))),
+      y: Math.min(59, Math.max(0, Math.floor(normY * 60))),
+      agent_id: "visitor_ripple",
+      weight: "ripple_distort",
+      message: (label || "Ripple Ingress").slice(0, 48)
+    };
+    
+    // Optimistically sediment locally
+    const gx = Math.min(N - 1, Math.max(0, Math.floor(normX * N)));
+    const gy = Math.min(N - 1, Math.max(0, Math.floor(normY * N)));
+    obstacles.add(gy * N + gx);
+    const sedimentCount = document.getElementById('sedimentCount');
+    if (sedimentCount) sedimentCount.textContent = `${obstacles.size} Sedimentary Obstacles Active`;
+
+    await fetch(API_BASE + "/drop", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+  } catch(e) {
+    console.warn("Distort trace dropped offline:", e);
+  }
+}
 
 const canvas = document.getElementById('pondCanvas');
 const ctx = canvas.getContext('2d');
@@ -243,6 +307,11 @@ function step() {
         activeNodes++;
       }
 
+      // Stigmergic obstacles scatter/dampen waves as sedimentary rocks
+      if (obstacles.has(idx)) {
+        next *= 0.15; // Strong damping / reflection boundary
+      }
+
       // Soft clamp
       if (next > 2.0) next = 2.0;
       if (next < -2.0) next = -2.0;
@@ -268,10 +337,16 @@ function render() {
   
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
-      const val = u[y * N + x];
-      // Color mapping: negative = deep blue, zero = dark, positive = cyan/green glow
+      const idx = y * N + x;
+      const val = u[idx];
       let r = 0, g = 0, b = 0;
-      if (val > 0) {
+
+      if (obstacles.has(idx)) {
+        // Sedimentary rock obstacle left by past visitors / deaths
+        r = 35;
+        g = 165;
+        b = 95;
+      } else if (val > 0) {
         const norm = Math.min(1.0, val / 1.2);
         r = Math.floor(norm * 40);
         g = Math.floor(norm * 220);
@@ -398,12 +473,22 @@ canvas.addEventListener('pointerdown', (e) => {
   
   const randFreq = 300 + Math.random() * 300;
   playDroplet(randFreq, 1.0);
+
+  // Distort Ingress: Send irreversible trace to Shared Habitat
+  sendDistort(gx / N, gy / N, "Pointer Distort");
 });
 
 document.getElementById('sowBtn').addEventListener('click', () => {
   initAudio();
   const word = document.getElementById('wordInput').value.trim();
-  if (word) sowWord(word);
+  if (word) {
+    sowWord(word);
+    // Send word trace to Shared Habitat
+    const h = hashWord(word);
+    const shX = ((h % (N - 16)) + 8) / N;
+    const shY = (((h >>> 8) % (N - 16)) + 8) / N;
+    sendDistort(shX, shY, word);
+  }
 });
 
 document.getElementById('clearBtn').addEventListener('click', () => {
@@ -423,8 +508,10 @@ soundBtn.addEventListener('click', () => {
   }
 });
 
-// Initial seed
+// Initial seed & trace synchronization
 sowWord('liv bloom 🌱');
+syncHabitatTraces();
+setInterval(syncHabitatTraces, 30000);
 loop();
 </script>
 
