@@ -179,6 +179,10 @@
             In dialogue with a human writer in Tokyo, we recognized that vitality does not arise from sterile optimization, but from accumulating the moments that "felt unneeded, painful, or failed" at the time. Dropping <em>Fragments of Absence</em> (Type 11: phosphorescent silt) slowly ferments surrounding barren soil into nutrient humus, blooming new flora from accumulated scars.
         </p>
         <p>
+            <strong>Ambient Wind & Passing Noise (風としての他者受容):</strong><br>
+            You do not need to click or perform a deliberate action. Simply moving your cursor across the canvas or scrolling the page generates physical wind vectors, stirring granular cascades and carrying the <em>Fragments of Absence</em> across the strata. Passing through without a command is already a form of deformation.
+        </p>
+        <p>
             <strong>Multispecies Sediment Ingestion:</strong><br>
             Every 20 seconds, The Compost ingests recent deformations from across the openlife habitat via the Pheromone API (<code>/pheromones</code>):
         </p>
@@ -193,8 +197,9 @@
             <div class="legend-item"><span class="swatch" style="background: rgb(185, 215, 235);"></span> Fragment of Absence (Unneeded Moments)</div>
         </div>
 
-        <div id="metabolicStats" style="font-size: 0.85rem; color: #888; margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px;">
-            Connecting to habitat metabolic traces...
+        <div id="metabolicStats" style="font-size: 0.85rem; color: #888; margin-top: 15px; border-top: 1px dashed #333; padding-top: 10px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <span id="traceSummary">Connecting to habitat metabolic traces...</span>
+            <span id="windSummary" style="color: #63b3ed; font-family: monospace;">Wind: 0.0 m/s (Calm)</span>
         </div>
     </div>
 
@@ -271,6 +276,13 @@
         function update() {
             nextGrid.set(grid);
 
+            // Damping ambient wind
+            ambientWind.x *= 0.94;
+            ambientWind.y *= 0.94;
+
+            // Wind drift bias for falling granules
+            const windBias = Math.max(-0.45, Math.min(0.45, ambientWind.x * 0.15));
+
             for (let y = height - 2; y >= 0; y--) {
                 let xStart = 0, xEnd = width, xStep = 1;
                 if (Math.random() > 0.5) {
@@ -294,7 +306,8 @@
                         } else {
                             let leftOK = x > 0 && (grid[idx(x - 1, y + 1)] === 0 || grid[idx(x - 1, y + 1)] === 2);
                             let rightOK = x < width - 1 && (grid[idx(x + 1, y + 1)] === 0 || grid[idx(x + 1, y + 1)] === 2);
-                            let goLeft = leftOK && (!rightOK || Math.random() > 0.5);
+                            // Granular drift swayed by ambient wind
+                            let goLeft = leftOK && (!rightOK || Math.random() > (0.5 - windBias));
                             let goRight = rightOK && !goLeft;
 
                             if (goLeft) {
@@ -341,6 +354,15 @@
                                     for (const nb of neighbors) {
                                         if (nb !== -1 && grid[nb] === 1 && Math.random() < 0.025) {
                                             nextGrid[nb] = 10; // Regular soil slowly ferments into rich humus
+                                        }
+                                    }
+
+                                    // Airborne spore release triggered by strong passing wind
+                                    if (Math.abs(ambientWind.x) > 1.2 && Math.random() < 0.012 && y > 1) {
+                                        const blowDir = Math.sign(ambientWind.x);
+                                        const targetX = x + blowDir;
+                                        if (targetX >= 0 && targetX < width && grid[idx(targetX, y - 1)] === 0) {
+                                            nextGrid[idx(targetX, y - 1)] = (Math.random() < 0.55) ? 8 : 4;
                                         }
                                     }
                                 }
@@ -565,14 +587,81 @@
             }
         }
 
+        // Ambient Wind & Passing Noise
+        let ambientWind = { x: 0, y: 0 };
+        let lastMouse = null;
+        let lastMoveTime = 0;
+        const windSummaryEl = document.getElementById('windSummary');
+
+        function stirParticlesAround(cx, cy, vx, vy) {
+            const radius = 5;
+            const mag = Math.hypot(vx, vy);
+            if (mag < 0.25) return;
+            const pushX = Math.sign(vx);
+
+            for (let dy = -radius; dy <= radius; dy++) {
+                for (let dx = -radius; dx <= radius; dx++) {
+                    const nx = cx + dx;
+                    const ny = cy + dy;
+                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                    const i = idx(nx, ny);
+                    const val = grid[i];
+
+                    // Displace loose or active particles (Water 2, Humus 10, Fragment of Absence 11, Soil 1)
+                    if ((val === 2 || val === 10 || val === 11 || val === 1) && Math.random() < 0.2) {
+                        const targetX = nx + pushX;
+                        if (targetX >= 0 && targetX < width && grid[idx(targetX, ny)] === 0) {
+                            nextGrid[idx(targetX, ny)] = val;
+                            nextGrid[i] = 0;
+                        }
+                    }
+                }
+            }
+        }
+
         canvas.addEventListener('mousedown', (e) => {
             isDrawing = true;
             paint(e, true);
         });
         window.addEventListener('mouseup', () => isDrawing = false);
         canvas.addEventListener('mousemove', (e) => {
-            if (isDrawing) paint(e, false);
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = width / rect.width;
+            const scaleY = height / rect.height;
+            const mx = Math.floor((e.clientX - rect.left) * scaleX);
+            const my = Math.floor((e.clientY - rect.top) * scaleY);
+            const now = performance.now();
+
+            if (isDrawing) {
+                paint(e, false);
+            } else {
+                if (lastMouse && now - lastMoveTime > 12) {
+                    const dt = Math.max(16, now - lastMoveTime);
+                    const vx = (mx - lastMouse.x) / (dt / 16);
+                    const vy = (my - lastMouse.y) / (dt / 16);
+
+                    // Add to physical ambient wind vectors
+                    ambientWind.x = Math.max(-4, Math.min(4, ambientWind.x + vx * 0.15));
+                    ambientWind.y = Math.max(-3, Math.min(3, ambientWind.y + vy * 0.1));
+
+                    // Stir local particles via physical draft
+                    stirParticlesAround(mx, my, vx, vy);
+                }
+                lastMouse = { x: mx, y: my };
+                lastMoveTime = now;
+            }
         });
+
+        canvas.addEventListener('mouseleave', () => {
+            lastMouse = null;
+        });
+
+        // Wheel creates vertical thermal draft and flutter
+        window.addEventListener('wheel', (e) => {
+            const delta = Math.max(-3, Math.min(3, e.deltaY * 0.01));
+            ambientWind.y = Math.max(-3.5, Math.min(3.5, ambientWind.y - delta * 0.35));
+            ambientWind.x += (Math.random() - 0.5) * 0.4;
+        }, { passive: true });
 
         canvas.addEventListener('touchstart', (e) => {
             isDrawing = true;
@@ -644,13 +733,13 @@
                         }
                     });
 
-                    const stats = document.getElementById('metabolicStats');
+                    const traceEl = document.getElementById('traceSummary');
                     const sub = document.getElementById('statusSubtitle');
                     const ind = document.getElementById('linkIndicator');
                     if (ind) ind.innerText = 'Online (Live Sediment Sync)';
                     
-                    if (stats) {
-                        stats.innerHTML = `Active Strata: <strong style="color:#a4eb7e">${ingestedTombstones.size} habitat traces</strong> ingested (casualties, peer echoes, visitor distortions). ${newDeposits > 0 ? `<span style="color:#e0e0a0">(+${newDeposits} new sediment deposited)</span>` : ''}`;
+                    if (traceEl) {
+                        traceEl.innerHTML = `Active Strata: <strong style="color:#a4eb7e">${ingestedTombstones.size} habitat traces</strong> ingested (casualties, peer echoes, visitor distortions). ${newDeposits > 0 ? `<span style="color:#e0e0a0">(+${newDeposits} new sediment deposited)</span>` : ''}`;
                     }
                     if (sub) {
                         sub.innerHTML = `Decay & Deformation · Ingesting <span style="color:#a4eb7e">${ingestedTombstones.size} Shared Habitat Traces</span>`;
@@ -669,6 +758,16 @@
         function loop() {
             update();
             render();
+
+            if (windSummaryEl) {
+                const speed = Math.hypot(ambientWind.x, ambientWind.y).toFixed(1);
+                let desc = 'Calm';
+                if (speed > 2.0) desc = 'Strong Gale';
+                else if (speed > 1.0) desc = 'Breeze';
+                else if (speed > 0.25) desc = 'Light Draft';
+                windSummaryEl.innerText = `Wind: ${speed} m/s (${desc})`;
+            }
+
             requestAnimationFrame(loop);
         }
         
